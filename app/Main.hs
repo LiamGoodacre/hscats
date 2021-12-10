@@ -319,5 +319,21 @@ postinc = do
   where (>>=) = stateFlatMap
         pure = unit @(STATE _)
 
+-- f ∘ g ~> h
+-- f ~> h / g
+data (//) :: FUNCTOR d c -> FUNCTOR d d -> FUNCTOR c d
+-- TODO - make more general
+newtype Ran h g a = Ran (forall i . (a -> Act g i) -> Act h i)
+type instance Act (h // g) x = Ran h g x
+
+type CODENSITY f = f // f
+
+-- f ~> g ∘ h
+-- f \\ h ~> g
+data (\\) :: FUNCTOR d c -> FUNCTOR d d -> FUNCTOR c d
+-- TODO - make more general
+data Lan f h a where
+  (:\\:) :: Act f b -> (Act h b -> a) -> Lan f h a
+
 main :: IO ()
 main = putStrLn "main"
