@@ -19,6 +19,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE RebindableSyntax #-}
 {-# OPTIONS_GHC -Wall -Werror -Wextra #-}
 
 module Main where
@@ -36,6 +37,9 @@ import Prelude
     putStrLn,
     snd,
     (.),
+    Int,
+    fromInteger,
+    Num (..),
   )
 
 data Dict c where Dict :: c => Dict c
@@ -72,44 +76,12 @@ type Functorial f o = (Obj (DOM f) o => Acts f o)
 
 type Functor :: FUNCTOR d c -> Constraint
 class (Cat (DOM f), Cat (COD f), forall o. Functorial f o) => Functor f where
-  obj_ ::
-    Dict (Obj (DOM f) a) ->
-    Dict (Obj (COD f) (Act f a))
-  mapped_ ::
+  map_ ::
     ( Obj (DOM f) a,
       Obj (DOM f) b
     ) =>
     DOM f a b ->
-    ( ( Obj (COD f) (Act f a),
-        Obj (COD f) (Act f b)
-      ) =>
-      COD f (Act f a) (Act f b) ->
-      r
-    ) ->
-    r
-
-obj ::
-  forall f a.
-  Functor f =>
-  Dict (Obj (DOM f) a) ->
-  Dict (Obj (COD f) (Act f a))
-obj = obj_ @_ @_ @f
-
-mapped ::
-  forall f a b r.
-  ( Functor f,
-    Obj (DOM f) a,
-    Obj (DOM f) b
-  ) =>
-  DOM f a b ->
-  ( ( Obj (COD f) (Act f a),
-      Obj (COD f) (Act f b)
-    ) =>
-    COD f (Act f a) (Act f b) ->
-    r
-  ) ->
-  r
-mapped = mapped_ @_ @_ @f
+    COD f (Act f a) (Act f b)
 
 map ::
   forall f a b.
@@ -119,7 +91,7 @@ map ::
   ) =>
   DOM f a b ->
   COD f (Act f a) (Act f b)
-map d = mapped @f d id
+map d = map_ @_ @_ @f d
 
 type TYPE :: CAT Type
 type TYPE = (->)
@@ -131,33 +103,27 @@ instance Cat TYPE where
   (∘) = (.)
 
 data READER :: Type -> FUNCTOR TYPE TYPE
-
 type instance Act (READER x) y = x -> y
-
 instance Functor (READER x) where
-  obj_ Dict = Dict
-  mapped_ f r =
-    case obj @(READER x) Dict of
-      Dict -> r \g -> f . g
+  map_ = (.)
+
+data ENV :: Type -> FUNCTOR TYPE TYPE
+type instance Act (ENV x) y = (x, y)
+instance Functor (ENV x) where
+  map_ f (l, r) = (l, f r)
 
 data (∘∘) :: FUNCTOR a b -> FUNCTOR x a -> FUNCTOR x b
-
 type instance Act (f ∘∘ g) x = Act f (Act g x)
-
 instance (Functor f, Functor g) => Functor (f ∘∘ g) where
-  obj_ = obj @f . obj @g
-  mapped_ dd r = mapped @g dd \gg -> mapped @f gg r
-
-eg0 :: () -> () -> ()
-eg0 _ _ = ()
-
-eg1 :: () -> () -> ()
-eg1 = map @(READER () ∘∘ READER ()) (\() -> ()) eg0
+  map_ = map @f . map @g
 
 data MONOID :: Type -> CAT () where
   MONOID :: m -> MONOID m '() '()
 
-type instance Obj (MONOID m) x = (x ~ '(), MONOID m ~ MONOID m)
+type instance Obj (MONOID m) x =
+  ( x ~ '(),
+    MONOID m ~ MONOID m
+  )
 
 instance Monoid m => Cat (MONOID m) where
   identity = MONOID mempty
@@ -187,28 +153,19 @@ instance (Cat l, Cat r) => Cat (l ×× r) where
   (a :××: b) ∘ (c :××: d) = (a ∘ c) :××: (b ∘ d)
 
 data DELTA :: FUNCTOR k (k ×× k)
-
 type instance Act DELTA x = '(x, x)
-
 instance Cat k => Functor (DELTA :: FUNCTOR k (k ×× k)) where
-  obj_ Dict = Dict
-  mapped_ f r = r (f :××: f)
+  map_ f = (f :××: f)
 
 data (∧) :: FUNCTOR (TYPE ×× TYPE) TYPE
-
 type instance Act (∧) x = (Fst x, Snd x)
-
 instance Functor (∧) where
-  obj_ Dict = Dict
-  mapped_ (f :××: g) r = r \(a, b) -> (f a, g b)
+  map_ (f :××: g) (a, b) = (f a, g b)
 
 data (∨) :: FUNCTOR (TYPE ×× TYPE) TYPE
-
 type instance Act (∨) x = Either (Fst x) (Snd x)
-
 instance Functor (∨) where
-  obj_ Dict = Dict
-  mapped_ (f :××: g) r = r \case
+  map_ (f :××: g) = \case
     Left a -> Left (f a)
     Right b -> Right (g b)
 
@@ -331,6 +288,36 @@ extend = do
   let t :: c (Act g a) (Act g (Act f (Act g a)))
       t = unit @(g ∘∘ f)
   map @f t
+
+stateFlatMap ::
+  forall s a b.
+  Act (STATE s) a ->
+  (a -> Act (STATE s) b) ->
+  Act (STATE s) b
+stateFlatMap m f = join @(STATE s) (map @(STATE s) f m)
+
+type STATE s = (READER s) ∘∘ (ENV s)
+
+instance Adjoint (ENV s) (READER s) where
+  leftAdjointed_ asb (s, a) = asb a s
+  rightAdjointed_ sab a s = sab (s, a)
+
+get :: Act (STATE s) s
+get s = (s, s)
+
+put :: s -> Act (STATE s) ()
+put v _ = (v, ())
+
+modify :: (s -> s) -> Act (STATE s) ()
+modify t s = (t s, ())
+
+postinc :: Act (STATE Int) Int
+postinc = do
+  x <- get
+  _ <- put (x + 1)
+  pure x
+  where (>>=) = stateFlatMap
+        pure = unit @(STATE _)
 
 main :: IO ()
 main = putStrLn "main"
