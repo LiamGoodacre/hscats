@@ -15,6 +15,7 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -34,6 +35,7 @@ import Prelude
     Num (..),
     Semigroup ((<>)),
     String,
+    curry,
     either,
     fromInteger,
     fst,
@@ -41,48 +43,49 @@ import Prelude
     putStrLn,
     show,
     snd,
+    uncurry,
     (.),
   )
 
 -- Type of categories represented by their hom-types indexed by object names
-type CAT :: Type -> Type
-type CAT i = i -> i -> Type
+type CATEGORY :: Type -> Type
+type CATEGORY i = i -> i -> Type
 
 -- Type of functors indexed by domain & codomain categories
-type FUNCTOR :: forall i j. CAT i -> CAT j -> Type
+type FUNCTOR :: forall i j. CATEGORY i -> CATEGORY j -> Type
 type FUNCTOR d c = Proxy d -> Proxy c -> Type
 
 -- Endofunctors domain & codomain categories are the same
-type ENDO :: CAT i -> Type
+type ENDO :: CATEGORY i -> Type
 type ENDO k = FUNCTOR k k
 
 -- Project the domain category of a functor
-type DOM :: forall i (d :: CAT i) c. FUNCTOR d c -> CAT i
+type DOM :: forall i (d :: CATEGORY i) c. FUNCTOR d c -> CATEGORY i
 type DOM (f :: FUNCTOR d c) = d
 
 -- Project the codomain category of a functor
-type COD :: forall j d (c :: CAT j). FUNCTOR d c -> CAT j
+type COD :: forall j d (c :: CATEGORY j). FUNCTOR d c -> CATEGORY j
 type COD (f :: FUNCTOR d c) = c
 
 -- Categories must specify what it means to be an object in that category
-type (∈) :: forall i. i -> CAT i -> Constraint
+type (∈) :: forall i. i -> CATEGORY i -> Constraint
 type family x ∈ k = o | o -> k x
 
 type Known :: t -> Constraint
 type Known t = t ~ t
 
 -- Helper to deal with injectivity when instancing ∈
-type Obj :: CAT i -> Constraint -> Constraint
+type Obj :: CATEGORY i -> Constraint -> Constraint
 type Obj k c = (Known k, c)
 
 -- What is a category
-type Cat :: CAT i -> Constraint
-class Cat k where
+type Category :: CATEGORY i -> Constraint
+class Category k where
   identity :: i ∈ k => k i i
   (∘) :: (a ∈ k, b ∈ k, x ∈ k) => k a b -> k x a -> k x b
 
 -- Functors act on object names
-type Act :: FUNCTOR (d :: CAT i) (c :: CAT j) -> i -> j
+type Act :: FUNCTOR (d :: CATEGORY i) (c :: CATEGORY j) -> i -> j
 type family Act f o
 
 -- Type of evidence that `f` acting on `o` is an object in `f`'s codomain
@@ -93,7 +96,7 @@ instance (Act f o ∈ COD f) => Acts f o
 -- A functor is functorial for some object name.
 -- If `o` is an object in `f`'s domain category,
 -- then `f` acting on `o` is an object in `f`'s codomain category
-type Functorial :: FUNCTOR (d :: CAT o) c -> o -> Constraint
+type Functorial :: FUNCTOR (d :: CATEGORY o) c -> o -> Constraint
 type Functorial f o = (o ∈ DOM f => Acts f o)
 
 -- What is a functor?
@@ -103,8 +106,8 @@ type Functorial f o = (o ∈ DOM f => Acts f o)
 -- Also arrows can be mapped.
 type Functor :: FUNCTOR d c -> Constraint
 class
-  ( Cat d,
-    Cat c,
+  ( Category d,
+    Category c,
     forall o. Functorial f o
   ) =>
   Functor (f :: FUNCTOR d c)
@@ -127,7 +130,7 @@ data Id :: FUNCTOR k k
 
 type instance Act Id x = x
 
-instance Cat k => Functor (Id :: FUNCTOR k k) where
+instance Category k => Functor (Id :: FUNCTOR k k) where
   map_ = id
 
 -- Composing two compatible functors, is a functor
@@ -139,7 +142,7 @@ instance (Functor f, Functor g) => Functor (f ∘ g) where
   map_ = map @f . map @g
 
 -- The cross-product of two categories, is a category
-data (×) :: CAT s -> CAT t -> CAT (s, t) where
+data (×) :: CATEGORY s -> CATEGORY t -> CATEGORY (s, t) where
   (:×:) :: l a b -> r x y -> (l × r) '(a, x) '(b, y)
 
 type Fst :: (l, r) -> l
@@ -162,63 +165,63 @@ type instance
         Snd v ∈ r
       )
 
-instance (Cat l, Cat r) => Cat (l × r) where
+instance (Category l, Category r) => Category (l × r) where
   identity = identity :×: identity
   (a :×: b) ∘ (c :×: d) = (a ∘ c) :×: (b ∘ d)
 
 -- Every category has an opposite
-data OP :: CAT i -> CAT i where
+data OP :: CATEGORY i -> CATEGORY i where
   OP :: k b a -> OP k a b
 
 type instance i ∈ OP k = Obj (OP k) (i ∈ k)
 
-instance Cat k => Cat (OP k) where
+instance Category k => Category (OP k) where
   identity = OP identity
   OP g ∘ OP f = OP (f ∘ g)
 
 -- There's a category TYPE.
 -- Whose objects are types,
 -- and arrows are functions.
-type TYPE = (->) :: CAT Type
+type TYPE = (->) :: CATEGORY Type
 
 type instance t ∈ TYPE = Obj TYPE (Known t)
 
-instance Cat TYPE where
+instance Category TYPE where
   identity = id
   (∘) = (.)
 
 -- Some Yoneda embeddings
 
-data Y :: forall (k :: CAT i) -> i -> FUNCTOR k TYPE
+data Y :: forall (k :: CATEGORY i) -> i -> FUNCTOR k TYPE
 
 type instance Act (Y k d) c = k d c
 
-instance (d ∈ k, Cat k) => Functor (Y k d) where
+instance (d ∈ k, Category k) => Functor (Y k d) where
   map_ = (∘)
 
-data K :: forall (k :: CAT i) -> i -> FUNCTOR (OP k) TYPE
+data K :: forall (k :: CATEGORY i) -> i -> FUNCTOR (OP k) TYPE
 
 type instance Act (K k c) d = k d c
 
-instance (d ∈ k, Cat k) => Functor (K k d) where
+instance (d ∈ k, Category k) => Functor (K k d) where
   map_ (OP g) f = f ∘ g
 
-data HOM :: forall (k :: CAT i) -> FUNCTOR (OP k × k) TYPE
+data HOM :: forall (k :: CATEGORY i) -> FUNCTOR (OP k × k) TYPE
 
 type instance Act (HOM k) o = k (Fst o) (Snd o)
 
 -- uncomment for panic - https://gitlab.haskell.org/ghc/ghc/-/issues/20231
--- instance Cat k => Functor (HOM k) where
+-- instance Category k => Functor (HOM k) where
 --   map_ (f :×: g) t = f ∘ t ∘ g
 
 -- Two functors f g may be adjoint when
 --   `∀ a b. (a → g b) <=> (f a → b)`
 -- Or in our notation:
 --  `c a (Act g b) <=> d (Act f a) b`
-type Adjoint :: FUNCTOR c d -> FUNCTOR d c -> Constraint
+type (⊣) :: FUNCTOR c d -> FUNCTOR d c -> Constraint
 class
   (Functor f, Functor g) =>
-  Adjoint f (g :: FUNCTOR d c)
+  f ⊣ (g :: FUNCTOR d c)
     | f -> g,
       g -> f
   where
@@ -240,7 +243,7 @@ class
 
 leftAdjoint ::
   forall {c} {d} (f :: FUNCTOR c d) (g :: FUNCTOR d c) a b.
-  ( Adjoint f g,
+  ( f ⊣ g,
     a ∈ c,
     b ∈ d
   ) =>
@@ -250,7 +253,7 @@ leftAdjoint = leftAdjoint_ @c @d @f @g
 
 rightAdjoint ::
   forall {c} {d} (f :: FUNCTOR c d) (g :: FUNCTOR d c) a b.
-  ( Adjoint f g,
+  ( f ⊣ g,
     a ∈ c,
     b ∈ d
   ) =>
@@ -267,7 +270,7 @@ unit ::
     {g :: FUNCTOR d c}
     a.
   ( m ~ (g ∘ f),
-    Adjoint f g,
+    f ⊣ g,
     a ∈ c
   ) =>
   c a (Act m a)
@@ -282,7 +285,7 @@ counit ::
     {g :: FUNCTOR d c}
     a.
   ( w ~ (f ∘ g),
-    Adjoint f g,
+    f ⊣ g,
     a ∈ d
   ) =>
   d (Act w a) a
@@ -297,7 +300,7 @@ join ::
     (m :: ENDO c)
     a.
   ( m ~ (g ∘ f),
-    Adjoint f g,
+    f ⊣ g,
     a ∈ c
   ) =>
   c (Act (m ∘ m) a) (Act m a)
@@ -315,7 +318,7 @@ extend ::
     (w :: ENDO d)
     a.
   ( w ~ (f ∘ g),
-    Adjoint f g,
+    f ⊣ g,
     a ∈ d
   ) =>
   d (Act w a) (Act (w ∘ w) a)
@@ -330,7 +333,7 @@ extend = do
 
 type TYPEBifunctorObj k o = Obj k (IsPair o)
 
-data DataLens :: CAT (Type, Type) where
+data DataLens :: CATEGORY (Type, Type) where
   MkDataLens ::
     (s -> a) ->
     (s -> b -> t) ->
@@ -338,7 +341,7 @@ data DataLens :: CAT (Type, Type) where
 
 type instance o ∈ DataLens = TYPEBifunctorObj DataLens o
 
-instance Cat DataLens where
+instance Category DataLens where
   identity = MkDataLens id \_ -> id
   MkDataLens sa sbt ∘ MkDataLens ax ayb =
     MkDataLens (ax . sa) (\s -> sbt s . ayb (sa s))
@@ -371,7 +374,7 @@ second = lens snd (\(x, _) b -> (x, b))
 
 -- Prisms
 
-data DataPrism :: CAT (Type, Type) where
+data DataPrism :: CATEGORY (Type, Type) where
   MkDataPrism ::
     (s -> Either t a) ->
     (b -> t) ->
@@ -379,7 +382,7 @@ data DataPrism :: CAT (Type, Type) where
 
 type instance o ∈ DataPrism = TYPEBifunctorObj DataPrism o
 
-instance Cat DataPrism where
+instance Category DataPrism where
   identity = MkDataPrism Right id
   MkDataPrism sta bt ∘ MkDataPrism abx yb =
     MkDataPrism
@@ -427,12 +430,12 @@ instance Functor (READER x) where
 
 data ENV :: Type -> FUNCTOR TYPE TYPE
 
-type instance Act (ENV x) y = (x, y)
+type instance Act (ENV x) y = (y, x)
 
 instance Functor (ENV x) where
-  map_ f (l, r) = (l, f r)
+  map_ f (l, r) = (f l, r)
 
-data MONOID :: Type -> CAT () where
+data MONOID :: Type -> CATEGORY () where
   MONOID :: m -> MONOID m '() '()
 
 type instance
@@ -441,15 +444,15 @@ type instance
       (MONOID m)
       (x ~ '())
 
-instance Monoid m => Cat (MONOID m) where
+instance Monoid m => Category (MONOID m) where
   identity = MONOID mempty
   MONOID l ∘ MONOID r = MONOID (l <> r)
 
-data Δ :: forall (k :: CAT i) -> FUNCTOR k (k × k)
+data Δ :: forall (k :: CATEGORY i) -> FUNCTOR k (k × k)
 
 type instance Act (Δ k) x = '(x, x)
 
-instance Cat k => Functor (Δ k) where
+instance Category k => Functor (Δ k) where
   map_ f = (f :×: f)
 
 data (∧) :: FUNCTOR (TYPE × TYPE) TYPE
@@ -468,11 +471,11 @@ instance Functor (∨) where
     Left a -> Left (f a)
     Right b -> Right (g b)
 
-instance Adjoint (Δ TYPE) (∧) where
+instance Δ TYPE ⊣ (∧) where
   leftAdjoint_ t = (fst . t) :×: (snd . t)
   rightAdjoint_ (f :×: g) = \x -> (f x, g x)
 
-instance Adjoint (∨) (Δ TYPE) where
+instance (∨) ⊣ Δ TYPE where
   leftAdjoint_ (f :×: g) = f `either` g
   rightAdjoint_ t = (t . Left) :×: (t . Right)
 
@@ -485,7 +488,7 @@ flatMap ::
     {f :: FUNCTOR TYPE d}
     {g :: FUNCTOR d TYPE}.
   ( m ~ (g ∘ f),
-    Adjoint f g
+    f ⊣ g
   ) =>
   Act m a ->
   (a -> Act m b) ->
@@ -494,15 +497,49 @@ flatMap m t = join @m @b (map @m t m :: Act (m ∘ m) b)
 
 type Dup = (∧) ∘ Δ TYPE
 
-flooop :: (Int, Int)
-flooop = flatMap @Dup (3, 9) (\v -> unit @Dup (v * 2))
--- $> flooop -- (6, 18)
+dupMonad :: MonadDo Dup
+dupMonad =
+  monadDo
+    (Bind (flatMap @Dup))
+    (Pure (unit @Dup))
+
+egDuped :: (Int, Int)
+egDuped = dupMonad do
+  v <- (10, 100)
+  x <- (v + 1, v + 2)
+  pure (x * 2)
+
+-- $> egDuped -- (22,204)
+
+data CONST :: i -> FUNCTOR x (y :: CATEGORY i)
+
+type instance Act (CONST i) o = i
+
+instance
+  (Category d, Category c, i ∈ c) =>
+  Functor (CONST i :: FUNCTOR d c)
+  where
+  map_ _ = identity
+
+data CAT :: forall d c -> CATEGORY (FUNCTOR d c) where
+  NT ::
+    (Functor f, Functor g) =>
+    (forall i. i ∈ d => Proxy i -> c (Act f i) (Act g i)) ->
+    CAT d c f g
+
+type instance o ∈ (CAT d c) =
+  Obj (CAT d c) (Functor o)
+
+instance (Category d, Category c) => Category (CAT d c) where
+  identity = NT \_ -> identity
+  l ∘ r = NT \p -> case (l, r) of
+    (NT f, NT g) -> (f p ∘ g p)
+
+instance ENV s ⊣ READER s where
+  leftAdjoint_ = uncurry
+  rightAdjoint_ = curry
 
 type STATE s = READER s ∘ ENV s
-
-instance Adjoint (ENV s) (READER s) where
-  leftAdjoint_ asb (s, a) = asb a s
-  rightAdjoint_ sab a s = sab (s, a)
 
 type State s i = Act (STATE s) i
 
@@ -510,10 +547,10 @@ get :: State s s
 get s = (s, s)
 
 put :: s -> State s ()
-put v _ = (v, ())
+put v _ = ((), v)
 
 modify :: (s -> s) -> State s ()
-modify t s = (t s, ())
+modify t s = ((), t s)
 
 newtype Bind m = Bind (forall a b. Act m a -> (a -> Act m b) -> Act m b)
 
@@ -551,7 +588,7 @@ twicePostincShow = stateMonad do
   b <- postinc
   pure (show a <> "-" <> show b)
 
-egState :: (Int, String)
+egState :: (String, Int)
 egState = twicePostincShow 10
 
 -- $> egState
@@ -576,4 +613,4 @@ data Lan f h a where
   (:\\:) :: Act f b -> (Act h b -> a) -> Lan f h a
 
 main :: IO ()
-main = putStrLn "main"
+main = putStrLn (show egState)
