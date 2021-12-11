@@ -45,7 +45,7 @@ import Prelude
     (.),
   )
 
--- Type of categories represented by their hom-types index by object names
+-- Type of categories represented by their hom-types indexed by object names
 type CAT :: Type -> Type
 type CAT i = i -> i -> Type
 
