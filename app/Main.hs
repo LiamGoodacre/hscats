@@ -13,14 +13,11 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 {-# OPTIONS_GHC -Wall -Werror -Wextra #-}
@@ -36,11 +33,13 @@ import Prelude
     Monoid (..),
     Num (..),
     Semigroup ((<>)),
+    String,
     either,
     fromInteger,
     fst,
     id,
     putStrLn,
+    show,
     snd,
     (.),
   )
@@ -479,12 +478,21 @@ instance Adjoint (∨) (DELTA TYPE) where
   leftAdjoint_ (f :×: g) = f `either` g
   rightAdjoint_ t = (t . Left) :×: (t . Right)
 
-stateFlatMap ::
-  forall s a b.
-  Act (STATE s) a ->
-  (a -> Act (STATE s) b) ->
-  Act (STATE s) b
-stateFlatMap m f = join @(STATE s) (map @(STATE s) f m)
+flatMap ::
+  forall
+    {d :: CAT Type}
+    (m :: ENDO TYPE)
+    a
+    b
+    {f :: FUNCTOR TYPE d}
+    {g :: FUNCTOR d TYPE}.
+  ( m ~ (g ∘ f),
+    Adjoint f g
+  ) =>
+  Act m a ->
+  (a -> Act m b) ->
+  Act m b
+flatMap m t = join @m @b (map @m t m :: Act (m ∘ m) b)
 
 type STATE s = READER s ∘ ENV s
 
@@ -492,34 +500,57 @@ instance Adjoint (ENV s) (READER s) where
   leftAdjoint_ asb (s, a) = asb a s
   rightAdjoint_ sab a s = sab (s, a)
 
-get :: Act (STATE s) s
+type State s i = Act (STATE s) i
+
+get :: State s s
 get s = (s, s)
 
-put :: s -> Act (STATE s) ()
+put :: s -> State s ()
 put v _ = (v, ())
 
-modify :: (s -> s) -> Act (STATE s) ()
+modify :: (s -> s) -> State s ()
 modify t s = (t s, ())
 
-data Do m
-  = Do
-      (forall a b. Act m a -> (a -> Act m b) -> Act m b)
-      (forall a. a -> Act m a)
+newtype Bind m = Bind (forall a b. Act m a -> (a -> Act m b) -> Act m b)
 
-(>>=) :: forall m a b. (?monad :: Do m) => Act m a -> (a -> Act m b) -> Act m b
-(>>=) = let Do f _ = ?monad in f @a @b
+newtype Pure m = Pure (forall a. a -> Act m a)
 
-pure :: forall m a. (?monad :: Do m) => a -> Act m a
-pure = let Do _ u = ?monad in u
+type MonadDo m = forall r. ((?bind :: Bind m, ?pure :: Pure m) => r) -> r
 
-stateMonad :: ((?monad :: Do (STATE s)) => r) -> r
-stateMonad t = let ?monad = Do stateFlatMap (unit @(STATE _)) in t
+(>>=) :: forall m a b. (?bind :: Bind m) => Act m a -> (a -> Act m b) -> Act m b
+(>>=) = let Bind f = ?bind in f @a @b
 
-postinc :: Act (STATE Int) Int
+pure :: forall m a. (?pure :: Pure m) => a -> Act m a
+pure = let Pure u = ?pure in u
+
+monadDo :: Bind m -> Pure m -> MonadDo m
+monadDo b p t = do
+  let ?bind = b
+  let ?pure = p
+  t
+
+stateMonad :: MonadDo (STATE s)
+stateMonad =
+  monadDo
+    (Bind (flatMap @(STATE _)))
+    (Pure (unit @(STATE _)))
+
+postinc :: State Int Int
 postinc = stateMonad do
   x <- get
   _ <- put (x + 1)
   pure x
+
+twicePostincShow :: State Int String
+twicePostincShow = stateMonad do
+  a <- postinc
+  b <- postinc
+  pure (show a <> "-" <> show b)
+
+egState :: (Int, String)
+egState = twicePostincShow 10
+
+-- $> egState
 
 -- f ∘ g ~> h
 -- f ~> h / g
