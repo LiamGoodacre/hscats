@@ -290,9 +290,9 @@ counit = leftAdjoint @f @g identity
 
 join ::
   forall
-    {i}
+    {i} {j}
     {c :: CAT i}
-    {d :: CAT i}
+    {d :: CAT j}
     (m :: ENDO c)
     {f :: FUNCTOR c d}
     {g :: FUNCTOR d c}
@@ -480,7 +480,7 @@ instance Adjoint (∨) (Δ TYPE) where
 
 flatMap ::
   forall
-    {d :: CAT Type}
+    {d}
     (m :: ENDO TYPE)
     a
     b
@@ -493,6 +493,12 @@ flatMap ::
   (a -> Act m b) ->
   Act m b
 flatMap m t = join @m @b (map @m t m :: Act (m ∘ m) b)
+
+type Dup = (∧) ∘ Δ TYPE
+
+flooop :: (Int, Int)
+flooop = flatMap @Dup (3, 9) (\v -> unit @Dup (v * 2))
+-- $> flooop
 
 type STATE s = READER s ∘ ENV s
 
