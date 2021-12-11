@@ -69,9 +69,12 @@ type COD (f :: FUNCTOR d c) = c
 type (∈) :: forall i. i -> CAT i -> Constraint
 type family x ∈ k = o | o -> k x
 
+type Known :: t -> Constraint
+type Known t = t ~ t
+
 -- Helper to deal with injectivity when instancing ∈
 type Obj :: CAT i -> Constraint -> Constraint
-type Obj k c = (k ~ k, c)
+type Obj k c = (Known k, c)
 
 -- What is a category
 type Cat :: CAT i -> Constraint
@@ -148,11 +151,14 @@ type Snd :: (l, r) -> r
 type family Snd p where
   Snd '(a, b) = b
 
+type IsPair :: (l, r) -> Constraint
+type IsPair v = v ~ '(Fst v, Snd v)
+
 type instance
   v ∈ (l × r) =
     Obj
       (l × r)
-      ( v ~ '(Fst v, Snd v),
+      ( IsPair v,
         Fst v ∈ l,
         Snd v ∈ r
       )
@@ -176,7 +182,7 @@ instance Cat k => Cat (OP k) where
 -- and arrows are functions.
 type TYPE = (->) :: CAT Type
 
-type instance t ∈ TYPE = Obj TYPE (t ~ t)
+type instance t ∈ TYPE = Obj TYPE (Known t)
 
 instance Cat TYPE where
   identity = id
@@ -325,7 +331,7 @@ extend = do
 
 -- Lenses
 
-type TYPEBifunctorObj k o = Obj k (o ~ '(Fst o, Snd o))
+type TYPEBifunctorObj k o = Obj k (IsPair o)
 
 data DataLens :: CAT (Type, Type) where
   MkDataLens ::
