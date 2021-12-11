@@ -90,7 +90,7 @@ instance (Act f o ∈ COD f) => Acts f o
 
 -- A functor is functorial for some object name.
 -- If `o` is an object in `f`'s domain category,
--- then `f` acting on `o` is an object in `f`'s codomain categroy
+-- then `f` acting on `o` is an object in `f`'s codomain category
 type Functorial :: FUNCTOR (d :: CAT o) c -> o -> Constraint
 type Functorial f o = (o ∈ DOM f => Acts f o)
 
