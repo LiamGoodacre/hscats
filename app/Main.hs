@@ -447,11 +447,11 @@ instance Monoid m => Cat (MONOID m) where
   identity = MONOID mempty
   MONOID l ∘ MONOID r = MONOID (l <> r)
 
-data DELTA :: forall (k :: CAT i) -> FUNCTOR k (k × k)
+data Δ :: forall (k :: CAT i) -> FUNCTOR k (k × k)
 
-type instance Act (DELTA k) x = '(x, x)
+type instance Act (Δ k) x = '(x, x)
 
-instance Cat k => Functor (DELTA k) where
+instance Cat k => Functor (Δ k) where
   map_ f = (f :×: f)
 
 data (∧) :: FUNCTOR (TYPE × TYPE) TYPE
@@ -470,11 +470,11 @@ instance Functor (∨) where
     Left a -> Left (f a)
     Right b -> Right (g b)
 
-instance Adjoint (DELTA TYPE) (∧) where
+instance Adjoint (Δ TYPE) (∧) where
   leftAdjoint_ t = (fst . t) :×: (snd . t)
   rightAdjoint_ (f :×: g) = \x -> (f x, g x)
 
-instance Adjoint (∨) (DELTA TYPE) where
+instance Adjoint (∨) (Δ TYPE) where
   leftAdjoint_ (f :×: g) = f `either` g
   rightAdjoint_ t = (t . Left) :×: (t . Right)
 
