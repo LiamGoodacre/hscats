@@ -290,12 +290,11 @@ counit = leftAdjoint @f @g identity
 
 join ::
   forall
-    {i} {j}
-    {c :: CAT i}
-    {d :: CAT j}
-    (m :: ENDO c)
+    {c}
+    {d}
     {f :: FUNCTOR c d}
     {g :: FUNCTOR d c}
+    (m :: ENDO c)
     a.
   ( m ~ (g ∘ f),
     Adjoint f g,
@@ -303,18 +302,17 @@ join ::
   ) =>
   c (Act (m ∘ m) a) (Act m a)
 join = do
-  let t :: d (Act f (Act g (Act f a))) (Act f a)
+  let t :: d (Act (f ∘ g ∘ f) a) (Act f a)
       t = counit @(f ∘ g)
   map @g t
 
 extend ::
   forall
-    {i}
-    {c :: CAT i}
-    {d :: CAT i}
-    (w :: ENDO d)
+    {c}
+    {d}
     {f :: FUNCTOR c d}
     {g :: FUNCTOR d c}
+    (w :: ENDO d)
     a.
   ( w ~ (f ∘ g),
     Adjoint f g,
@@ -322,7 +320,7 @@ extend ::
   ) =>
   d (Act w a) (Act (w ∘ w) a)
 extend = do
-  let t :: c (Act g a) (Act g (Act f (Act g a)))
+  let t :: c (Act g a) (Act (g ∘ f ∘ g) a)
       t = unit @(g ∘ f)
   map @f t
 
@@ -498,7 +496,7 @@ type Dup = (∧) ∘ Δ TYPE
 
 flooop :: (Int, Int)
 flooop = flatMap @Dup (3, 9) (\v -> unit @Dup (v * 2))
--- $> flooop
+-- $> flooop -- (6, 18)
 
 type STATE s = READER s ∘ ENV s
 
