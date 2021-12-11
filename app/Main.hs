@@ -69,6 +69,7 @@ type COD (f :: FUNCTOR d c) = c
 type (∈) :: forall i. i -> CAT i -> Constraint
 type family x ∈ k = o | o -> k x
 
+-- Helper to deal with injectivity when instancing ∈
 type Obj :: CAT i -> Constraint -> Constraint
 type Obj k c = (k ~ k, c)
 
