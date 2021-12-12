@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE ConstraintKinds #-}
@@ -190,12 +191,9 @@ instance (d ∈ k, Category k) => Functor (L k d) where
   map_ (OP g) f = f ∘ g
 
 data HOM :: forall (k :: CATEGORY i) -> FUNCTOR (OP k × k) TYPE
-
 type instance Act (HOM k) o = k (Fst o) (Snd o)
-
--- Uncomment for panic - https://gitlab.haskell.org/ghc/ghc/-/issues/20231
--- instance Category k => Functor (HOM k) where
---   map_ (f :×: g) t = f ∘ t ∘ g
+instance Category k => Functor (HOM k) where
+  map_ (OP f :×: g) t = g ∘ t ∘ f
 
 data (^) :: forall c d -> CATEGORY (FUNCTOR d c) where
   Exp ::
@@ -241,10 +239,12 @@ instance (Category l, Category r, Category k, Functor f) => Functor (CURRY f :: 
   map_ lab = Exp \(_ :: Proxy z) -> map @f (lab :×: identity @_ @r @z)
 
 -- Uncomment for panic - https://gitlab.haskell.org/ghc/ghc/-/issues/20231
--- data UNCURRY :: FUNCTOR l (k ^ r) -> FUNCTOR (l × r) k
--- type instance Act (UNCURRY f) o = Act (Act f (Fst o)) (Snd o)
--- instance (Category l, Category r, Category k, Functor f) => Functor (UNCURRY f :: FUNCTOR (l × r) k) where
---   map_ lab = Exp \(_ :: Proxy z) -> map @f (lab :×: identity @_ @_ @z)
+data UNCURRY :: FUNCTOR l (k ^ r) -> FUNCTOR (l × r) k
+type instance Act (UNCURRY f) o = Act (Act f (Fst o)) (Snd o)
+-- class Functor (Act f i) => FunctorAct f i
+-- instance Functor (Act f i) => FunctorAct f i
+-- instance (Category l, Category r, Category k, Functor f, forall i . i ∈ l => FunctorAct f i) => Functor (UNCURRY f :: FUNCTOR (l × r) k) where
+--   map_ (l :×: r) = map @r r ∘ Exp \(_ :: Proxy z) -> map @(Act f z) (l :×: identity)
 
 -- Natural numbers
 data N = S N | Z
@@ -389,7 +389,7 @@ newtype BindDo m = BindDo (forall a b. Act m a -> (a -> Act m b) -> Act m b)
 
 newtype PureDo m = PureDo (forall a. a -> Act m a)
 
-type MonadDo m = forall r. ((?bind :: BindDo m, ?pure :: PureDo m) => r) -> r
+type MonadDo m = forall r. ((?bind :: BindDo m, ?pure :: PureDo m) => Act m r) -> Act m r
 
 (>>=) :: forall m a b. (?bind :: BindDo m) => Act m a -> (a -> Act m b) -> Act m b
 (>>=) = let BindDo f = ?bind in f @a @b
@@ -512,6 +512,12 @@ egDuped = dupMonad do
 
 type STATE s = READER s ∘ ENV s
 
+stateMonad :: MonadDo (STATE s)
+stateMonad =
+  monadDo
+    (BindDo (flatMap @(STATE _)))
+    (PureDo (unit @(STATE _)))
+
 type State s i = Act (STATE s) i
 
 get :: State s s
@@ -523,12 +529,6 @@ put v _ = ((), v)
 modify :: (s -> s) -> State s ()
 modify t s = ((), t s)
 
-stateMonad :: MonadDo (STATE s)
-stateMonad =
-  monadDo
-    (BindDo (flatMap @(STATE _)))
-    (PureDo (unit @(STATE _)))
-
 postinc :: State Int Int
 postinc = stateMonad do
   x <- get
@@ -539,12 +539,40 @@ twicePostincShow :: State Int String
 twicePostincShow = stateMonad do
   a <- postinc
   b <- postinc
-  pure (show a <> "-" <> show b)
+  c <- pure $ dupMonad do
+    v <- (10, 100)
+    x <- (v + 1, v + 2)
+    pure (x * 2 :: Int)
+  pure (show a <> "-" <> show b <> "-" <> show c)
 
 egState :: (String, Int)
 egState = twicePostincShow 10
 
 -- $> egState
+
+data Free t a = Free
+  { runFree ::
+      forall m {f} {g}.
+      (m ~ (g ∘ f), f ⊣ g) =>
+      (forall i. Act t i -> Act m i) ->
+      Act m a
+  }
+
+data FREE :: FUNCTOR k k -> FUNCTOR k k
+
+data (|×|) :: FUNCTOR a s -> FUNCTOR b t -> FUNCTOR (a × b) (s × t)
+type instance Act (f |×| g) o = '(Act f (Fst o), Act g (Snd o))
+instance (Functor f, Functor g) => Functor (f |×| g) where
+  map_ (l :×: r) = map @f l :×: map @g r
+
+data (/×\) :: FUNCTOR d l -> FUNCTOR d r -> FUNCTOR d (l × r)
+type instance Act (f /×\ g) o = '(Act f o, Act g o)
+instance (Functor f, Functor g) => Functor (f /×\ g) where
+  map_ t = map @f t :×: map @g t
+
+-- COEND
+-- DAY
+-- f ★ g
 
 -- f ∘ g ~> h
 -- f ~> h / g
