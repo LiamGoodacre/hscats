@@ -377,28 +377,42 @@ flatMap ::
     a
     b
     {f :: TYPE --> d}
-    {g :: d --> TYPE}
-    {mb}
-    {mmb}.
+    {g :: d --> TYPE}.
   ( m ~ (g ∘ f),
-    f ⊣ g,
-    mb ~ Act m b,
-    mmb ~ Act m mb
+    f ⊣ g
   ) =>
-  Proxy a -> Proxy b ->
+  Proxy b ->
   Act m a ->
-  (a -> mb) ->
-  mb
-flatMap _ _ m t = join @m @b (map @m t m :: mmb)
+  (a -> Act m b) ->
+  Act m b
+flatMap _ m t =
+  join @m @b
+    (map @m t m :: Act (m ∘ m) b)
 
-newtype BindDo m = BindDo (forall a b. Proxy a -> Proxy b -> Act m a -> (a -> Act m b) -> Act m b)
+newtype BindDo m
+  = BindDo
+      ( forall a b.
+        Proxy b ->
+        Act m a ->
+        (a -> Act m b) ->
+        Act m b
+      )
 
-newtype PureDo m = PureDo (forall a. a -> Act m a)
+newtype PureDo m
+  = PureDo
+      (forall a. a -> Act m a)
 
-type MonadDo m = forall r. ((?bind :: BindDo m, ?pure :: PureDo m) => Act m r) -> Act m r
+type MonadDo m =
+  forall r.
+  ( ( ?bind :: BindDo m,
+      ?pure :: PureDo m
+    ) =>
+    Act m r
+  ) ->
+  Act m r
 
 (>>=) :: forall m a b. (?bind :: BindDo m) => Act m a -> (a -> Act m b) -> Act m b
-(>>=) = let BindDo f = ?bind in f (Proxy @a) (Proxy @b)
+(>>=) = let BindDo f = ?bind in f @a (Proxy @b)
 
 pure :: forall m a. (?pure :: PureDo m) => a -> Act m a
 pure = let PureDo u = ?pure in u
