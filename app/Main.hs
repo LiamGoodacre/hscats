@@ -28,7 +28,8 @@ module Main where
 
 import Data.Kind
 import Data.Proxy
-import Prelude hiding (Functor, map, pure, (>>=))
+import Prelude hiding (Functor, map, pure, (>>=), product, succ)
+
 
 -- Type of categories represented by their hom-types indexed by object names
 type CATEGORY :: Type -> Type
@@ -176,19 +177,26 @@ instance Semigroupoid TYPE where
 instance Category TYPE where
   identity = id
 
+data (:~:) :: CATEGORY t where
+  Refl :: x :~: x
+
+type instance (t :: k) ∈ (:~:) = Obj ((:~:) @k) (Known t)
+
+instance Semigroupoid (:~:) where
+  Refl ∘ Refl = Refl
+
+instance Category (:~:) where
+  identity = Refl
+
 -- Some Yoneda embeddings
 
 data Y :: forall (k :: CATEGORY i) -> i -> (k --> TYPE)
-
 type instance Act (Y k d) c = k d c
-
 instance (d ∈ k, Category k) => Functor (Y k d) where
   map_ = (∘)
 
 data L :: forall (k :: CATEGORY i) -> i -> (OP k --> TYPE)
-
 type instance Act (L k c) d = k d c
-
 instance (d ∈ k, Category k) => Functor (L k d) where
   map_ (OP g) f = f ∘ g
 
@@ -251,6 +259,19 @@ type instance Act (UNCURRY f) o = Act (Act f (Fst o)) (Snd o)
 -- Natural numbers
 data N = S N | Z
 
+instance Semigroup N where
+  (<>) = \case
+    Z -> id
+    S l -> \r -> S (l <> r)
+
+instance Monoid N where
+  mempty = Z
+
+type TheN :: N -> N
+type family TheN n where
+  TheN 'Z = 'Z
+  TheN ('S k) = 'S (TheN k)
+
 -- Finite sets
 data Fin :: N -> Type where
   FS :: Fin k -> Fin ('S k)
@@ -260,6 +281,34 @@ data Fin :: N -> Type where
 data SFin :: forall n -> Fin n -> Type where
   SFS :: SFin n k -> SFin ('S n) ('FS k)
   SFZ :: SFin ('S n) 'FZ
+
+data (≤) :: CATEGORY N where
+  E :: n ≤ n
+  B :: l ≤ u -> l ≤ 'S u
+
+type instance x ∈ (≤) =
+  Obj
+    (≤)
+    (x ~ TheN x)
+
+instance Semigroupoid (≤) where
+  (∘) = \case
+    E -> id
+    B l -> \r -> B (l ∘ r)
+
+instance Category (≤) where
+  identity = E
+
+data Vect :: N -> Type -> Type where
+  Nil :: Vect 'Z t
+  Cons :: t -> Vect n t -> Vect ('S n) t
+
+data VECT :: FUNCTOR ((:~:) @N × TYPE) TYPE
+type instance Act VECT x = Vect (Fst x) (Snd x)
+instance Functor VECT where
+  map_ (Refl :×: g) = \case
+    Nil -> Nil
+    Cons h t -> Cons (g h) (map @VECT (Refl :×: g) t)
 
 -- A tuple is a pi type like: `(f : Fin n) → o f` for some functor `o` from the
 -- discrete category of finite sets to the category of types and functions.
@@ -615,6 +664,8 @@ data (\\) :: (d --> c) -> (d --> d) -> (c --> d)
 data Lan f h a where
   (:\\:) :: Act f b -> (Act h b -> a) -> Lan f h a
 
+{-
+
 -- Optics...
 
 -- Lenses
@@ -711,5 +762,77 @@ right = prism Right \case
   Left x -> Left (Left x)
   Right a -> Right a
 
+-}
+
+type (&) :: i -> i -> CATEGORY i -> i
+type family (&) l r k
+
+class ((a & b) k ∈ k) => CartesianActs k a b
+
+instance ((a & b) k ∈ k) => CartesianActs k a b
+
+type CartesianFunctorial :: CATEGORY o -> o -> o -> Constraint
+type CartesianFunctorial k a b = ((a ∈ k, b ∈ k) => CartesianActs k a b)
+
+class
+  ( Category k,
+    forall a b. CartesianFunctorial k a b
+  ) =>
+  Cartesian k
+  where
+  product :: (i ∈ k, a ∈ k, b ∈ k) => k i a -> k i b -> k i ((a & b) k)
+  first :: (l ∈ k, r ∈ k) => k ((l & r) k) l
+  second :: (l ∈ k, r ∈ k) => k ((l & r) k) r
+
+type instance (l & r) TYPE = (l, r)
+
+instance Cartesian TYPE where
+  product l r i = (l i, r i)
+  first (l, _) = l
+  second (_, r) = r
+
+data (&&&) :: (d × d) --> d
+type instance Act ((&&&) :: (d × d) --> d) '(l, r) = (l & r) d
+-- Uncomment for panic - https://gitlab.haskell.org/ghc/ghc/-/issues/20231
+-- instance Cartesian d => Functor ((&&&) :: (d × d) --> d) where
+--   map_ (l :×: r) = (l ∘ first) `product` (r ∘ second)
+
+type Acting :: ((d :: CATEGORY o) --> TYPE) -> o -> Type
+data Acting f a = Acting (Act f a)
+
+data Day :: ((d :: CATEGORY i) --> TYPE) -> (d --> TYPE) -> i -> Type where
+  MkDay ::
+    (a ∈ d, b ∈ d, c ∈ d) =>
+    Acting (f :: d --> TYPE) a ->
+    Acting (g :: d --> TYPE) b ->
+    d ((a & b) d) c ->
+    Day f g c
+
+data DAY :: (d --> TYPE) -> (d --> TYPE) -> (d --> TYPE)
+
+type instance Act (DAY f g) c = Day f g c
+
+instance
+  ( Functor f,
+    Functor g,
+    Cartesian d
+  ) =>
+  Functor (DAY f g :: d --> TYPE)
+  where
+  map_ d (MkDay f g c) = MkDay f g (d ∘ c)
+
+---
+
+type Terminal :: CATEGORY i -> i
+type family Terminal k
+class (Category k, Terminal k ∈ k) => HasTerminal k where
+  term :: k i (Terminal k)
+
+type instance Terminal TYPE = ()
+instance HasTerminal TYPE where
+  term _ = ()
+
+---
+
 main :: IO ()
-main = putStrLn (show egState)
+main = putStrLn ""
