@@ -29,6 +29,7 @@ module Main where
 import Data.Kind
 import Data.Proxy
 import Prelude hiding (Functor, map, pure, (>>=), product, succ)
+import qualified Prelude
 
 
 -- Type of categories represented by their hom-types indexed by object names
@@ -36,10 +37,8 @@ type CATEGORY :: Type -> Type
 type CATEGORY i = i -> i -> Type
 
 -- Type of functors indexed by domain & codomain categories
-type FUNCTOR :: forall i j. CATEGORY i -> CATEGORY j -> Type
-type FUNCTOR d c = Proxy d -> Proxy c -> Type
-
-type (-->) d c = FUNCTOR d c
+type (-->) :: forall i j. CATEGORY i -> CATEGORY j -> Type
+type (-->) d c = Proxy d -> Proxy c -> Type
 
 -- Endofunctors domain & codomain categories are the same
 type ENDO :: CATEGORY i -> Type
@@ -80,7 +79,6 @@ type family Act f o
 
 -- Type of evidence that `f` acting on `o` is an object in `f`'s codomain
 class (Act f o ∈ COD f) => Acts f o
-
 instance (Act f o ∈ COD f) => Acts f o
 
 -- A functor is functorial for some object name.
@@ -164,6 +162,17 @@ instance Semigroupoid k => Semigroupoid (OP k) where
 instance Category k => Category (OP k) where
   identity = OP identity
 
+data (:~:) :: CATEGORY t where
+  Refl :: x :~: x
+
+type instance (t :: k) ∈ (:~:) = Obj ((:~:) @k) (Known t)
+
+instance Semigroupoid (:~:) where
+  Refl ∘ Refl = Refl
+
+instance Category (:~:) where
+  identity = Refl
+
 -- There's a category TYPE.
 -- Whose objects are types,
 -- and arrows are functions.
@@ -177,16 +186,16 @@ instance Semigroupoid TYPE where
 instance Category TYPE where
   identity = id
 
-data (:~:) :: CATEGORY t where
-  Refl :: x :~: x
+data TF f :: ENDO TYPE
+type instance Act (TF f) a = f a
+instance Prelude.Functor f => Functor (TF f) where
+  map_ = fmap
 
-type instance (t :: k) ∈ (:~:) = Obj ((:~:) @k) (Known t)
+tf0 :: Maybe [Maybe Int]
+tf0 = Just [Just 0, Just 1]
 
-instance Semigroupoid (:~:) where
-  Refl ∘ Refl = Refl
-
-instance Category (:~:) where
-  identity = Refl
+tf1 :: Maybe [Maybe String]
+tf1 = map @(TF Maybe ∘ TF [] ∘ TF Maybe) show tf0
 
 -- Some Yoneda embeddings
 
@@ -211,6 +220,9 @@ data (^) :: forall c d -> CATEGORY (d --> c) where
     (forall i. i ∈ d => Proxy i -> c (Act f i) (Act g i)) ->
     (c ^ d) f g
 
+unExp :: forall x c d i o . (x ∈ d) => (c ^ d) i o -> c (Act i x) (Act o x)
+unExp (Exp f) = f (Proxy :: Proxy x)
+
 type instance
   o ∈ (c ^ d) =
     Obj (c ^ d) (Functor o)
@@ -222,6 +234,14 @@ instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
 instance (Category d, Category c) => Category (c ^ d) where
   identity = Exp \_ -> identity
 
+data COMPOSE :: forall a b x -> ((b ^ a) × (a ^ x)) --> (b ^ x)
+
+type instance Act (COMPOSE a b x) e = Fst e ∘ Snd e
+
+instance (Category a, Category b, Category x) => Functor (COMPOSE a b x) where
+  -- map_ (Exp t :×: Exp s) = Exp \_ -> t Proxy ∘ s Proxy
+  map_ _ = undefined
+
 data DISCRETE :: forall t -> CATEGORY t where DISCRETE :: DISCRETE t b b
 type instance i ∈ DISCRETE t = Obj (DISCRETE t) (Known i)
 instance Semigroupoid (DISCRETE t) where DISCRETE ∘ DISCRETE = DISCRETE
@@ -229,7 +249,8 @@ instance Category (DISCRETE t) where identity = DISCRETE
 
 data CONST :: i -> (d --> (c :: CATEGORY i))
 type instance Act (CONST x) o = x
-instance (Category d, Category c, x ∈ c) => Functor (CONST x :: d --> c) where map_ _ = identity
+instance (Category d, Category c, x ∈ c) => Functor (CONST x :: d --> c) where
+  map_ _ = identity
 
 data Δ :: forall j (k :: CATEGORY i) -> (k --> (k ^ j))
 type instance Act (Δ j k) o = CONST o
@@ -240,8 +261,10 @@ type DELTA k = Δ (DISCRETE Bool) k
 
 data PARTIAL :: (((l :: CATEGORY i) × r) --> k) -> i -> (r --> k)
 type instance Act (PARTIAL f x) y = Act f '(x, y)
-instance (Category l, Category r, Category k, Functor f, x ∈ l) => Functor (PARTIAL (f :: (l × r) --> k) x) where
-  map_ rab = map @f (identity @_ @_ @x :×: rab)
+instance
+  ( Category l, Category r, Category k, Functor f, x ∈ l
+  ) => Functor (PARTIAL (f :: (l × r) --> k) x) where
+    map_ rab = map @f (identity @_ @_ @x :×: rab)
 
 data CURRY :: ((l × r) --> k) -> (l --> (k ^ r))
 type instance Act (CURRY f) o = PARTIAL f o
@@ -303,7 +326,7 @@ data Vect :: N -> Type -> Type where
   Nil :: Vect 'Z t
   Cons :: t -> Vect n t -> Vect ('S n) t
 
-data VECT :: FUNCTOR ((:~:) @N × TYPE) TYPE
+data VECT :: ((:~:) @N × TYPE) --> TYPE
 type instance Act VECT x = Vect (Fst x) (Snd x)
 instance Functor VECT where
   map_ (Refl :×: g) = \case
@@ -509,6 +532,40 @@ instance Semigroup m => Semigroupoid (MONOID m) where
 
 instance Monoid m => Category (MONOID m) where
   identity = MONOID mempty
+
+type MONOID_OBJECT :: forall i . CATEGORY i -> i -> Type
+type MONOID_OBJECT k e = Proxy k -> Proxy e -> Type
+
+class
+  Functor (Two n :: (k × k) --> k) =>
+  MonoidObject (n :: MONOID_OBJECT @i k e) where
+    type Zero (n :: MONOID_OBJECT @i k e) :: i
+    type Two (n :: MONOID_OBJECT @i k e) :: (k × k) --> k
+    moEmpty :: (Zero n ∈ k, e ∈ k) => k (Zero n) e
+    moAppend :: (e ∈ k) => k (Act (Two n) '( e, e )) e
+
+data RegularMonoid :: forall m -> MONOID_OBJECT TYPE m
+
+instance Monoid m => MonoidObject (RegularMonoid m) where
+  type Zero (RegularMonoid m) = ()
+  type Two (RegularMonoid m) = (∧)
+  moEmpty _ = mempty
+  moAppend (l, r) = l <> r
+
+-- monads are monoid objects in the category of endofunctors
+data MAMOITCOE :: forall k m -> MONOID_OBJECT (k ^ k) m
+
+instance
+  (m ~ (g ∘ f), f ⊣ g) =>
+  MonoidObject (MAMOITCOE k m) where
+    type Zero (MAMOITCOE k m) = Id @k
+    type Two (MAMOITCOE k m) = COMPOSE k k k
+
+    moEmpty :: (k ^ k) Id m
+    moEmpty = Exp (\_ -> unit @(g ∘ f))
+
+    moAppend :: (k ^ k) (m ∘ m) m
+    moAppend = Exp (\(Proxy @_ @a) -> join @m @a)
 
 data READER :: Type -> (TYPE --> TYPE)
 
@@ -792,7 +849,7 @@ instance Cartesian TYPE where
   second (_, r) = r
 
 data (&&&) :: (d × d) --> d
-type instance Act ((&&&) :: (d × d) --> d) '(l, r) = (l & r) d
+type instance Act ((&&&) :: (d × d) --> d) o = (Fst o & Snd o) d
 -- Uncomment for panic - https://gitlab.haskell.org/ghc/ghc/-/issues/20231
 -- instance Cartesian d => Functor ((&&&) :: (d × d) --> d) where
 --   map_ (l :×: r) = (l ∘ first) `product` (r ∘ second)
