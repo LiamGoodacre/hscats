@@ -28,29 +28,30 @@ module Main where
 
 import Data.Kind
 import Data.Proxy
-import Prelude hiding (Functor, map, pure, (>>=), product, succ)
+import Prelude hiding (Functor, map, pure, (>>=), product, succ, Monad, Monoid, Semigroup)
 import qualified Prelude
 
+
+{- Category: definition -}
 
 -- Type of categories represented by their hom-types indexed by object names
 type CATEGORY :: Type -> Type
 type CATEGORY i = i -> i -> Type
 
+type OBJECTS :: forall i. CATEGORY i -> Type
+type OBJECTS (c :: CATEGORY i) = i
+
 -- Type of functors indexed by domain & codomain categories
 type (-->) :: forall i j. CATEGORY i -> CATEGORY j -> Type
 type (-->) d c = Proxy d -> Proxy c -> Type
 
--- Endofunctors domain & codomain categories are the same
-type ENDO :: CATEGORY i -> Type
-type ENDO k = k --> k
-
 -- Project the domain category of a functor
-type DOM :: forall i (d :: CATEGORY i) c. (d --> c) -> CATEGORY i
-type DOM (f :: d --> c) = d
+type DOMAIN :: forall i (d :: CATEGORY i) c. (d --> c) -> CATEGORY i
+type DOMAIN (f :: d --> c) = d
 
 -- Project the codomain category of a functor
-type COD :: forall j d (c :: CATEGORY j). (d --> c) -> CATEGORY j
-type COD (f :: d --> c) = c
+type CODOMAIN :: forall j d (c :: CATEGORY j). (d --> c) -> CATEGORY j
+type CODOMAIN (f :: d --> c) = c
 
 -- Categories must specify what it means to be an object in that category
 type (∈) :: forall i. i -> CATEGORY i -> Constraint
@@ -73,52 +74,48 @@ type Category :: CATEGORY i -> Constraint
 class Semigroupoid k => Category k where
   identity :: i ∈ k => k i i
 
--- Functors act on object names
-type Act :: ((d :: CATEGORY i) --> (c :: CATEGORY j)) -> i -> j
-type family Act f o
 
--- Type of evidence that `f` acting on `o` is an object in `f`'s codomain
-class (Act f o ∈ COD f) => Acts f o
-instance (Act f o ∈ COD f) => Acts f o
+{- Category: Examples -}
 
--- A functor is functorial for some object name.
--- If `o` is an object in `f`'s domain category,
--- then `f` acting on `o` is an object in `f`'s codomain category
-type Functorial :: ((d :: CATEGORY o) --> c) -> o -> Constraint
-type Functorial f o = (o ∈ DOM f => Acts f o)
+-- "Equality" forms a category
+data (:~:) :: CATEGORY t where
+  Refl :: x :~: x
 
--- What is a functor?
--- Domain must be a category.
--- Codomain must be a category.
--- `f` must be functorial for all possible object names.
--- Also arrows can be mapped.
-type Functor :: (d --> c) -> Constraint
-class (Category d, Category c, forall o. Functorial f o) => Functor (f :: d --> c) where
-  map_ :: (a ∈ d, b ∈ d) => d a b -> c (Act f a) (Act f b)
+type instance (t :: k) ∈ (:~:) = Obj ((:~:) @k) (Known t)
 
--- map but easier to type-apply with the functor name
-map ::
-  forall {d} {c} (f :: d --> c) a b.
-  (Functor f, a ∈ d, b ∈ d) =>
-  d a b ->
-  c (Act f a) (Act f b)
-map d = map_ @_ @_ @f d
+instance Semigroupoid (:~:) where
+  Refl ∘ Refl = Refl
 
--- The identity functor for some category k
-data Id :: forall k . k --> k
+instance Category (:~:) where
+  identity = Refl
 
-type instance Act Id x = x
 
-instance Category k => Functor (Id :: k --> k) where
-  map_ = id
+-- There's a category TYPE.
+-- Whose objects are types,
+-- and arrows are functions.
+type TYPE = (->) :: CATEGORY Type
 
--- Composing two compatible functors, is a functor
-data (∘) :: (a --> b) -> (x --> a) -> (x --> b)
+type instance t ∈ TYPE = Obj TYPE (Known t)
 
-type instance Act (f ∘ g) x = Act f (Act g x)
+instance Semigroupoid TYPE where
+  (∘) = (.)
 
-instance (Functor f, Functor g) => Functor (f ∘ g) where
-  map_ = map @f . map @g
+instance Category TYPE where
+  identity = id
+
+
+-- Every category has an opposite
+data OP :: CATEGORY i -> CATEGORY i where
+  OP :: k b a -> OP k a b
+
+type instance i ∈ OP k = Obj (OP k) (i ∈ k)
+
+instance Semigroupoid k => Semigroupoid (OP k) where
+  OP g ∘ OP f = OP (f ∘ g)
+
+instance Category k => Category (OP k) where
+  identity = OP identity
+
 
 -- The cross-product of two categories, is a category
 data (×) :: CATEGORY s -> CATEGORY t -> CATEGORY (s, t) where
@@ -150,55 +147,145 @@ instance (Semigroupoid l, Semigroupoid r) => Semigroupoid (l × r) where
 instance (Category l, Category r) => Category (l × r) where
   identity = identity :×: identity
 
--- Every category has an opposite
-data OP :: CATEGORY i -> CATEGORY i where
-  OP :: k b a -> OP k a b
 
-type instance i ∈ OP k = Obj (OP k) (i ∈ k)
+-- Natural numbers
+data N = S N | Z
 
-instance Semigroupoid k => Semigroupoid (OP k) where
-  OP g ∘ OP f = OP (f ∘ g)
+-- "Less than or equal to for Natural numbers" forms a category
+data (≤) :: CATEGORY N where
+  E :: n ≤ n
+  B :: l ≤ u -> l ≤ 'S u
 
-instance Category k => Category (OP k) where
-  identity = OP identity
+type TheN :: N -> N
+type family TheN n where
+  TheN 'Z = 'Z
+  TheN ('S k) = 'S (TheN k)
 
-data (:~:) :: CATEGORY t where
-  Refl :: x :~: x
+type instance x ∈ (≤) =
+  Obj
+    (≤)
+    (x ~ TheN x)
 
-type instance (t :: k) ∈ (:~:) = Obj ((:~:) @k) (Known t)
+instance Semigroupoid (≤) where
+  E ∘ r = r
+  B l ∘ r = B (l ∘ r)
 
-instance Semigroupoid (:~:) where
-  Refl ∘ Refl = Refl
+instance Category (≤) where
+  identity = E
 
-instance Category (:~:) where
-  identity = Refl
 
--- There's a category TYPE.
--- Whose objects are types,
--- and arrows are functions.
-type TYPE = (->) :: CATEGORY Type
+{- Monoid: definition -}
 
-type instance t ∈ TYPE = Obj TYPE (Known t)
+-- Monoids are categories with a single object
+class (Category c, forall x y. (x ∈ c, y ∈ c) => x ~ y) => Monoid (c :: CATEGORY i)
+instance (Category c, forall x y. (x ∈ c, y ∈ c) => x ~ y) => Monoid (c :: CATEGORY i)
 
-instance Semigroupoid TYPE where
-  (∘) = (.)
 
-instance Category TYPE where
-  identity = id
+{- Monoid: examples -}
 
-data TF f :: ENDO TYPE
-type instance Act (TF f) a = f a
-instance Prelude.Functor f => Functor (TF f) where
+data PreludeMonoid :: Type -> CATEGORY () where
+  PreludeMonoid :: m -> PreludeMonoid m '() '()
+
+type instance
+  x ∈ PreludeMonoid m =
+    Obj
+      (PreludeMonoid m)
+      (x ~ '())
+
+instance Prelude.Semigroup m => Semigroupoid (PreludeMonoid m) where
+  PreludeMonoid l ∘ PreludeMonoid r = PreludeMonoid (l <> r)
+
+instance Prelude.Monoid m => Category (PreludeMonoid m) where
+  identity = PreludeMonoid mempty
+
+
+{- Functor: definition -}
+
+-- Functors act on object names
+type Act :: ((d :: CATEGORY i) --> (c :: CATEGORY j)) -> i -> j
+type family Act f o
+
+-- Type of evidence that `f` acting on `o` is an object in `f`'s codomain
+class (Act f o ∈ CODOMAIN f) => Acts f o
+instance (Act f o ∈ CODOMAIN f) => Acts f o
+
+-- A functor is functorial for some object name.
+-- If `o` is an object in `f`'s domain category,
+-- then `f` acting on `o` is an object in `f`'s codomain category
+type Functorial :: ((d :: CATEGORY o) --> c) -> o -> Constraint
+type Functorial f o = (o ∈ DOMAIN f => Acts f o)
+
+-- What is a functor?
+-- Domain must be a category.
+-- Codomain must be a category.
+-- `f` must be functorial for all possible object names.
+-- Also arrows can be mapped.
+type Functor :: (d --> c) -> Constraint
+class (Category d, Category c, forall o. Functorial f o) => Functor (f :: d --> c) where
+  map_ :: (a ∈ d, b ∈ d) => d a b -> c (Act f a) (Act f b)
+
+-- map but easier to type-apply with the functor name
+map ::
+  forall {d} {c} (f :: d --> c) a b.
+  (Functor f, a ∈ d, b ∈ d) =>
+  d a b ->
+  c (Act f a) (Act f b)
+map d = map_ @_ @_ @f d
+
+
+{- Functor: examples -}
+
+-- The identity functor for some category k
+data Id :: forall k . k --> k
+
+type instance Act Id x = x
+
+instance Category k => Functor (Id :: k --> k) where
+  map_ f = f
+
+-- Composing two compatible functors, is a functor
+data (∘) :: (a --> b) -> (x --> a) -> (x --> b)
+
+type instance Act (f ∘ g) x = Act f (Act g x)
+
+instance (Functor f, Functor g) => Functor (f ∘ g) where
+  map_ = map @f . map @g
+
+-- Prelude.Functor is a specialisation of Functor
+data PreludeFunctor f :: TYPE --> TYPE
+
+type instance Act (PreludeFunctor f) a = f a
+
+instance Prelude.Functor f => Functor (PreludeFunctor f) where
   map_ = fmap
 
-tf0 :: Maybe [Maybe Int]
-tf0 = Just [Just 0, Just 1]
 
-tf1 :: Maybe [Maybe String]
-tf1 = map @(TF Maybe ∘ TF [] ∘ TF Maybe) show tf0
+-- Parallel functor product
+
+data (***) :: (a --> s) -> (b --> t) -> ((a × b) --> (s × t))
+
+type instance Act (f *** g) o = '(Act f (Fst o), Act g (Snd o))
+
+instance (Functor f, Functor g) => Functor (f *** g) where
+  map_ (l :×: r) = map @f l :×: map @g r
+
+
+-- Pointwise functor product
+
+data (&&&) :: (d --> l) -> (d --> r) -> (d --> (l × r))
+
+type instance Act (f &&& g) o = '(Act f o, Act g o)
+
+instance (Functor f, Functor g) => Functor (f &&& g) where
+  map_ t = map @f t :×: map @g t
+
+
+-- Parallel functor coproduct
+
+-- data (+++) :: (a --> s) -> (b --> t) -> ((a + b) --> (s + t))
+
 
 -- Some Yoneda embeddings
-
 data Y :: forall (k :: CATEGORY i) -> i -> (k --> TYPE)
 type instance Act (Y k d) c = k d c
 instance (d ∈ k, Category k) => Functor (Y k d) where
@@ -214,6 +301,9 @@ type instance Act (HOM k) o = k (Fst o) (Snd o)
 instance Category k => Functor (HOM k) where
   map_ (OP f :×: g) t = g ∘ t ∘ f
 
+
+{- Exponential category -}
+
 data (^) :: forall c d -> CATEGORY (d --> c) where
   Exp ::
     (Functor f, Functor g) =>
@@ -223,9 +313,7 @@ data (^) :: forall c d -> CATEGORY (d --> c) where
 unExp :: forall x c d i o . (x ∈ d) => (c ^ d) i o -> c (Act i x) (Act o x)
 unExp (Exp f) = f (Proxy :: Proxy x)
 
-type instance
-  o ∈ (c ^ d) =
-    Obj (c ^ d) (Functor o)
+type instance o ∈ (c ^ d) = Obj (c ^ d) (Functor o)
 
 instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
   l ∘ r = Exp \p -> case (l, r) of
@@ -234,120 +322,23 @@ instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
 instance (Category d, Category c) => Category (c ^ d) where
   identity = Exp \_ -> identity
 
-data COMPOSE :: forall a b x -> ((b ^ a) × (a ^ x)) --> (b ^ x)
 
-type instance Act (COMPOSE a b x) e = Fst e ∘ Snd e
+-- Functor composition is itself a functor
+data FunctorCompose :: forall a b x . ((b ^ a) × (a ^ x)) --> (b ^ x)
 
-instance (Category a, Category b, Category x) => Functor (COMPOSE a b x) where
+type instance Act (FunctorCompose @a @b @x) e = Fst e ∘ Snd e
+
+instance (Category a, Category b, Category x) => Functor (FunctorCompose @a @b @x) where
   -- map_ (Exp t :×: Exp s) = Exp \_ -> t Proxy ∘ s Proxy
   map_ _ = undefined
 
-data DISCRETE :: forall t -> CATEGORY t where DISCRETE :: DISCRETE t b b
-type instance i ∈ DISCRETE t = Obj (DISCRETE t) (Known i)
-instance Semigroupoid (DISCRETE t) where DISCRETE ∘ DISCRETE = DISCRETE
-instance Category (DISCRETE t) where identity = DISCRETE
 
-data CONST :: i -> (d --> (c :: CATEGORY i))
-type instance Act (CONST x) o = x
-instance (Category d, Category c, x ∈ c) => Functor (CONST x :: d --> c) where
-  map_ _ = identity
-
-data Δ :: forall j (k :: CATEGORY i) -> (k --> (k ^ j))
-type instance Act (Δ j k) o = CONST o
-instance (Category j, Category k) => Functor (Δ j k) where
-  map_ t = Exp \_ -> t
-
-type DELTA k = Δ (DISCRETE Bool) k
-
-data PARTIAL :: (((l :: CATEGORY i) × r) --> k) -> i -> (r --> k)
-type instance Act (PARTIAL f x) y = Act f '(x, y)
-instance
-  ( Category l, Category r, Category k, Functor f, x ∈ l
-  ) => Functor (PARTIAL (f :: (l × r) --> k) x) where
-    map_ rab = map @f (identity @_ @_ @x :×: rab)
-
-data CURRY :: ((l × r) --> k) -> (l --> (k ^ r))
-type instance Act (CURRY f) o = PARTIAL f o
-instance (Category l, Category r, Category k, Functor f) => Functor (CURRY f :: l --> (k ^ r)) where
-  map_ lab = Exp \(_ :: Proxy z) -> map @f (lab :×: identity @_ @r @z)
-
--- Uncomment for panic - https://gitlab.haskell.org/ghc/ghc/-/issues/20231
-data UNCURRY :: (l --> (k ^ r)) -> ((l × r) --> k)
-type instance Act (UNCURRY f) o = Act (Act f (Fst o)) (Snd o)
--- class Functor (Act f i) => FunctorAct f i
--- instance Functor (Act f i) => FunctorAct f i
--- instance (Category l, Category r, Category k, Functor f, forall i . i ∈ l => FunctorAct f i) => Functor (UNCURRY f :: (l × r) --> k) where
---   map_ (l :×: r) = map @r r ∘ Exp \(_ :: Proxy z) -> map @(Act f z) (l :×: identity)
-
--- Natural numbers
-data N = S N | Z
-
-instance Semigroup N where
-  (<>) = \case
-    Z -> id
-    S l -> \r -> S (l <> r)
-
-instance Monoid N where
-  mempty = Z
-
-type TheN :: N -> N
-type family TheN n where
-  TheN 'Z = 'Z
-  TheN ('S k) = 'S (TheN k)
-
--- Finite sets
-data Fin :: N -> Type where
-  FS :: Fin k -> Fin ('S k)
-  FZ :: Fin ('S n)
-
--- Singleton for finite sets
-data SFin :: forall n -> Fin n -> Type where
-  SFS :: SFin n k -> SFin ('S n) ('FS k)
-  SFZ :: SFin ('S n) 'FZ
-
-data (≤) :: CATEGORY N where
-  E :: n ≤ n
-  B :: l ≤ u -> l ≤ 'S u
-
-type instance x ∈ (≤) =
-  Obj
-    (≤)
-    (x ~ TheN x)
-
-instance Semigroupoid (≤) where
-  (∘) = \case
-    E -> id
-    B l -> \r -> B (l ∘ r)
-
-instance Category (≤) where
-  identity = E
-
-data Vect :: N -> Type -> Type where
-  Nil :: Vect 'Z t
-  Cons :: t -> Vect n t -> Vect ('S n) t
-
-data VECT :: ((:~:) @N × TYPE) --> TYPE
-type instance Act VECT x = Vect (Fst x) (Snd x)
-instance Functor VECT where
-  map_ (Refl :×: g) = \case
-    Nil -> Nil
-    Cons h t -> Cons (g h) (map @VECT (Refl :×: g) t)
-
--- A tuple is a pi type like: `(f : Fin n) → o f` for some functor `o` from the
--- discrete category of finite sets to the category of types and functions.
--- We encode this using a polymorphic function from a singleton finite set.
-data Tuple :: (DISCRETE (Fin n) --> TYPE) -> Type where
-  Tuple :: (forall f . SFin n f -> Act o f) -> Tuple o
-
-data FINITE :: forall n -> (TYPE ^ DISCRETE (Fin n)) --> TYPE
-type instance Act (FINITE n) o = Tuple o
-instance Functor (FINITE n) where
-  map_ (Exp t) (Tuple s) = Tuple \(g :: SFin n f) -> t (Proxy @f) (s g)
+{- Adjunctions -}
 
 -- Two functors f g may be adjoint when
---   `∀ a b. (a → g b) <=> (f a → b)`
+--   `∀ a b. (a → g b) ⇔ (f a → b)`
 -- Or in our notation:
---   `∀ a b . c a (Act g b) <=> d (Act f a) b`
+--   `∀ a b . c a (Act g b) ⇔ d (Act f a) b`
 --
 -- Typing '⊣': `^q u 22A3` or `^v u 22A3`
 --
@@ -380,7 +371,7 @@ unit ::
   forall
     {c}
     {d}
-    (m :: ENDO c)
+    (m :: c --> c)
     {f :: c --> d}
     {g :: d --> c}
     a.
@@ -395,7 +386,7 @@ counit ::
   forall
     {c}
     {d}
-    (w :: ENDO d)
+    (w :: d --> d)
     {f :: c --> d}
     {g :: d --> c}
     a.
@@ -412,7 +403,7 @@ join ::
     {d}
     {f :: c --> d}
     {g :: d --> c}
-    (m :: ENDO c)
+    (m :: c --> c)
     a.
   ( m ~ (g ∘ f),
     f ⊣ g,
@@ -430,7 +421,7 @@ extend ::
     {d}
     {f :: c --> d}
     {g :: d --> c}
-    (w :: ENDO d)
+    (w :: d --> d)
     a.
   ( w ~ (f ∘ g),
     f ⊣ g,
@@ -445,7 +436,7 @@ extend = do
 flatMap ::
   forall
     {d}
-    (m :: ENDO TYPE)
+    (m :: TYPE --> TYPE)
     a
     b
     {f :: TYPE --> d}
@@ -460,6 +451,163 @@ flatMap ::
 flatMap _ m t =
   join @m @b
     (map @m t m :: Act (m ∘ m) b)
+
+
+{- Adjunctions: examples -}
+
+-- ENV s ⊣ READER s
+
+data READER :: Type -> (TYPE --> TYPE)
+
+type instance Act (READER x) y = x -> y
+
+instance Functor (READER x) where
+  map_ = (.)
+
+data ENV :: Type -> (TYPE --> TYPE)
+
+type instance Act (ENV x) y = (y, x)
+
+instance Functor (ENV x) where
+  map_ f (l, r) = (f l, r)
+
+instance ENV s ⊣ READER s where
+  leftAdjoint_ = uncurry
+  rightAdjoint_ = curry
+
+
+-- (∨) ⊣ Δ TYPE ⊣ (∧)
+
+data Δ :: forall (k :: CATEGORY i) -> (k --> (k × k))
+
+type instance Act (Δ k) x = '(x, x)
+
+instance Category k => Functor (Δ k) where
+  map_ f = (f :×: f)
+
+data (∧) :: (TYPE × TYPE) --> TYPE
+
+type instance Act (∧) x = (Fst x, Snd x)
+
+instance Functor (∧) where
+  map_ (f :×: g) (a, b) = (f a, g b)
+
+data (∨) :: (TYPE × TYPE) --> TYPE
+
+type instance Act (∨) x = Either (Fst x) (Snd x)
+
+instance Functor (∨) where
+  map_ (f :×: g) = either (Left . f) (Right . g)
+
+instance Δ TYPE ⊣ (∧) where
+  leftAdjoint_ t = (fst . t) :×: (snd . t)
+  rightAdjoint_ (f :×: g) = \x -> (f x, g x)
+
+instance (∨) ⊣ Δ TYPE where
+  leftAdjoint_ (f :×: g) = f `either` g
+  rightAdjoint_ t = (t . Left) :×: (t . Right)
+
+
+-- Monad
+-- Works but using the class crashes the compiler
+{-
+type DeCompMidIx :: (c --> c) -> Type
+type family DeCompMidIx m where
+  DeCompMidIx (g ∘ f) = OBJECTS (CODOMAIN f)
+
+type DeCompMid :: forall (m :: c --> c) -> CATEGORY (DeCompMidIx m)
+type family DeCompMid m where
+  DeCompMid (g ∘ f) = CODOMAIN f
+
+type Outer :: forall (m :: c --> c) -> (DeCompMid m --> c)
+type family Outer m where
+  Outer (g ∘ f) = g
+
+type Inner :: forall (m :: c --> c) -> (c --> DeCompMid m)
+type family Inner m where
+  Inner (g ∘ f) = f
+
+type Decomposed :: (c --> c) -> (c --> c)
+type Decomposed m = Outer m ∘ Inner m
+
+class (m ~ Decomposed m, Inner m ⊣ Outer m) => Monad m
+instance (m ~ Decomposed m, Inner m ⊣ Outer m) => Monad m
+-}
+
+
+-- Other crap
+
+data DISCRETE :: forall t -> CATEGORY t where DISCRETE :: DISCRETE t b b
+type instance i ∈ DISCRETE t = Obj (DISCRETE t) (Known i)
+instance Semigroupoid (DISCRETE t) where DISCRETE ∘ DISCRETE = DISCRETE
+instance Category (DISCRETE t) where identity = DISCRETE
+
+data CONST :: i -> (d --> (c :: CATEGORY i))
+type instance Act (CONST x) o = x
+instance (Category d, Category c, x ∈ c) => Functor (CONST x :: d --> c) where
+  map_ _ = identity
+
+data (∆) :: forall j (k :: CATEGORY i) -> (k --> (k ^ j))
+type instance Act ((∆) j k) o = CONST o
+instance (Category j, Category k) => Functor ((∆) j k) where
+  map_ t = Exp \_ -> t
+
+type DELTA k = (∆) (DISCRETE Bool) k
+
+data PARTIAL :: (((l :: CATEGORY i) × r) --> k) -> i -> (r --> k)
+type instance Act (PARTIAL f x) y = Act f '(x, y)
+instance
+  ( Category l, Category r, Category k, Functor f, x ∈ l
+  ) => Functor (PARTIAL (f :: (l × r) --> k) x) where
+    map_ rab = map @f (identity @_ @_ @x :×: rab)
+
+data CURRY :: ((l × r) --> k) -> (l --> (k ^ r))
+type instance Act (CURRY f) o = PARTIAL f o
+instance (Category l, Category r, Category k, Functor f) => Functor (CURRY f :: l --> (k ^ r)) where
+  map_ lab = Exp \(_ :: Proxy z) -> map @f (lab :×: identity @_ @r @z)
+
+-- Uncomment for panic - https://gitlab.haskell.org/ghc/ghc/-/issues/20231
+data UNCURRY :: (l --> (k ^ r)) -> ((l × r) --> k)
+type instance Act (UNCURRY f) o = Act (Act f (Fst o)) (Snd o)
+-- class Functor (Act f i) => FunctorAct f i
+-- instance Functor (Act f i) => FunctorAct f i
+-- instance (Category l, Category r, Category k, Functor f, forall i . i ∈ l => FunctorAct f i) => Functor (UNCURRY f :: (l × r) --> k) where
+--   map_ (l :×: r) = map @r r ∘ Exp \(_ :: Proxy z) -> map @(Act f z) (l :×: identity)
+
+-- Finite sets
+data Fin :: N -> Type where
+  FS :: Fin k -> Fin ('S k)
+  FZ :: Fin ('S n)
+
+-- Singleton for finite sets
+data SFin :: forall n -> Fin n -> Type where
+  SFS :: SFin n k -> SFin ('S n) ('FS k)
+  SFZ :: SFin ('S n) 'FZ
+
+data Vect :: N -> Type -> Type where
+  Nil :: Vect 'Z t
+  Cons :: t -> Vect n t -> Vect ('S n) t
+
+data VECT :: ((:~:) @N × TYPE) --> TYPE
+type instance Act VECT x = Vect (Fst x) (Snd x)
+instance Functor VECT where
+  map_ (Refl :×: g) = \case
+    Nil -> Nil
+    Cons h t -> Cons (g h) (map @VECT (Refl :×: g) t)
+
+-- A tuple is a pi type like: `(f : Fin n) → o f` for some functor `o` from the
+-- discrete category of finite sets to the category of types and functions.
+-- We encode this using a polymorphic function from a singleton finite set.
+data Tuple :: (DISCRETE (Fin n) --> TYPE) -> Type where
+  Tuple :: (forall f . SFin n f -> Act o f) -> Tuple o
+
+data FINITE :: forall n -> (TYPE ^ DISCRETE (Fin n)) --> TYPE
+type instance Act (FINITE n) o = Tuple o
+instance Functor (FINITE n) where
+  map_ (Exp t) (Tuple s) = Tuple \(g :: SFin n f) -> t (Proxy @f) (s g)
+
+
+-- do notationy stuff
 
 newtype BindDo m
   = BindDo
@@ -496,19 +644,19 @@ monadDo b p t = do
   t
 
 makeBind ::
-  forall (m :: ENDO TYPE) {f} {g}.
+  forall (m :: TYPE --> TYPE) {f} {g}.
   (m ~ (g ∘ f), f ⊣ g) =>
   BindDo m
 makeBind = BindDo (flatMap @m)
 
 makePure ::
-  forall (m :: ENDO TYPE) {f} {g}.
+  forall (m :: TYPE --> TYPE) {f} {g}.
   (m ~ (g ∘ f), f ⊣ g) =>
   PureDo m
 makePure = PureDo (unit @m)
 
 -- makeMonadDo ::
---   forall (m :: ENDO TYPE) {f} {g}.
+--   forall (m :: TYPE --> TYPE) {f} {g}.
 --   (m ~ (g ∘ f), f ⊣ g) =>
 --   MonadDo m
 -- makeMonadDo =
@@ -517,21 +665,6 @@ makePure = PureDo (unit @m)
 --     (makePure @m)
 
 ---
-
-data MONOID :: Type -> CATEGORY () where
-  MONOID :: m -> MONOID m '() '()
-
-type instance
-  x ∈ MONOID m =
-    Obj
-      (MONOID m)
-      (x ~ '())
-
-instance Semigroup m => Semigroupoid (MONOID m) where
-  MONOID l ∘ MONOID r = MONOID (l <> r)
-
-instance Monoid m => Category (MONOID m) where
-  identity = MONOID mempty
 
 type MONOID_OBJECT :: forall i . CATEGORY i -> i -> Type
 type MONOID_OBJECT k e = Proxy k -> Proxy e -> Type
@@ -546,7 +679,7 @@ class
 
 data RegularMonoid :: forall m -> MONOID_OBJECT TYPE m
 
-instance Monoid m => MonoidObject (RegularMonoid m) where
+instance Prelude.Monoid m => MonoidObject (RegularMonoid m) where
   type Zero (RegularMonoid m) = ()
   type Two (RegularMonoid m) = (∧)
   moEmpty _ = mempty
@@ -559,7 +692,7 @@ instance
   (m ~ (g ∘ f), f ⊣ g) =>
   MonoidObject (MAMOITCOE k m) where
     type Zero (MAMOITCOE k m) = Id @k
-    type Two (MAMOITCOE k m) = COMPOSE k k k
+    type Two (MAMOITCOE k m) = FunctorCompose @k @k @k
 
     moEmpty :: (k ^ k) Id m
     moEmpty = Exp (\_ -> unit @(g ∘ f))
@@ -567,62 +700,7 @@ instance
     moAppend :: (k ^ k) (m ∘ m) m
     moAppend = Exp (\(Proxy @_ @a) -> join @m @a)
 
-data READER :: Type -> (TYPE --> TYPE)
-
-type instance Act (READER x) y = x -> y
-
-instance Functor (READER x) where
-  map_ = (.)
-
-data ENV :: Type -> (TYPE --> TYPE)
-
-type instance Act (ENV x) y = (y, x)
-
-instance Functor (ENV x) where
-  map_ f (l, r) = (f l, r)
-
-instance ENV s ⊣ READER s where
-  leftAdjoint_ = uncurry
-  rightAdjoint_ = curry
-
-data K :: forall (k :: CATEGORY i) -> (k --> (k × k))
-
-type instance Act (K k) x = '(x, x)
-
-instance Category k => Functor (K k) where
-  map_ f = (f :×: f)
-
-data (∧) :: (TYPE × TYPE) --> TYPE
-
-type instance Act (∧) x = (Fst x, Snd x)
-
-instance Functor (∧) where
-  map_ (f :×: g) (a, b) = (f a, g b)
-
-data (∧∧) :: (TYPE ^ DISCRETE Bool) --> TYPE
-
-type instance Act (∧∧) o = (Act o 'False, Act o 'True)
-
-instance Functor (∧∧) where
-  map_ (Exp t) (a, b) =
-    (t (Proxy @'False) a, t (Proxy @'True) b)
-
-data (∨) :: (TYPE × TYPE) --> TYPE
-
-type instance Act (∨) x = Either (Fst x) (Snd x)
-
-instance Functor (∨) where
-  map_ (f :×: g) = either (Left . f) (Right . g)
-
-instance K TYPE ⊣ (∧) where
-  leftAdjoint_ t = (fst . t) :×: (snd . t)
-  rightAdjoint_ (f :×: g) = \x -> (f x, g x)
-
-instance (∨) ⊣ K TYPE where
-  leftAdjoint_ (f :×: g) = f `either` g
-  rightAdjoint_ t = (t . Left) :×: (t . Right)
-
-type Dup = (∧) ∘ K TYPE
+type Dup = (∧) ∘ Δ TYPE
 
 dupMonad :: MonadDo Dup
 dupMonad =
@@ -688,16 +766,6 @@ data Free t a = Free
 
 data FREE :: (k --> k) -> (k --> k)
 
-data (|×|) :: (a --> s) -> (b --> t) -> ((a × b) --> (s × t))
-type instance Act (f |×| g) o = '(Act f (Fst o), Act g (Snd o))
-instance (Functor f, Functor g) => Functor (f |×| g) where
-  map_ (l :×: r) = map @f l :×: map @g r
-
-data (/×\) :: (d --> l) -> (d --> r) -> (d --> (l × r))
-type instance Act (f /×\ g) o = '(Act f o, Act g o)
-instance (Functor f, Functor g) => Functor (f /×\ g) where
-  map_ t = map @f t :×: map @g t
-
 -- COEND
 -- DAY
 -- f ★ g
@@ -747,8 +815,8 @@ instance Category DataLens where
 type LensOn (p :: DataLens --> TYPE) a b s t =
   forall {pab} {pst}.
   ( Functor p,
-    '(a, b) ∈ DOM p,
-    '(s, t) ∈ DOM p,
+    '(a, b) ∈ DOMAIN p,
+    '(s, t) ∈ DOMAIN p,
     pab ~ Act p '(a, b),
     pst ~ Act p '(s, t)
   ) =>
@@ -792,8 +860,8 @@ instance Category DataPrism where
 type PrismOn (p :: DataPrism --> TYPE) a b s t =
   forall {pab} {pst}.
   ( Functor p,
-    '(a, b) ∈ DOM p,
-    '(s, t) ∈ DOM p,
+    '(a, b) ∈ DOMAIN p,
+    '(s, t) ∈ DOMAIN p,
     pab ~ Act p '(a, b),
     pst ~ Act p '(s, t)
   ) =>
@@ -848,10 +916,10 @@ instance Cartesian TYPE where
   first (l, _) = l
   second (_, r) = r
 
-data (&&&) :: (d × d) --> d
-type instance Act ((&&&) :: (d × d) --> d) o = (Fst o & Snd o) d
+data (&&&&) :: (d × d) --> d
+type instance Act ((&&&&) :: (d × d) --> d) o = (Fst o & Snd o) d
 -- Uncomment for panic - https://gitlab.haskell.org/ghc/ghc/-/issues/20231
--- instance Cartesian d => Functor ((&&&) :: (d × d) --> d) where
+-- instance Cartesian d => Functor ((&&&&) :: (d × d) --> d) where
 --   map_ (l :×: r) = (l ∘ first) `product` (r ∘ second)
 
 type Acting :: ((d :: CATEGORY o) --> TYPE) -> o -> Type
