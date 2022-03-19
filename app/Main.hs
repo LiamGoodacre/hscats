@@ -38,20 +38,8 @@ import qualified Prelude
 type CATEGORY :: Type -> Type
 type CATEGORY i = i -> i -> Type
 
-type OBJECTS :: forall i. CATEGORY i -> Type
-type OBJECTS (c :: CATEGORY i) = i
-
--- Type of functors indexed by domain & codomain categories
-type (-->) :: forall i j. CATEGORY i -> CATEGORY j -> Type
-type (-->) d c = Proxy d -> Proxy c -> Type
-
--- Project the domain category of a functor
-type DOMAIN :: forall i (d :: CATEGORY i) c. (d --> c) -> CATEGORY i
-type DOMAIN (f :: d --> c) = d
-
--- Project the codomain category of a functor
-type CODOMAIN :: forall j d (c :: CATEGORY j). (d --> c) -> CATEGORY j
-type CODOMAIN (f :: d --> c) = c
+type NAMES :: forall i. CATEGORY i -> Type
+type NAMES (c :: CATEGORY i) = i
 
 -- Categories must specify what it means to be an object in that category
 type (∈) :: forall i. i -> CATEGORY i -> Constraint
@@ -201,6 +189,18 @@ instance Prelude.Monoid m => Category (PreludeMonoid m) where
 
 {- Functor: definition -}
 
+-- Type of functors indexed by domain & codomain categories
+type (-->) :: forall i j. CATEGORY i -> CATEGORY j -> Type
+type (-->) d c = Proxy d -> Proxy c -> Type
+
+-- Project the domain category of a functor
+type DOMAIN :: forall i (d :: CATEGORY i) c. (d --> c) -> CATEGORY i
+type DOMAIN (f :: d --> c) = d
+
+-- Project the codomain category of a functor
+type CODOMAIN :: forall j d (c :: CATEGORY j). (d --> c) -> CATEGORY j
+type CODOMAIN (f :: d --> c) = c
+
 -- Functors act on object names
 type Act :: ((d :: CATEGORY i) --> (c :: CATEGORY j)) -> i -> j
 type family Act f o
@@ -280,11 +280,6 @@ instance (Functor f, Functor g) => Functor (f &&& g) where
   map_ t = map @f t :×: map @g t
 
 
--- Parallel functor coproduct
-
--- data (+++) :: (a --> s) -> (b --> t) -> ((a + b) --> (s + t))
-
-
 -- Some Yoneda embeddings
 data Y :: forall (k :: CATEGORY i) -> i -> (k --> TYPE)
 type instance Act (Y k d) c = k d c
@@ -306,12 +301,13 @@ instance Category k => Functor (HOM k) where
 
 data (^) :: forall c d -> CATEGORY (d --> c) where
   Exp ::
-    (Functor f, Functor g) =>
     (forall i. i ∈ d => Proxy i -> c (Act f i) (Act g i)) ->
     (c ^ d) f g
 
-unExp :: forall x c d i o . (x ∈ d) => (c ^ d) i o -> c (Act i x) (Act o x)
-unExp (Exp f) = f (Proxy :: Proxy x)
+type (~>) (f :: d --> c) g = (c ^ d) f g
+
+runExp :: forall x c d i o . (x ∈ d) => (c ^ d) i o -> c (Act i x) (Act o x)
+runExp (Exp f) = f (Proxy :: Proxy x)
 
 type instance o ∈ (c ^ d) = Obj (c ^ d) (Functor o)
 
@@ -335,7 +331,7 @@ instance (Category a, Category b, Category x) => Functor (FunctorCompose @a @b @
 
 {- Adjunctions -}
 
--- Two functors f g may be adjoint when
+-- Two functors f and g are adjoint when
 --   `∀ a b. (a → g b) ⇔ (f a → b)`
 -- Or in our notation:
 --   `∀ a b . c a (Act g b) ⇔ d (Act f a) b`
@@ -507,13 +503,70 @@ instance (∨) ⊣ Δ TYPE where
   leftAdjoint_ (f :×: g) = f `either` g
   rightAdjoint_ t = (t . Left) :×: (t . Right)
 
+-- (∘ g) ⊣ (/ g)
+-- aka (PostCompose g ⊣ PostRan g)
+
+data PostCompose :: (c --> c') -> (a ^ c') --> (a ^ c)
+
+type instance Act (PostCompose g) f = f ∘ g
+
+instance
+  (Category c, Category c', Category a, Functor g) =>
+  Functor (PostCompose @c @c' @a g)
+  where
+  map_ (Exp h) = Exp \(Proxy :: Proxy i) -> h (Proxy @(Act g i))
+
+type Ran :: (x --> TYPE) -> (x --> z) -> NAMES z -> Type
+data Ran h g a where
+  Ran ::
+    Functor f =>
+    Proxy f ->
+    ((f ∘ g) ~> h) ->
+    Act f a ->
+    Ran h g a
+
+-- NOTE: currently y is always TYPE
+data (/) :: (x --> y) -> (x --> z) -> (z --> y)
+
+type instance Act (h / g) o = Ran h g o
+
+instance (Category x, Category z) => Functor ((/) @x @TYPE @z h g) where
+  map_ zab (Ran (pf :: Proxy f) fgh fa) =
+    Ran pf fgh (map @f zab fa)
+
+-- NOTE: currently y is always TYPE
+data PostRan :: (x --> z) -> (y ^ x) --> (y ^ z)
+
+type instance Act (PostRan g) h = h / g
+
+instance
+  (Category x, Category z, Functor g) =>
+  Functor (PostRan @x @z @TYPE g)
+  where
+  map_ ab =
+    Exp \_ (Ran p fga fi) ->
+      Ran p (ab ∘ fga) fi
+
+instance (Functor g) => PostCompose g ⊣ PostRan @x @z @TYPE g where
+  leftAdjoint_ a_bg =
+    Exp \(Proxy :: Proxy i) ag ->
+      case runExp @(Act g i) a_bg ag of
+        Ran _ fg_b fgi ->
+          runExp @i fg_b fgi
+
+  rightAdjoint_ ag_b =
+    Exp \(Proxy :: Proxy i) (a :: Act a i) ->
+      Ran (Proxy @a) ag_b a
+
+type CODENSITY :: (x --> TYPE) -> (TYPE --> TYPE)
+type CODENSITY f = f / f
 
 -- Monad
--- Works but using the class crashes the compiler
+-- "Works" but using the class crashes the compiler
 {-
 type DeCompMidIx :: (c --> c) -> Type
 type family DeCompMidIx m where
-  DeCompMidIx (g ∘ f) = OBJECTS (CODOMAIN f)
+  DeCompMidIx (g ∘ f) = NAMES (CODOMAIN f)
 
 type DeCompMid :: forall (m :: c --> c) -> CATEGORY (DeCompMidIx m)
 type family DeCompMid m where
@@ -533,78 +586,6 @@ type Decomposed m = Outer m ∘ Inner m
 class (m ~ Decomposed m, Inner m ⊣ Outer m) => Monad m
 instance (m ~ Decomposed m, Inner m ⊣ Outer m) => Monad m
 -}
-
-
--- Other crap
-
-data DISCRETE :: forall t -> CATEGORY t where DISCRETE :: DISCRETE t b b
-type instance i ∈ DISCRETE t = Obj (DISCRETE t) (Known i)
-instance Semigroupoid (DISCRETE t) where DISCRETE ∘ DISCRETE = DISCRETE
-instance Category (DISCRETE t) where identity = DISCRETE
-
-data CONST :: i -> (d --> (c :: CATEGORY i))
-type instance Act (CONST x) o = x
-instance (Category d, Category c, x ∈ c) => Functor (CONST x :: d --> c) where
-  map_ _ = identity
-
-data (∆) :: forall j (k :: CATEGORY i) -> (k --> (k ^ j))
-type instance Act ((∆) j k) o = CONST o
-instance (Category j, Category k) => Functor ((∆) j k) where
-  map_ t = Exp \_ -> t
-
-type DELTA k = (∆) (DISCRETE Bool) k
-
-data PARTIAL :: (((l :: CATEGORY i) × r) --> k) -> i -> (r --> k)
-type instance Act (PARTIAL f x) y = Act f '(x, y)
-instance
-  ( Category l, Category r, Category k, Functor f, x ∈ l
-  ) => Functor (PARTIAL (f :: (l × r) --> k) x) where
-    map_ rab = map @f (identity @_ @_ @x :×: rab)
-
-data CURRY :: ((l × r) --> k) -> (l --> (k ^ r))
-type instance Act (CURRY f) o = PARTIAL f o
-instance (Category l, Category r, Category k, Functor f) => Functor (CURRY f :: l --> (k ^ r)) where
-  map_ lab = Exp \(_ :: Proxy z) -> map @f (lab :×: identity @_ @r @z)
-
--- Uncomment for panic - https://gitlab.haskell.org/ghc/ghc/-/issues/20231
-data UNCURRY :: (l --> (k ^ r)) -> ((l × r) --> k)
-type instance Act (UNCURRY f) o = Act (Act f (Fst o)) (Snd o)
--- class Functor (Act f i) => FunctorAct f i
--- instance Functor (Act f i) => FunctorAct f i
--- instance (Category l, Category r, Category k, Functor f, forall i . i ∈ l => FunctorAct f i) => Functor (UNCURRY f :: (l × r) --> k) where
---   map_ (l :×: r) = map @r r ∘ Exp \(_ :: Proxy z) -> map @(Act f z) (l :×: identity)
-
--- Finite sets
-data Fin :: N -> Type where
-  FS :: Fin k -> Fin ('S k)
-  FZ :: Fin ('S n)
-
--- Singleton for finite sets
-data SFin :: forall n -> Fin n -> Type where
-  SFS :: SFin n k -> SFin ('S n) ('FS k)
-  SFZ :: SFin ('S n) 'FZ
-
-data Vect :: N -> Type -> Type where
-  Nil :: Vect 'Z t
-  Cons :: t -> Vect n t -> Vect ('S n) t
-
-data VECT :: ((:~:) @N × TYPE) --> TYPE
-type instance Act VECT x = Vect (Fst x) (Snd x)
-instance Functor VECT where
-  map_ (Refl :×: g) = \case
-    Nil -> Nil
-    Cons h t -> Cons (g h) (map @VECT (Refl :×: g) t)
-
--- A tuple is a pi type like: `(f : Fin n) → o f` for some functor `o` from the
--- discrete category of finite sets to the category of types and functions.
--- We encode this using a polymorphic function from a singleton finite set.
-data Tuple :: (DISCRETE (Fin n) --> TYPE) -> Type where
-  Tuple :: (forall f . SFin n f -> Act o f) -> Tuple o
-
-data FINITE :: forall n -> (TYPE ^ DISCRETE (Fin n)) --> TYPE
-type instance Act (FINITE n) o = Tuple o
-instance Functor (FINITE n) where
-  map_ (Exp t) (Tuple s) = Tuple \(g :: SFin n f) -> t (Proxy @f) (s g)
 
 
 -- do notationy stuff
@@ -666,40 +647,6 @@ makePure = PureDo (unit @m)
 
 ---
 
-type MONOID_OBJECT :: forall i . CATEGORY i -> i -> Type
-type MONOID_OBJECT k e = Proxy k -> Proxy e -> Type
-
-class
-  Functor (Two n :: (k × k) --> k) =>
-  MonoidObject (n :: MONOID_OBJECT @i k e) where
-    type Zero (n :: MONOID_OBJECT @i k e) :: i
-    type Two (n :: MONOID_OBJECT @i k e) :: (k × k) --> k
-    moEmpty :: (Zero n ∈ k, e ∈ k) => k (Zero n) e
-    moAppend :: (e ∈ k) => k (Act (Two n) '( e, e )) e
-
-data RegularMonoid :: forall m -> MONOID_OBJECT TYPE m
-
-instance Prelude.Monoid m => MonoidObject (RegularMonoid m) where
-  type Zero (RegularMonoid m) = ()
-  type Two (RegularMonoid m) = (∧)
-  moEmpty _ = mempty
-  moAppend (l, r) = l <> r
-
--- monads are monoid objects in the category of endofunctors
-data MAMOITCOE :: forall k m -> MONOID_OBJECT (k ^ k) m
-
-instance
-  (m ~ (g ∘ f), f ⊣ g) =>
-  MonoidObject (MAMOITCOE k m) where
-    type Zero (MAMOITCOE k m) = Id @k
-    type Two (MAMOITCOE k m) = FunctorCompose @k @k @k
-
-    moEmpty :: (k ^ k) Id m
-    moEmpty = Exp (\_ -> unit @(g ∘ f))
-
-    moAppend :: (k ^ k) (m ∘ m) m
-    moAppend = Exp (\(Proxy @_ @a) -> join @m @a)
-
 type Dup = (∧) ∘ Δ TYPE
 
 dupMonad :: MonadDo Dup
@@ -760,202 +707,26 @@ data Free t a = Free
   { runFree ::
       forall m {f} {g}.
       (m ~ (g ∘ f), f ⊣ g) =>
-      (forall i. Act t i -> Act m i) ->
-      Act m a
+      Proxy m ->
+      Proxy a ->
+      (t ~> m) ->
+      Act (g ∘ f) a
   }
 
-data FREE :: (k --> k) -> (k --> k)
+data FREE0 :: (k --> k) -> (k --> k)
+data FREE1 :: (k ^ k) --> (k ^ k)
 
--- COEND
--- DAY
--- f ★ g
+type instance Act (FREE0 f) o = Free f o
+type instance Act FREE1 f = FREE0 f
 
--- f ∘ g ~> h
--- f ~> h / g
-data (//) :: (d --> c) -> (d --> d) -> (c --> d)
+instance Functor (FREE0 @TYPE t) where
+  map_ = undefined
+  -- map_ (a_b :: a -> b) (Free f) =
+    -- Free \(m :: Proxy m) (Proxy :: Proxy b) (t_m :: t ~> m) ->
+    --   map @m a_b (f m (Proxy @a) t_m)
 
--- TODO - make more general
-newtype Ran h g a = Ran (forall i. (a -> Act g i) -> Act h i)
-
-type instance Act (h // g) x = Ran h g x
-
-type CODENSITY f = f // f
-
--- f ~> g ∘ h
--- f \\ h ~> g
-data (\\) :: (d --> c) -> (d --> d) -> (c --> d)
-
--- TODO - make more general
-data Lan f h a where
-  (:\\:) :: Act f b -> (Act h b -> a) -> Lan f h a
-
-{-
-
--- Optics...
-
--- Lenses
-
-type TYPEBifunctorObj k o = Obj k (IsPair o)
-
-data DataLens :: CATEGORY (Type, Type) where
-  MkDataLens ::
-    (s -> a) ->
-    (s -> b -> t) ->
-    DataLens '(a, b) '(s, t)
-
-type instance o ∈ DataLens = TYPEBifunctorObj DataLens o
-
-instance Semigroupoid DataLens where
-  MkDataLens sa sbt ∘ MkDataLens ax ayb =
-    MkDataLens (ax . sa) (\s -> sbt s . ayb (sa s))
-
-instance Category DataLens where
-  identity = MkDataLens id \_ -> id
-
-type LensOn (p :: DataLens --> TYPE) a b s t =
-  forall {pab} {pst}.
-  ( Functor p,
-    '(a, b) ∈ DOMAIN p,
-    '(s, t) ∈ DOMAIN p,
-    pab ~ Act p '(a, b),
-    pst ~ Act p '(s, t)
-  ) =>
-  pab ->
-  pst
-
-type Lens a b s t = forall p. Proxy p -> LensOn p a b s t
-
-lens ::
-  forall a b s t.
-  (s -> a) ->
-  (s -> b -> t) ->
-  Lens a b s t
-lens sa sbt = \(_ :: Proxy p) -> map @p (MkDataLens sa sbt)
-
-first :: forall a b x. Lens a b (a, x) (b, x)
-first = lens fst (\(_, x) b -> (b, x))
-
-second :: forall a b x. Lens a b (x, a) (x, b)
-second = lens snd (\(x, _) b -> (x, b))
-
--- Prisms
-
-data DataPrism :: CATEGORY (Type, Type) where
-  MkDataPrism ::
-    (s -> Either t a) ->
-    (b -> t) ->
-    DataPrism '(a, b) '(s, t)
-
-type instance o ∈ DataPrism = TYPEBifunctorObj DataPrism o
-
-instance Semigroupoid DataPrism where
-  MkDataPrism sta bt ∘ MkDataPrism abx yb =
-    MkDataPrism
-      (either Left (either (Left . bt) Right . abx) . sta)
-      (bt . yb)
-
-instance Category DataPrism where
-  identity = MkDataPrism Right id
-
-type PrismOn (p :: DataPrism --> TYPE) a b s t =
-  forall {pab} {pst}.
-  ( Functor p,
-    '(a, b) ∈ DOMAIN p,
-    '(s, t) ∈ DOMAIN p,
-    pab ~ Act p '(a, b),
-    pst ~ Act p '(s, t)
-  ) =>
-  pab ->
-  pst
-
-type Prism a b s t = forall p. Proxy p -> PrismOn p a b s t
-
-prism ::
-  forall a b s t.
-  (b -> t) ->
-  (s -> Either t a) ->
-  Prism a b s t
-prism bt sta = \(_ :: Proxy p) -> map @p (MkDataPrism sta bt)
-
-left :: forall a b x. Prism a b (Either a x) (Either b x)
-left = prism Left \case
-  Left a -> Right a
-  Right x -> Left (Right x)
-
-right :: forall a b x. Prism a b (Either x a) (Either x b)
-right = prism Right \case
-  Left x -> Left (Left x)
-  Right a -> Right a
-
--}
-
-type (&) :: i -> i -> CATEGORY i -> i
-type family (&) l r k
-
-class ((a & b) k ∈ k) => CartesianActs k a b
-
-instance ((a & b) k ∈ k) => CartesianActs k a b
-
-type CartesianFunctorial :: CATEGORY o -> o -> o -> Constraint
-type CartesianFunctorial k a b = ((a ∈ k, b ∈ k) => CartesianActs k a b)
-
-class
-  ( Category k,
-    forall a b. CartesianFunctorial k a b
-  ) =>
-  Cartesian k
-  where
-  product :: (i ∈ k, a ∈ k, b ∈ k) => k i a -> k i b -> k i ((a & b) k)
-  first :: (l ∈ k, r ∈ k) => k ((l & r) k) l
-  second :: (l ∈ k, r ∈ k) => k ((l & r) k) r
-
-type instance (l & r) TYPE = (l, r)
-
-instance Cartesian TYPE where
-  product l r i = (l i, r i)
-  first (l, _) = l
-  second (_, r) = r
-
-data (&&&&) :: (d × d) --> d
-type instance Act ((&&&&) :: (d × d) --> d) o = (Fst o & Snd o) d
--- Uncomment for panic - https://gitlab.haskell.org/ghc/ghc/-/issues/20231
--- instance Cartesian d => Functor ((&&&&) :: (d × d) --> d) where
---   map_ (l :×: r) = (l ∘ first) `product` (r ∘ second)
-
-type Acting :: ((d :: CATEGORY o) --> TYPE) -> o -> Type
-data Acting f a = Acting (Act f a)
-
-data Day :: ((d :: CATEGORY i) --> TYPE) -> (d --> TYPE) -> i -> Type where
-  MkDay ::
-    (a ∈ d, b ∈ d, c ∈ d) =>
-    Acting (f :: d --> TYPE) a ->
-    Acting (g :: d --> TYPE) b ->
-    d ((a & b) d) c ->
-    Day f g c
-
-data DAY :: (d --> TYPE) -> (d --> TYPE) -> (d --> TYPE)
-
-type instance Act (DAY f g) c = Day f g c
-
-instance
-  ( Functor f,
-    Functor g,
-    Cartesian d
-  ) =>
-  Functor (DAY f g :: d --> TYPE)
-  where
-  map_ d (MkDay f g c) = MkDay f g (d ∘ c)
-
----
-
-type Terminal :: CATEGORY i -> i
-type family Terminal k
-class (Category k, Terminal k ∈ k) => HasTerminal k where
-  term :: k i (Terminal k)
-
-type instance Terminal TYPE = ()
-instance HasTerminal TYPE where
-  term _ = ()
+instance Functor (FREE1 @TYPE) where
+  map_ = undefined
 
 ---
 
