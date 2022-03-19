@@ -1,8 +1,8 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
@@ -28,9 +28,20 @@ module Main where
 
 import Data.Kind
 import Data.Proxy
-import Prelude hiding (Functor, map, pure, (>>=), product, succ, Monad, Monoid, Semigroup)
+import Prelude hiding
+  ( Foldable,
+    Functor,
+    Monad,
+    Monoid,
+    Semigroup,
+    foldMap,
+    map,
+    product,
+    pure,
+    succ,
+    (>>=),
+  )
 import qualified Prelude
-
 
 {- Category: definition -}
 
@@ -38,19 +49,13 @@ import qualified Prelude
 type CATEGORY :: Type -> Type
 type CATEGORY i = i -> i -> Type
 
+-- Lookup the type of a category's object names
 type NAMES :: forall i. CATEGORY i -> Type
 type NAMES (c :: CATEGORY i) = i
 
 -- Categories must specify what it means to be an object in that category
 type (∈) :: forall i. i -> CATEGORY i -> Constraint
-type family x ∈ k = o | o -> k x
-
-type Known :: t -> Constraint
-type Known t = t ~ t
-
--- Helper to deal with injectivity when instancing ∈
-type Obj :: CATEGORY i -> Constraint -> Constraint
-type Obj k c = (Known k, c)
+type family x ∈ k
 
 -- What is a category
 type Semigroupoid :: CATEGORY i -> Constraint
@@ -62,14 +67,13 @@ type Category :: CATEGORY i -> Constraint
 class Semigroupoid k => Category k where
   identity :: i ∈ k => k i i
 
-
 {- Category: Examples -}
 
 -- "Equality" forms a category
 data (:~:) :: CATEGORY t where
   Refl :: x :~: x
 
-type instance (t :: k) ∈ (:~:) = Obj ((:~:) @k) (Known t)
+type instance (t :: k) ∈ (:~:) = (t ~ t)
 
 instance Semigroupoid (:~:) where
   Refl ∘ Refl = Refl
@@ -77,13 +81,12 @@ instance Semigroupoid (:~:) where
 instance Category (:~:) where
   identity = Refl
 
-
 -- There's a category TYPE.
 -- Whose objects are types,
 -- and arrows are functions.
 type TYPE = (->) :: CATEGORY Type
 
-type instance t ∈ TYPE = Obj TYPE (Known t)
+type instance t ∈ TYPE = (t ~ t)
 
 instance Semigroupoid TYPE where
   (∘) = (.)
@@ -91,19 +94,17 @@ instance Semigroupoid TYPE where
 instance Category TYPE where
   identity = id
 
-
 -- Every category has an opposite
 data OP :: CATEGORY i -> CATEGORY i where
   OP :: k b a -> OP k a b
 
-type instance i ∈ OP k = Obj (OP k) (i ∈ k)
+type instance i ∈ OP k = i ∈ k
 
 instance Semigroupoid k => Semigroupoid (OP k) where
   OP g ∘ OP f = OP (f ∘ g)
 
 instance Category k => Category (OP k) where
   identity = OP identity
-
 
 -- The cross-product of two categories, is a category
 data (×) :: CATEGORY s -> CATEGORY t -> CATEGORY (s, t) where
@@ -117,24 +118,13 @@ type Snd :: (l, r) -> r
 type family Snd p where
   Snd '(a, b) = b
 
-type IsPair :: (l, r) -> Constraint
-type IsPair v = v ~ '(Fst v, Snd v)
-
-type instance
-  v ∈ (l × r) =
-    Obj
-      (l × r)
-      ( IsPair v,
-        Fst v ∈ l,
-        Snd v ∈ r
-      )
+type instance v ∈ (l × r) = (v ~ '(Fst v, Snd v), Fst v ∈ l, Snd v ∈ r)
 
 instance (Semigroupoid l, Semigroupoid r) => Semigroupoid (l × r) where
   (a :×: b) ∘ (c :×: d) = (a ∘ c) :×: (b ∘ d)
 
 instance (Category l, Category r) => Category (l × r) where
   identity = identity :×: identity
-
 
 -- Natural numbers
 data N = S N | Z
@@ -144,15 +134,12 @@ data (≤) :: CATEGORY N where
   E :: n ≤ n
   B :: l ≤ u -> l ≤ 'S u
 
-type TheN :: N -> N
-type family TheN n where
-  TheN 'Z = 'Z
-  TheN ('S k) = 'S (TheN k)
+type CanonicalN :: N -> N
+type family CanonicalN n where
+  CanonicalN 'Z = 'Z
+  CanonicalN ('S k) = 'S (CanonicalN k)
 
-type instance x ∈ (≤) =
-  Obj
-    (≤)
-    (x ~ TheN x)
+type instance x ∈ (≤) = x ~ CanonicalN x
 
 instance Semigroupoid (≤) where
   E ∘ r = r
@@ -161,24 +148,19 @@ instance Semigroupoid (≤) where
 instance Category (≤) where
   identity = E
 
-
 {- Monoid: definition -}
 
 -- Monoids are categories with a single object
-class (Category c, forall x y. (x ∈ c, y ∈ c) => x ~ y) => Monoid (c :: CATEGORY i)
-instance (Category c, forall x y. (x ∈ c, y ∈ c) => x ~ y) => Monoid (c :: CATEGORY i)
+class (Category c, o ∈ c, forall x y. (x ∈ c, y ∈ c) => x ~ y) => Monoid (c :: CATEGORY i) (o :: i)
 
+instance (Category c, o ∈ c, forall x y. (x ∈ c, y ∈ c) => x ~ y) => Monoid (c :: CATEGORY i) (o :: i)
 
 {- Monoid: examples -}
 
 data PreludeMonoid :: Type -> CATEGORY () where
   PreludeMonoid :: m -> PreludeMonoid m '() '()
 
-type instance
-  x ∈ PreludeMonoid m =
-    Obj
-      (PreludeMonoid m)
-      (x ~ '())
+type instance x ∈ PreludeMonoid m = (x ~ '())
 
 instance Prelude.Semigroup m => Semigroupoid (PreludeMonoid m) where
   PreludeMonoid l ∘ PreludeMonoid r = PreludeMonoid (l <> r)
@@ -186,6 +168,16 @@ instance Prelude.Semigroup m => Semigroupoid (PreludeMonoid m) where
 instance Prelude.Monoid m => Category (PreludeMonoid m) where
   identity = PreludeMonoid mempty
 
+data Endo :: i -> CATEGORY i -> CATEGORY () where
+  Endo :: c o o -> Endo o c '() '()
+
+type instance x ∈ Endo o c = (x ~ '())
+
+instance (Semigroupoid c, o ∈ c) => Semigroupoid (Endo o c) where
+  Endo l ∘ Endo r = Endo (l ∘ r)
+
+instance (Category c, o ∈ c) => Category (Endo o c) where
+  identity = Endo identity
 
 {- Functor: definition -}
 
@@ -207,6 +199,7 @@ type family Act f o
 
 -- Type of evidence that `f` acting on `o` is an object in `f`'s codomain
 class (Act f o ∈ CODOMAIN f) => Acts f o
+
 instance (Act f o ∈ CODOMAIN f) => Acts f o
 
 -- A functor is functorial for some object name.
@@ -232,11 +225,10 @@ map ::
   c (Act f a) (Act f b)
 map d = map_ @_ @_ @f d
 
-
 {- Functor: examples -}
 
 -- The identity functor for some category k
-data Id :: forall k . k --> k
+data Id :: forall k. k --> k
 
 type instance Act Id x = x
 
@@ -259,7 +251,6 @@ type instance Act (PreludeFunctor f) a = f a
 instance Prelude.Functor f => Functor (PreludeFunctor f) where
   map_ = fmap
 
-
 -- Parallel functor product
 
 data (***) :: (a --> s) -> (b --> t) -> ((a × b) --> (s × t))
@@ -268,7 +259,6 @@ type instance Act (f *** g) o = '(Act f (Fst o), Act g (Snd o))
 
 instance (Functor f, Functor g) => Functor (f *** g) where
   map_ (l :×: r) = map @f l :×: map @g r
-
 
 -- Pointwise functor product
 
@@ -279,25 +269,45 @@ type instance Act (f &&& g) o = '(Act f o, Act g o)
 instance (Functor f, Functor g) => Functor (f &&& g) where
   map_ t = map @f t :×: map @g t
 
-
 -- Some Yoneda embeddings
 data Y :: forall (k :: CATEGORY i) -> i -> (k --> TYPE)
+
 type instance Act (Y k d) c = k d c
+
 instance (d ∈ k, Category k) => Functor (Y k d) where
   map_ = (∘)
 
 data L :: forall (k :: CATEGORY i) -> i -> (OP k --> TYPE)
+
 type instance Act (L k c) d = k d c
+
 instance (d ∈ k, Category k) => Functor (L k d) where
   map_ (OP g) f = f ∘ g
 
 data HOM :: forall (k :: CATEGORY i) -> ((OP k × k) --> TYPE)
+
 type instance Act (HOM k) o = k (Fst o) (Snd o)
+
 instance Category k => Functor (HOM k) where
   map_ (OP f :×: g) t = g ∘ t ∘ f
 
+-- Foldable?
 
-{- Exponential category -}
+class Foldable t where
+  foldMap :: (Monoid c o) => (a -> c o o) -> Act t a -> c o o
+
+data List :: TYPE --> TYPE
+
+type instance Act List t = [t]
+
+instance Functor List where
+  map_ = fmap
+
+instance Foldable List where
+  foldMap _ [] = identity
+  foldMap f (h : t) = f h ∘ foldMap @List f t
+
+{- Exponential category / natural transformations -}
 
 data (^) :: forall c d -> CATEGORY (d --> c) where
   Exp ::
@@ -306,10 +316,10 @@ data (^) :: forall c d -> CATEGORY (d --> c) where
 
 type (~>) (f :: d --> c) g = (c ^ d) f g
 
-runExp :: forall x c d i o . (x ∈ d) => (c ^ d) i o -> c (Act i x) (Act o x)
+runExp :: forall x c d i o. (x ∈ d) => (c ^ d) i o -> c (Act i x) (Act o x)
 runExp (Exp f) = f (Proxy :: Proxy x)
 
-type instance o ∈ (c ^ d) = Obj (c ^ d) (Functor o)
+type instance o ∈ (c ^ d) = Functor o
 
 instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
   l ∘ r = Exp \p -> case (l, r) of
@@ -318,16 +328,14 @@ instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
 instance (Category d, Category c) => Category (c ^ d) where
   identity = Exp \_ -> identity
 
-
 -- Functor composition is itself a functor
-data FunctorCompose :: forall a b x . ((b ^ a) × (a ^ x)) --> (b ^ x)
+data FunctorCompose :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
 
 type instance Act (FunctorCompose @a @b @x) e = Fst e ∘ Snd e
 
 instance (Category a, Category b, Category x) => Functor (FunctorCompose @a @b @x) where
   -- map_ (Exp t :×: Exp s) = Exp \_ -> t Proxy ∘ s Proxy
   map_ _ = undefined
-
 
 {- Adjunctions -}
 
@@ -448,7 +456,6 @@ flatMap _ m t =
   join @m @b
     (map @m t m :: Act (m ∘ m) b)
 
-
 {- Adjunctions: examples -}
 
 -- ENV s ⊣ READER s
@@ -470,7 +477,6 @@ instance Functor (ENV x) where
 instance ENV s ⊣ READER s where
   leftAdjoint_ = uncurry
   rightAdjoint_ = curry
-
 
 -- (∨) ⊣ Δ TYPE ⊣ (∧)
 
@@ -586,7 +592,6 @@ type Decomposed m = Outer m ∘ Inner m
 class (m ~ Decomposed m, Inner m ⊣ Outer m) => Monad m
 instance (m ~ Decomposed m, Inner m ⊣ Outer m) => Monad m
 -}
-
 
 -- do notationy stuff
 
@@ -714,16 +719,19 @@ data Free t a = Free
   }
 
 data FREE0 :: (k --> k) -> (k --> k)
+
 data FREE1 :: (k ^ k) --> (k ^ k)
 
 type instance Act (FREE0 f) o = Free f o
+
 type instance Act FREE1 f = FREE0 f
 
 instance Functor (FREE0 @TYPE t) where
   map_ = undefined
-  -- map_ (a_b :: a -> b) (Free f) =
-    -- Free \(m :: Proxy m) (Proxy :: Proxy b) (t_m :: t ~> m) ->
-    --   map @m a_b (f m (Proxy @a) t_m)
+
+-- map_ (a_b :: a -> b) (Free f) =
+-- Free \(m :: Proxy m) (Proxy :: Proxy b) (t_m :: t ~> m) ->
+--   map @m a_b (f m (Proxy @a) t_m)
 
 instance Functor (FREE1 @TYPE) where
   map_ = undefined
