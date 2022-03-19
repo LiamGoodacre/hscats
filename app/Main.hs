@@ -28,19 +28,7 @@ module Main where
 
 import Data.Kind
 import Data.Proxy
-import Prelude hiding
-  ( Foldable,
-    Functor,
-    Monad,
-    Monoid,
-    Semigroup,
-    foldMap,
-    map,
-    product,
-    pure,
-    succ,
-    (>>=),
-  )
+import Prelude (Either (..), Int, Num (..), String, fromInteger, undefined, ($), (.), (<>))
 import qualified Prelude
 
 {- Category: definition -}
@@ -92,7 +80,7 @@ instance Semigroupoid TYPE where
   (∘) = (.)
 
 instance Category TYPE where
-  identity = id
+  identity = Prelude.id
 
 -- Every category has an opposite
 data OP :: CATEGORY i -> CATEGORY i where
@@ -166,7 +154,7 @@ instance Prelude.Semigroup m => Semigroupoid (PreludeMonoid m) where
   PreludeMonoid l ∘ PreludeMonoid r = PreludeMonoid (l <> r)
 
 instance Prelude.Monoid m => Category (PreludeMonoid m) where
-  identity = PreludeMonoid mempty
+  identity = PreludeMonoid Prelude.mempty
 
 data Endo :: i -> CATEGORY i -> CATEGORY () where
   Endo :: c o o -> Endo o c '() '()
@@ -249,7 +237,7 @@ data PreludeFunctor f :: TYPE --> TYPE
 type instance Act (PreludeFunctor f) a = f a
 
 instance Prelude.Functor f => Functor (PreludeFunctor f) where
-  map_ = fmap
+  map_ = Prelude.fmap
 
 -- Parallel functor product
 
@@ -301,7 +289,7 @@ data List :: TYPE --> TYPE
 type instance Act List t = [t]
 
 instance Functor List where
-  map_ = fmap
+  map_ = Prelude.fmap
 
 instance Foldable List where
   foldMap _ [] = identity
@@ -475,8 +463,8 @@ instance Functor (ENV x) where
   map_ f (l, r) = (f l, r)
 
 instance ENV s ⊣ READER s where
-  leftAdjoint_ = uncurry
-  rightAdjoint_ = curry
+  leftAdjoint_ = Prelude.uncurry
+  rightAdjoint_ = Prelude.curry
 
 -- (∨) ⊣ Δ TYPE ⊣ (∧)
 
@@ -499,14 +487,14 @@ data (∨) :: (TYPE × TYPE) --> TYPE
 type instance Act (∨) x = Either (Fst x) (Snd x)
 
 instance Functor (∨) where
-  map_ (f :×: g) = either (Left . f) (Right . g)
+  map_ (f :×: g) = Prelude.either (Left . f) (Right . g)
 
 instance Δ TYPE ⊣ (∧) where
-  leftAdjoint_ t = (fst . t) :×: (snd . t)
+  leftAdjoint_ t = (Prelude.fst . t) :×: (Prelude.snd . t)
   rightAdjoint_ (f :×: g) = \x -> (f x, g x)
 
 instance (∨) ⊣ Δ TYPE where
-  leftAdjoint_ (f :×: g) = f `either` g
+  leftAdjoint_ (f :×: g) = f `Prelude.either` g
   rightAdjoint_ t = (t . Left) :×: (t . Right)
 
 -- (∘ g) ⊣ (/ g)
@@ -701,7 +689,7 @@ twicePostincShow = stateMonad do
     v <- (10, 100)
     x <- (v + 1, v + 2)
     pure (x * 2 :: Int)
-  pure (show a <> "-" <> show b <> "-" <> show c)
+  pure (Prelude.show a <> "-" <> Prelude.show b <> "-" <> Prelude.show c)
 
 egState :: (String, Int)
 egState = twicePostincShow 10
@@ -738,5 +726,5 @@ instance Functor (FREE1 @TYPE) where
 
 ---
 
-main :: IO ()
-main = putStrLn ""
+main :: Prelude.IO ()
+main = Prelude.putStrLn ""
