@@ -565,7 +565,7 @@ type TheComposition :: forall c . (c --> c) -> (c --> c)
 type TheComposition m = Outer m ∘ Inner m
 
 type Monad :: forall c . (c --> c) -> Constraint
-type Monad m = (m ~ TheComposition m, Inner m ⊣ Outer m)
+type Monad m = (m ~ TheComposition m, Inner m ⊣ Outer m, Functor m)
 
 type Comonad :: forall c . (c --> c) -> Constraint
 type Comonad m = (m ~ TheComposition m, Outer m ⊣ Inner m)
@@ -673,14 +673,17 @@ egState = twicePostincShow 10
 
 -- $> egState
 
+newtype NT t m = NT (t ~> m)
+
+type Free :: (Types --> Types) -> Type -> Type
 data Free t a = Free
   { runFree ::
-      forall m {f} {g}.
-      (m ~ (g ∘ f), f ⊣ g) =>
+      forall m.
+      Monad m =>
       Proxy m ->
       Proxy a ->
-      (t ~> m) ->
-      Act (g ∘ f) a
+      NT t m ->
+      Act m a
   }
 
 data Free0 :: (k --> k) -> (k --> k)
@@ -692,11 +695,17 @@ type instance Act (Free0 f) o = Free f o
 type instance Act Free1 f = Free0 f
 
 instance Functor (Free0 @Types t) where
-  map_ = undefined
-
--- map_ (a_b :: a -> b) (Free f) =
--- Free \(m :: Proxy m) (Proxy :: Proxy b) (t_m :: t ~> m) ->
---   map @m a_b (f m (Proxy @a) t_m)
+  map_ (a_b :: a -> b) r = Free do
+    let outer ::
+          forall m.
+          Monad m =>
+          Proxy m ->
+          Proxy b ->
+          NT t m ->
+          Act m b
+        outer pm _pb tm =
+          map @m a_b (runFree r pm (Proxy @a) tm)
+    outer
 
 instance Functor (Free1 @Types) where
   map_ = undefined
