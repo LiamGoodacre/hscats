@@ -1,25 +1,12 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE ImplicitParams #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 {-# OPTIONS_GHC -Wall -Werror -Wextra #-}
@@ -45,12 +32,12 @@ type NamesOf (c :: CATEGORY i) = i
 type (∈) :: forall i. i -> CATEGORY i -> Constraint
 type family x ∈ k
 
--- What is a category
+-- Semigroupoids have a means of composing arrows
 type Semigroupoid :: CATEGORY i -> Constraint
 class Semigroupoid k where
   (∘) :: (a ∈ k, b ∈ k, x ∈ k) => k a b -> k x a -> k x b
 
--- What is a category
+-- Categories are Semigroupoids with an identity arrow
 type Category :: CATEGORY i -> Constraint
 class Semigroupoid k => Category k where
   identity :: i ∈ k => k i i
@@ -555,31 +542,33 @@ instance (Functor g) => PostCompose g ⊣ PostRan @x @z @Types g where
 type Codensity :: (x --> Types) -> (Types --> Types)
 type Codensity f = f / f
 
--- Monad
--- "Works" but using the class crashes the compiler
-{-
-type DeCompMidIx :: (c --> c) -> Type
-type family DeCompMidIx m where
-  DeCompMidIx (g ∘ f) = NamesOf (CodomainOf f)
+--
 
-type DeCompMid :: forall (m :: c --> c) -> CATEGORY (DeCompMidIx m)
-type family DeCompMid m where
-  DeCompMid (g ∘ f) = CodomainOf f
+-- Monad & Comonad
+type MidCompositionIx :: forall c . (c --> c) -> Type
+type family MidCompositionIx m where
+  MidCompositionIx (g ∘ f) = NamesOf (CodomainOf f)
 
-type Outer :: forall (m :: c --> c) -> (DeCompMid m --> c)
+type MidComposition :: forall c . forall (m :: c --> c) -> CATEGORY (MidCompositionIx m)
+type family MidComposition m where
+  MidComposition (g ∘ f) = CodomainOf f
+
+type Outer :: forall c . forall (m :: c --> c) -> (MidComposition m --> c)
 type family Outer m where
   Outer (g ∘ f) = g
 
-type Inner :: forall (m :: c --> c) -> (c --> DeCompMid m)
+type Inner :: forall c . forall (m :: c --> c) -> (c --> MidComposition m)
 type family Inner m where
   Inner (g ∘ f) = f
 
-type Decomposed :: (c --> c) -> (c --> c)
-type Decomposed m = Outer m ∘ Inner m
+type TheComposition :: forall c . (c --> c) -> (c --> c)
+type TheComposition m = Outer m ∘ Inner m
 
-class (m ~ Decomposed m, Inner m ⊣ Outer m) => Monad m
-instance (m ~ Decomposed m, Inner m ⊣ Outer m) => Monad m
--}
+type Monad :: forall c . (c --> c) -> Constraint
+type Monad m = (m ~ TheComposition m, Inner m ⊣ Outer m)
+
+type Comonad :: forall c . (c --> c) -> Constraint
+type Comonad m = (m ~ TheComposition m, Outer m ⊣ Inner m)
 
 -- do notationy stuff
 
@@ -611,45 +600,36 @@ type MonadDo m =
 pure :: forall m a. (?pure :: PureDo m) => a -> Act m a
 pure = let PureDo u = ?pure in u
 
-monadDo :: BindDo m -> PureDo m -> MonadDo m
-monadDo b p t = do
-  let ?bind = b
-  let ?pure = p
-  t
-
 makeBind ::
   forall (m :: Types --> Types) {f} {g}.
-  (m ~ (g ∘ f), f ⊣ g) =>
+  (Monad m, m ~ (g ∘ f)) =>
   BindDo m
 makeBind = BindDo (flatMap @m)
 
 makePure ::
   forall (m :: Types --> Types) {f} {g}.
-  (m ~ (g ∘ f), f ⊣ g) =>
+  (Monad m, m ~ (g ∘ f)) =>
   PureDo m
 makePure = PureDo (unit @m)
 
--- makeMonadDo ::
---   forall (m :: Types --> Types) {f} {g}.
---   (m ~ (g ∘ f), f ⊣ g) =>
---   MonadDo m
--- makeMonadDo =
---   monadDo
---     (makeBind @m)
---     (makePure @m)
+monadDo ::
+  forall (m :: Types --> Types) {f} {g}.
+  (Monad m, m ~ (g ∘ f)) =>
+  MonadDo m
+monadDo t = do
+  let ?bind = makeBind @m
+  let ?pure = makePure @m
+  t
 
 ---
 
 type Dup = (∧) ∘ Δ Types
 
 dupMonad :: MonadDo Dup
-dupMonad =
-  monadDo
-    (makeBind @Dup)
-    (makePure @Dup)
+dupMonad = monadDo
 
 egDuped :: (Int, Int)
-egDuped = dupMonad do
+egDuped = monadDo @Dup do
   v <- (10, 100)
   x <- (v + 1, v + 2)
   pure (x * 2)
@@ -659,10 +639,7 @@ egDuped = dupMonad do
 type States s = Reader s ∘ Env s
 
 stateMonad :: MonadDo (States s)
-stateMonad =
-  monadDo
-    (makeBind @(States _))
-    (makePure @(States _))
+stateMonad = monadDo
 
 type State s i = Act (States s) i
 
