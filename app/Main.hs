@@ -44,6 +44,17 @@ class Semigroupoid k => Category k where
 
 {- Category: Examples -}
 
+data One :: CATEGORY () where
+  ONE :: One '() '()
+
+type instance t ∈ One = (t ~ '())
+
+instance Semigroupoid One where
+  ONE ∘ ONE = ONE
+
+instance Category One where
+  identity = ONE
+
 -- "Equality" forms a category
 data (:~:) :: CATEGORY t where
   Refl :: x :~: x
@@ -219,7 +230,7 @@ instance (Functor f, Functor g) => Functor (f ∘ g) where
   map_ = map @f . map @g
 
 -- Prelude.Functor is a specialisation of Functor
-data PreludeFunctor f :: Types --> Types
+data PreludeFunctor (f :: Type -> Type) :: Types --> Types
 
 type instance Act (PreludeFunctor f) a = f a
 
@@ -709,6 +720,220 @@ instance Functor (Free0 @Types t) where
 
 instance Functor (Free1 @Types) where
   map_ = undefined
+
+---
+
+type Associative ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  ((k × k) --> k) ->
+  Constraint
+class Functor op => Associative (op :: (k × k) --> k) where
+  lassoc_ ::
+    (a ∈ k, b ∈ k, c ∈ k) =>
+    k
+      (Act op '(a, Act op '(b, c)))
+      (Act op '(Act op '(a, b), c))
+  rassoc_ ::
+    (a ∈ k, b ∈ k, c ∈ k) =>
+    k
+      (Act op '(Act op '(a, b), c))
+      (Act op '(a, Act op '(b, c)))
+
+lassoc ::
+  forall
+    {i}
+    {k :: CATEGORY i}
+    (op :: (k × k) --> k)
+    a
+    b
+    c.
+  (Associative op, a ∈ k, b ∈ k, c ∈ k) =>
+  k
+    (Act op '(a, Act op '(b, c)))
+    (Act op '(Act op '(a, b), c))
+lassoc = lassoc_ @k @op @a @b @c
+
+rassoc ::
+  forall
+    {i}
+    {k :: CATEGORY i}
+    (op :: (k × k) --> k)
+    a
+    b
+    c.
+  (Associative op, a ∈ k, b ∈ k, c ∈ k) =>
+  k
+    (Act op '(Act op '(a, b), c))
+    (Act op '(a, Act op '(b, c)))
+rassoc = rassoc_ @k @op @a @b @c
+
+type Monoidal ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  ((k × k) --> k) ->
+  (One --> k) ->
+  Constraint
+class
+  ( Associative p,
+    Functor id
+  ) =>
+  Monoidal p (id :: One --> k)
+  where
+  idl :: (m ∈ k) => k (Act p '(Act id '(), m)) m
+  coidl :: (m ∈ k) => k m (Act p '(Act id '(), m))
+  idr :: (m ∈ k) => k (Act p '(m, Act id '())) m
+  coidr :: (m ∈ k) => k m (Act p '(m, Act id '()))
+
+type MonoidObject ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  ((k × k) --> k) ->
+  (One --> k) ->
+  i ->
+  Constraint
+class
+  ( Monoidal p id,
+    m ∈ k
+  ) =>
+  MonoidObject p (id :: One --> k) m
+  where
+  mempty :: k (Act id '()) m
+  mappend :: k (Act p '(m, m)) m
+
+data Unit :: One --> Types
+
+type instance Act Unit x = ()
+
+instance Functor Unit where
+  map_ ONE = \x -> x
+
+instance Associative (∧) where
+  lassoc_ = \(a, (b, c)) -> ((a, b), c)
+  rassoc_ = \((a, b), c) -> (a, (b, c))
+
+instance Monoidal (∧) Unit where
+  idl = \(_, m) -> m
+  coidl = \m -> ((), m)
+  idr = \(m, _) -> m
+  coidr = \m -> (m, ())
+
+instance Prelude.Monoid m => MonoidObject (∧) Unit m where
+  mempty = \() -> Prelude.mempty
+  mappend = \(l, r) -> Prelude.mappend l r
+
+type DayD ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  ((k × k) --> k) ->
+  (k --> Types) ->
+  (k --> Types) ->
+  i ->
+  Type
+data DayD p f g z where
+  DayD :: Proxy x -> Proxy y -> k (Act p '(x, y)) z -> Act f x -> Act g y -> DayD @k p f g z
+
+data
+  DayF ::
+    ((Types × Types) --> Types) ->
+    (Types --> Types) ->
+    (Types --> Types) ->
+    (Types --> Types)
+
+type instance Act (DayF p f g) x = DayD p f g x
+
+instance Functor p => Functor (DayF p f g) where
+  map_ (zw :: k z w) (DayD px py (xyz :: k xy z) fx gy) =
+    DayD px py (zw ∘ xyz :: k xy w) fx gy
+
+data
+  Day ::
+    ((Types × Types) --> Types) ->
+    (((Types ^ Types) × (Types ^ Types)) --> (Types ^ Types))
+
+type instance Act (Day p) '(f, g) = DayF p f g
+
+instance Functor p => Functor (Day p) where
+  map_ (Exp l :×: Exp r) =
+    Exp \_p (DayD px py (xyz :: k xy z) fx gy) ->
+      DayD
+        px
+        py
+        xyz
+        (l px fx)
+        (r py gy)
+
+data ProductD :: (Types --> Types) -> (Types --> Types) -> Type -> Type where
+  ProductD ::
+    Act f x ->
+    Act g x ->
+    ProductD f g x
+
+data ProductF :: (Types --> Types) -> (Types --> Types) -> (Types --> Types)
+
+type instance Act (ProductF f g) x = ProductD f g x
+
+instance
+  ( Functor f,
+    Functor g
+  ) =>
+  Functor (ProductF f g)
+  where
+  map_ ab (ProductD fa ga) =
+    ProductD
+      (map @f ab fa)
+      (map @g ab ga)
+
+data Identity :: One --> (Types ^ Types)
+
+type instance Act Identity t = Id
+
+instance Functor Identity where
+  map_ ONE = Exp \_ x -> x
+
+instance Associative p => Associative (Day p) where
+  lassoc_ = Exp \_p (DayD (px :: Proxy x) (_py :: Proxy y) xyz fx (DayD (pa :: Proxy a) (pb :: Proxy b) aby ga hb)) ->
+    DayD
+      Proxy
+      pb
+      ( xyz
+          ∘ map @p
+            ( identity :×: aby ::
+                (Types × Types) '(x, Act p '(a, b)) '(x, y)
+            )
+          ∘ rassoc @p @x @a @b
+      )
+      (DayD px pa (\x -> x) fx ga)
+      hb
+  rassoc_ = Exp \_p (DayD (_px :: Proxy x) (py :: Proxy y) xyz (DayD (pa :: Proxy a) (pb :: Proxy b) abx fa gb) hy) ->
+    DayD
+      pa
+      Proxy
+      ( xyz
+          ∘ map @p
+            ( abx :×: identity ::
+                (Types × Types) '(Act p '(a, b), y) '(x, y)
+            )
+          ∘ lassoc @p @a @b @y
+      )
+      fa
+      (DayD pb py (\x -> x) gb hy)
+
+instance Monoidal (Day (∧)) Identity where
+  idl = Exp \_p (DayD _ _ xyz x my :: DayD (∧) Id m z) -> map @m (\y -> xyz (x, y)) my
+  coidl = Exp \_p my -> DayD Proxy Proxy (\(_, y) -> y) () my
+  idr = Exp \_p (DayD _ _ xyz mx y :: DayD (∧) m Id z) -> map @m (\x -> xyz (x, y)) mx
+  coidr = Exp \_p mx -> DayD Proxy Proxy (\(x, _) -> x) mx ()
+
+instance
+  Prelude.Applicative m =>
+  MonoidObject
+    (Day (∧))
+    Identity
+    (PreludeFunctor m)
+  where
+  mempty = Exp \_p x -> Prelude.pure x
+  mappend = Exp \_p (DayD _ _ xyz fx fy) -> Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
 ---
 
