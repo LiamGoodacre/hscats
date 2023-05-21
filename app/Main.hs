@@ -16,7 +16,7 @@ module Main where
 import Data.Kind
 import Data.Proxy
 import Prelude (Either (..), Int, Num (..), String, fromInteger, undefined, ($), (.), (<>))
-import qualified Prelude
+import Prelude qualified
 
 {- Category: definition -}
 
@@ -545,30 +545,30 @@ type Codensity f = f / f
 --
 
 -- Monad & Comonad
-type MidCompositionIx :: forall c . (c --> c) -> Type
+type MidCompositionIx :: forall c. (c --> c) -> Type
 type family MidCompositionIx m where
   MidCompositionIx (g ∘ f) = NamesOf (CodomainOf f)
 
-type MidComposition :: forall c . forall (m :: c --> c) -> CATEGORY (MidCompositionIx m)
+type MidComposition :: forall c. forall (m :: c --> c) -> CATEGORY (MidCompositionIx m)
 type family MidComposition m where
   MidComposition (g ∘ f) = CodomainOf f
 
-type Outer :: forall c . forall (m :: c --> c) -> (MidComposition m --> c)
+type Outer :: forall c. forall (m :: c --> c) -> (MidComposition m --> c)
 type family Outer m where
   Outer (g ∘ f) = g
 
-type Inner :: forall c . forall (m :: c --> c) -> (c --> MidComposition m)
+type Inner :: forall c. forall (m :: c --> c) -> (c --> MidComposition m)
 type family Inner m where
   Inner (g ∘ f) = f
 
-type TheComposition :: forall c . (c --> c) -> (c --> c)
+type TheComposition :: forall c. (c --> c) -> (c --> c)
 type TheComposition m = Outer m ∘ Inner m
 
-type Monad :: forall c . (c --> c) -> Constraint
+type Monad :: forall c. (c --> c) -> Constraint
 type Monad m = (m ~ TheComposition m, Inner m ⊣ Outer m, Functor m)
 
-type Comonad :: forall c . (c --> c) -> Constraint
-type Comonad m = (m ~ TheComposition m, Outer m ⊣ Inner m)
+type Comonad :: forall c. (c --> c) -> Constraint
+type Comonad w = (w ~ TheComposition w, Outer w ⊣ Inner w, Functor w)
 
 -- do notationy stuff
 
