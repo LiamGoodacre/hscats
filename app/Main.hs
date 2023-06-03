@@ -13,9 +13,10 @@
 
 module Main where
 
+import Data.Foldable qualified as Foldable
 import Data.Kind
 import Data.Proxy
-import Prelude (Either (..), Int, Num (..), String, fromInteger, undefined, ($), (.), (<>))
+import Prelude (fromInteger, ($), (.))
 import Prelude qualified
 
 {- Category: definition -}
@@ -144,15 +145,30 @@ instance (Category c, o ∈ c, forall x y. (x ∈ c, y ∈ c) => x ~ y) => Monoi
 {- Monoid: examples -}
 
 data PreludeMonoid :: Type -> CATEGORY () where
-  PreludeMonoid :: m -> PreludeMonoid m '() '()
+  PreludeMonoid :: {getPreludeMonoid :: m} -> PreludeMonoid m '() '()
 
 type instance x ∈ PreludeMonoid m = (x ~ '())
 
 instance Prelude.Semigroup m => Semigroupoid (PreludeMonoid m) where
-  PreludeMonoid l ∘ PreludeMonoid r = PreludeMonoid (l <> r)
+  PreludeMonoid l ∘ PreludeMonoid r = PreludeMonoid (l Prelude.<> r)
 
 instance Prelude.Monoid m => Category (PreludeMonoid m) where
   identity = PreludeMonoid Prelude.mempty
+
+boring_monoid_category_example :: ()
+boring_monoid_category_example = ()
+  where
+    _monoid_mappend :: Monoid c o => c o o -> c o o -> c o o
+    _monoid_mappend = (∘)
+
+    _monoid_mempty :: Monoid c o => c o o
+    _monoid_mempty = identity
+
+    _eg0 :: [Prelude.Integer]
+    _eg0 = getPreludeMonoid _monoid_mempty
+
+    _eg1 :: [Prelude.Integer]
+    _eg1 = getPreludeMonoid $ PreludeMonoid [1] `_monoid_mappend` PreludeMonoid [2, 3]
 
 data Endo :: i -> CATEGORY i -> CATEGORY () where
   Endo :: c o o -> Endo o c '() '()
@@ -315,13 +331,25 @@ instance (Category d, Category c) => Category (c ^ d) where
   identity = Exp \_ -> identity
 
 -- Functor composition is itself a functor
-data FunctorCompose :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
+data Compose :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
 
-type instance Act (FunctorCompose @a @b @x) e = Fst e ∘ Snd e
+-- Act (Act Compose '(f, g)) x ==> Act f (Act g x)
 
-instance (Category a, Category b, Category x) => Functor (FunctorCompose @a @b @x) where
-  -- map_ (Exp t :×: Exp s) = Exp \_ -> t Proxy ∘ s Proxy
-  map_ _ = undefined
+type instance Act (Compose @a @b @x) e = Fst e ∘ Snd e
+
+instance (Category aa, Category bb, Category xx) => Functor (Compose @aa @bb @xx) where
+  map_ ::
+    forall f g h i.
+    ( f ∈ (bb ^ aa),
+      g ∈ (aa ^ xx),
+      h ∈ (bb ^ aa),
+      i ∈ (aa ^ xx)
+    ) =>
+    -- (f ~> h, g ~> i)
+    ((bb ^ aa) × (aa ^ xx)) '(f, g) '(h, i) ->
+    (f ∘ g) ~> (h ∘ i)
+  map_ (Exp fh :×: Exp gi) = Exp \(y :: Proxy y) ->
+    map @h (gi y) ∘ fh (Proxy @(Act g y))
 
 {- Adjunctions -}
 
@@ -482,10 +510,10 @@ instance Functor (∧) where
 
 data (∨) :: (Types × Types) --> Types
 
-type instance Act (∨) x = Either (Fst x) (Snd x)
+type instance Act (∨) x = Prelude.Either (Fst x) (Snd x)
 
 instance Functor (∨) where
-  map_ (f :×: g) = Prelude.either (Left . f) (Right . g)
+  map_ (f :×: g) = Prelude.either (Prelude.Left . f) (Prelude.Right . g)
 
 instance Δ Types ⊣ (∧) where
   leftAdjoint_ t = (Prelude.fst . t) :×: (Prelude.snd . t)
@@ -493,7 +521,7 @@ instance Δ Types ⊣ (∧) where
 
 instance (∨) ⊣ Δ Types where
   leftAdjoint_ (f :×: g) = f `Prelude.either` g
-  rightAdjoint_ t = (t . Left) :×: (t . Right)
+  rightAdjoint_ t = (t . Prelude.Left) :×: (t . Prelude.Right)
 
 -- (∘ g) ⊣ (/ g)
 -- aka (PostCompose g ⊣ PostRan g)
@@ -639,11 +667,11 @@ type Dup = (∧) ∘ Δ Types
 dupMonad :: MonadDo Dup
 dupMonad = monadDo
 
-egDuped :: (Int, Int)
+egDuped :: (Prelude.Integer, Prelude.Integer)
 egDuped = monadDo @Dup do
   v <- (10, 100)
-  x <- (v + 1, v + 2)
-  pure (x * 2)
+  x <- (v Prelude.+ 1, v Prelude.+ 2)
+  pure (x Prelude.* 2)
 
 -- $> egDuped -- (22,204)
 
@@ -663,23 +691,25 @@ put v _ = ((), v)
 modify :: (s -> s) -> State s ()
 modify t s = ((), t s)
 
-postinc :: State Int Int
+postinc :: State Prelude.Integer Prelude.Integer
 postinc = stateMonad do
   x <- get
-  _ <- put (x + 1)
+  _ <- put (x Prelude.+ 1)
   pure x
 
-twicePostincShow :: State Int String
+twicePostincShow :: State Prelude.Integer Prelude.String
 twicePostincShow = stateMonad do
   a <- postinc
   b <- postinc
   c <- pure $ dupMonad do
     v <- (10, 100)
-    x <- (v + 1, v + 2)
-    pure (x * 2 :: Int)
-  pure (Prelude.show a <> "-" <> Prelude.show b <> "-" <> Prelude.show c)
+    x <- (v Prelude.+ 1, v Prelude.+ 2)
+    pure (x Prelude.* 2 :: Prelude.Integer)
+  pure $
+    Foldable.fold
+      [Prelude.show a, "-", Prelude.show b, "-", Prelude.show c]
 
-egState :: (String, Int)
+egState :: (Prelude.String, Prelude.Integer)
 egState = twicePostincShow 10
 
 -- $> egState
@@ -719,7 +749,8 @@ instance Functor (Free0 @Types t) where
     outer
 
 instance Functor (Free1 @Types) where
-  map_ = undefined
+  map_ ab = Exp \_ (Free f) ->
+    Free \m a (NT tm) -> f m a (NT (tm ∘ ab))
 
 ---
 
