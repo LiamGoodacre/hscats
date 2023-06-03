@@ -41,7 +41,10 @@ class Semigroupoid k where
 -- Categories are Semigroupoids with an identity arrow
 type Category :: CATEGORY i -> Constraint
 class Semigroupoid k => Category k where
-  identity :: i ∈ k => k i i
+  identity_ :: i ∈ k => k i i
+
+identity :: forall i k. (Category k, i ∈ k) => k i i
+identity = identity_
 
 {- Category: Examples -}
 
@@ -54,7 +57,7 @@ instance Semigroupoid One where
   ONE ∘ ONE = ONE
 
 instance Category One where
-  identity = ONE
+  identity_ = ONE
 
 -- "Equality" forms a category
 data (:~:) :: CATEGORY t where
@@ -66,7 +69,7 @@ instance Semigroupoid (:~:) where
   Refl ∘ Refl = Refl
 
 instance Category (:~:) where
-  identity = Refl
+  identity_ = Refl
 
 -- There's a category Types.
 -- Whose objects are types,
@@ -79,7 +82,7 @@ instance Semigroupoid Types where
   (∘) = (.)
 
 instance Category Types where
-  identity = Prelude.id
+  identity_ = Prelude.id
 
 -- Every category has an opposite
 data Op :: CATEGORY i -> CATEGORY i where
@@ -91,7 +94,7 @@ instance Semigroupoid k => Semigroupoid (Op k) where
   Op g ∘ Op f = Op (f ∘ g)
 
 instance Category k => Category (Op k) where
-  identity = Op identity
+  identity_ = Op identity
 
 -- The cross-product of two categories, is a category
 data (×) :: CATEGORY s -> CATEGORY t -> CATEGORY (s, t) where
@@ -111,7 +114,7 @@ instance (Semigroupoid l, Semigroupoid r) => Semigroupoid (l × r) where
   (a :×: b) ∘ (c :×: d) = (a ∘ c) :×: (b ∘ d)
 
 instance (Category l, Category r) => Category (l × r) where
-  identity = identity :×: identity
+  identity_ = identity :×: identity
 
 -- Natural numbers
 data N = S N | Z
@@ -133,7 +136,7 @@ instance Semigroupoid (≤) where
   B l ∘ r = B (l ∘ r)
 
 instance Category (≤) where
-  identity = E
+  identity_ = E
 
 {- Monoid: definition -}
 
@@ -153,7 +156,7 @@ instance Prelude.Semigroup m => Semigroupoid (PreludeMonoid m) where
   PreludeMonoid l ∘ PreludeMonoid r = PreludeMonoid (l Prelude.<> r)
 
 instance Prelude.Monoid m => Category (PreludeMonoid m) where
-  identity = PreludeMonoid Prelude.mempty
+  identity_ = PreludeMonoid Prelude.mempty
 
 boring_monoid_category_example :: ()
 boring_monoid_category_example = ()
@@ -179,7 +182,7 @@ instance (Semigroupoid c, o ∈ c) => Semigroupoid (Endo o c) where
   Endo l ∘ Endo r = Endo (l ∘ r)
 
 instance (Category c, o ∈ c) => Category (Endo o c) where
-  identity = Endo identity
+  identity_ = Endo identity
 
 {- Functor: definition -}
 
@@ -313,7 +316,8 @@ instance Foldable List where
 
 data (^) :: forall c d -> CATEGORY (d --> c) where
   Exp ::
-    (forall i. i ∈ d => Proxy i -> c (Act f i) (Act g i)) ->
+    { unExp :: forall i. i ∈ d => Proxy i -> c (Act f i) (Act g i)
+    } ->
     (c ^ d) f g
 
 type (~>) (f :: d --> c) g = (c ^ d) f g
@@ -324,32 +328,53 @@ runExp (Exp f) = f (Proxy :: Proxy x)
 type instance o ∈ (c ^ d) = Functor o
 
 instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
-  l ∘ r = Exp \p -> case (l, r) of
-    (Exp f, Exp g) -> (f p ∘ g p)
+  l ∘ r = Exp \p -> unExp l p ∘ unExp r p
 
 instance (Category d, Category c) => Category (c ^ d) where
-  identity = Exp \_ -> identity
+  identity_ = Exp \_ -> identity
 
--- Functor composition is itself a functor
+-- Functor composition is itself a functor in multiple ways
+
+above ::
+  forall {c} {d} k (f :: c --> d) g.
+  (Functor k) =>
+  (f ~> g) ->
+  ((f ∘ k) ~> (g ∘ k))
+above fg = Exp \(_ :: Proxy i) -> runExp @(Act k i) fg
+
+beneath ::
+  forall {c} {d} k (f :: c --> d) g.
+  (Functor f, Functor g, Functor k) =>
+  (f ~> g) ->
+  ((k ∘ f) ~> (k ∘ g))
+beneath fg = Exp (map @k . unExp fg)
+
+-- Functor in the two functors arguments
+-- `(f ∘ g) v` is a functor in `f`, and `g`
 data Compose :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
 
--- Act (Act Compose '(f, g)) x ==> Act f (Act g x)
+-- `(f ∘ g) v` is a functor in `f`, `g`, and `v`
+data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
 
 type instance Act (Compose @a @b @x) e = Fst e ∘ Snd e
 
-instance (Category aa, Category bb, Category xx) => Functor (Compose @aa @bb @xx) where
-  map_ ::
-    forall f g h i.
-    ( f ∈ (bb ^ aa),
-      g ∈ (aa ^ xx),
-      h ∈ (bb ^ aa),
-      i ∈ (aa ^ xx)
-    ) =>
-    -- (f ~> h, g ~> i)
-    ((bb ^ aa) × (aa ^ xx)) '(f, g) '(h, i) ->
-    (f ∘ g) ~> (h ∘ i)
-  map_ (Exp fh :×: Exp gi) = Exp \(y :: Proxy y) ->
-    map @h (gi y) ∘ fh (Proxy @(Act g y))
+type instance Act (Composed @a @b @c) e = Act (Act Compose (Fst e)) (Snd e)
+
+instance
+  (Category aa, Category bb, Category cc) =>
+  Functor (Compose @aa @bb @cc)
+  where
+  map_ ((fh :: f ~> h) :×: (gi :: g ~> i)) =
+    beneath @h gi ∘ above @g fh :: (f ∘ g) ~> (h ∘ i)
+
+instance
+  (Category aa, Category bb, Category cc) =>
+  Functor (Composed @aa @bb @cc)
+  where
+  map_ (fhgi :×: (xy :: cc x y)) =
+    case map @(Compose @aa @bb) fhgi of
+      (v :: (f ∘ g) ~> (h ∘ i)) ->
+        map @(h ∘ i) xy ∘ runExp @x v
 
 {- Adjunctions -}
 
@@ -534,7 +559,7 @@ instance
   (Category c, Category c', Category a, Functor g) =>
   Functor (PostCompose @c @c' @a g)
   where
-  map_ (Exp h) = Exp \(Proxy :: Proxy i) -> h (Proxy @(Act g i))
+  map_ = above
 
 type Ran :: (x --> Types) -> (x --> z) -> NamesOf z -> Type
 data Ran h g a where
@@ -731,9 +756,13 @@ data Free0 :: (k --> k) -> (k --> k)
 
 data Free1 :: (k ^ k) --> (k ^ k)
 
+data Free2 :: ((k ^ k) × k) --> k
+
 type instance Act (Free0 f) o = Free f o
 
 type instance Act Free1 f = Free0 f
+
+type instance Act Free2 fx = Free (Fst fx) (Snd fx)
 
 instance Functor (Free0 @Types t) where
   map_ (a_b :: a -> b) r = Free do
@@ -751,6 +780,11 @@ instance Functor (Free0 @Types t) where
 instance Functor (Free1 @Types) where
   map_ ab = Exp \_ (Free f) ->
     Free \m a (NT tm) -> f m a (NT (tm ∘ ab))
+
+instance Functor (Free2 @Types) where
+  map_ (st :×: (ab :: Types a b)) = \(Free f) ->
+    Free \(m :: Proxy m) _ (NT tm) ->
+      map @m ab (f m (Proxy @a) (NT (tm ∘ st)))
 
 ---
 
@@ -929,8 +963,7 @@ instance Associative p => Associative (Day p) where
       pb
       ( xyz
           ∘ map @p
-            ( identity :×: aby ::
-                (Types × Types) '(x, Act p '(a, b)) '(x, y)
+            ( identity @x :×: (aby :: Types (Act p '(a, b)) y)
             )
           ∘ rassoc @p @x @a @b
       )
@@ -942,8 +975,7 @@ instance Associative p => Associative (Day p) where
       Proxy
       ( xyz
           ∘ map @p
-            ( abx :×: identity ::
-                (Types × Types) '(Act p '(a, b), y) '(x, y)
+            ( (abx :: Types (Act p '(a, b)) x) :×: identity @y
             )
           ∘ lassoc @p @a @b @y
       )
