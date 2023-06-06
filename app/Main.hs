@@ -16,35 +16,9 @@ module Main where
 import Data.Foldable qualified as Foldable
 import Data.Kind
 import Data.Proxy
+import Defs
 import Prelude (fromInteger, ($), (.))
 import Prelude qualified
-
-{- Category: definition -}
-
--- Type of categories represented by their hom-types indexed by object names
-type CATEGORY :: Type -> Type
-type CATEGORY i = i -> i -> Type
-
--- Lookup the type of a category's object names
-type NamesOf :: forall i. CATEGORY i -> Type
-type NamesOf (c :: CATEGORY i) = i
-
--- Categories must specify what it means to be an object in that category
-type (∈) :: forall i. i -> CATEGORY i -> Constraint
-type family x ∈ k
-
--- Semigroupoids have a means of composing arrows
-type Semigroupoid :: CATEGORY i -> Constraint
-class Semigroupoid k where
-  (∘) :: (a ∈ k, b ∈ k, x ∈ k) => k a b -> k x a -> k x b
-
--- Categories are Semigroupoids with an identity arrow
-type Category :: CATEGORY i -> Constraint
-class Semigroupoid k => Category k where
-  identity_ :: i ∈ k => k i i
-
-identity :: forall i k. (Category k, i ∈ k) => k i i
-identity = identity_
 
 {- Category: Examples -}
 
@@ -71,51 +45,6 @@ instance Semigroupoid (:~:) where
 instance Category (:~:) where
   identity_ = Refl
 
--- There's a category Types.
--- Whose objects are types,
--- and arrows are functions.
-type Types = (->) :: CATEGORY Type
-
-type instance t ∈ Types = (t ~ t)
-
-instance Semigroupoid Types where
-  (∘) = (.)
-
-instance Category Types where
-  identity_ = Prelude.id
-
--- Every category has an opposite
-data Op :: CATEGORY i -> CATEGORY i where
-  Op :: k b a -> Op k a b
-
-type instance i ∈ Op k = i ∈ k
-
-instance Semigroupoid k => Semigroupoid (Op k) where
-  Op g ∘ Op f = Op (f ∘ g)
-
-instance Category k => Category (Op k) where
-  identity_ = Op identity
-
--- The cross-product of two categories, is a category
-data (×) :: CATEGORY s -> CATEGORY t -> CATEGORY (s, t) where
-  (:×:) :: l a b -> r x y -> (l × r) '(a, x) '(b, y)
-
-type Fst :: (l, r) -> l
-type family Fst p where
-  Fst '(a, b) = a
-
-type Snd :: (l, r) -> r
-type family Snd p where
-  Snd '(a, b) = b
-
-type instance v ∈ (l × r) = (v ~ '(Fst v, Snd v), Fst v ∈ l, Snd v ∈ r)
-
-instance (Semigroupoid l, Semigroupoid r) => Semigroupoid (l × r) where
-  (a :×: b) ∘ (c :×: d) = (a ∘ c) :×: (b ∘ d)
-
-instance (Category l, Category r) => Category (l × r) where
-  identity_ = identity :×: identity
-
 -- Natural numbers
 data N = S N | Z
 
@@ -137,13 +66,6 @@ instance Semigroupoid (≤) where
 
 instance Category (≤) where
   identity_ = E
-
-{- Monoid: definition -}
-
--- Monoids are categories with a single object
-class (Category c, o ∈ c, forall x y. (x ∈ c, y ∈ c) => x ~ y) => Monoid (c :: CATEGORY i) (o :: i)
-
-instance (Category c, o ∈ c, forall x y. (x ∈ c, y ∈ c) => x ~ y) => Monoid (c :: CATEGORY i) (o :: i)
 
 {- Monoid: examples -}
 
@@ -184,69 +106,7 @@ instance (Semigroupoid c, o ∈ c) => Semigroupoid (Endo o c) where
 instance (Category c, o ∈ c) => Category (Endo o c) where
   identity_ = Endo identity
 
-{- Functor: definition -}
-
--- Type of functors indexed by domain & codomain categories
-type (-->) :: forall i j. CATEGORY i -> CATEGORY j -> Type
-type (-->) d c = Proxy d -> Proxy c -> Type
-
--- Project the domain category of a functor
-type DomainOf :: forall i (d :: CATEGORY i) c. (d --> c) -> CATEGORY i
-type DomainOf (f :: d --> c) = d
-
--- Project the codomain category of a functor
-type CodomainOf :: forall j d (c :: CATEGORY j). (d --> c) -> CATEGORY j
-type CodomainOf (f :: d --> c) = c
-
--- Functors act on object names
-type Act :: ((d :: CATEGORY i) --> (c :: CATEGORY j)) -> i -> j
-type family Act f o
-
--- Type of evidence that `f` acting on `o` is an object in `f`'s codomain
-class (Act f o ∈ CodomainOf f) => Acts f o
-
-instance (Act f o ∈ CodomainOf f) => Acts f o
-
--- A functor is functorial for some object name.
--- If `o` is an object in `f`'s domain category,
--- then `f` acting on `o` is an object in `f`'s codomain category
-type Functorial :: ((d :: CATEGORY o) --> c) -> o -> Constraint
-type Functorial f o = (o ∈ DomainOf f => Acts f o)
-
--- What is a functor?
--- DomainOf must be a category.
--- CodomainOf must be a category.
--- `f` must be functorial for all possible object names.
--- Also arrows can be mapped.
-type Functor :: (d --> c) -> Constraint
-class (Category d, Category c, forall o. Functorial f o) => Functor (f :: d --> c) where
-  map_ :: (a ∈ d, b ∈ d) => d a b -> c (Act f a) (Act f b)
-
--- map but easier to type-apply with the functor name
-map ::
-  forall {d} {c} (f :: d --> c) a b.
-  (Functor f, a ∈ d, b ∈ d) =>
-  d a b ->
-  c (Act f a) (Act f b)
-map d = map_ @_ @_ @f d
-
 {- Functor: examples -}
-
--- The identity functor for some category k
-data Id :: forall k. k --> k
-
-type instance Act Id x = x
-
-instance Category k => Functor (Id :: k --> k) where
-  map_ f = f
-
--- Composing two compatible functors, is a functor
-data (∘) :: (a --> b) -> (x --> a) -> (x --> b)
-
-type instance Act (f ∘ g) x = Act f (Act g x)
-
-instance (Functor f, Functor g) => Functor (f ∘ g) where
-  map_ = map @f . map @g
 
 -- Prelude.Functor is a specialisation of Functor
 data PreludeFunctor (f :: Type -> Type) :: Types --> Types
@@ -295,205 +155,6 @@ type instance Act (Hom k) o = k (Fst o) (Snd o)
 
 instance Category k => Functor (Hom k) where
   map_ (Op f :×: g) t = g ∘ t ∘ f
-
--- Foldable?
-
-class Foldable t where
-  foldMap :: (Monoid c o) => (a -> c o o) -> Act t a -> c o o
-
-data List :: Types --> Types
-
-type instance Act List t = [t]
-
-instance Functor List where
-  map_ = Prelude.fmap
-
-instance Foldable List where
-  foldMap _ [] = identity
-  foldMap f (h : t) = f h ∘ foldMap @List f t
-
-{- Exponential category / natural transformations -}
-
-data (^) :: forall c d -> CATEGORY (d --> c) where
-  Exp ::
-    { unExp :: forall i. i ∈ d => Proxy i -> c (Act f i) (Act g i)
-    } ->
-    (c ^ d) f g
-
-type (~>) (f :: d --> c) g = (c ^ d) f g
-
-runExp :: forall x c d i o. (x ∈ d) => (c ^ d) i o -> c (Act i x) (Act o x)
-runExp (Exp f) = f (Proxy :: Proxy x)
-
-type instance o ∈ (c ^ d) = Functor o
-
-instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
-  l ∘ r = Exp \p -> unExp l p ∘ unExp r p
-
-instance (Category d, Category c) => Category (c ^ d) where
-  identity_ = Exp \_ -> identity
-
--- Functor composition is itself a functor in multiple ways
-
-above ::
-  forall {c} {d} k (f :: c --> d) g.
-  (Functor k) =>
-  (f ~> g) ->
-  ((f ∘ k) ~> (g ∘ k))
-above fg = Exp \(_ :: Proxy i) -> runExp @(Act k i) fg
-
-beneath ::
-  forall {c} {d} k (f :: c --> d) g.
-  (Functor f, Functor g, Functor k) =>
-  (f ~> g) ->
-  ((k ∘ f) ~> (k ∘ g))
-beneath fg = Exp (map @k . unExp fg)
-
--- Functor in the two functors arguments
--- `(f ∘ g) v` is a functor in `f`, and `g`
-data Compose :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
-
--- `(f ∘ g) v` is a functor in `f`, `g`, and `v`
-data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
-
-type instance Act (Compose @a @b @x) e = Fst e ∘ Snd e
-
-type instance Act (Composed @a @b @c) e = Act (Act Compose (Fst e)) (Snd e)
-
-instance
-  (Category aa, Category bb, Category cc) =>
-  Functor (Compose @aa @bb @cc)
-  where
-  map_ ((fh :: f ~> h) :×: (gi :: g ~> i)) =
-    beneath @h gi ∘ above @g fh :: (f ∘ g) ~> (h ∘ i)
-
-instance
-  (Category aa, Category bb, Category cc) =>
-  Functor (Composed @aa @bb @cc)
-  where
-  map_ (fhgi :×: (xy :: cc x y)) =
-    case map @(Compose @aa @bb) fhgi of
-      (v :: (f ∘ g) ~> (h ∘ i)) ->
-        map @(h ∘ i) xy ∘ runExp @x v
-
-{- Adjunctions -}
-
--- Two functors f and g are adjoint when
---   `∀ a b. (a → g b) ⇔ (f a → b)`
--- Or in our notation:
---   `∀ a b . c a (Act g b) ⇔ d (Act f a) b`
---
--- Typing '⊣': `^q u 22A3` or `^v u 22A3`
---
-type (⊣) :: (c --> d) -> (d --> c) -> Constraint
-class (Functor f, Functor g) => f ⊣ (g :: d --> c) | f -> g, g -> f where
-  leftAdjoint_ :: forall a b. (a ∈ c, b ∈ d) => c a (Act g b) -> d (Act f a) b
-  rightAdjoint_ :: forall a b. (a ∈ c, b ∈ d) => d (Act f a) b -> c a (Act g b)
-
-leftAdjoint ::
-  forall {c} {d} (f :: c --> d) (g :: d --> c) a b.
-  ( f ⊣ g,
-    a ∈ c,
-    b ∈ d
-  ) =>
-  c a (Act g b) ->
-  d (Act f a) b
-leftAdjoint = leftAdjoint_ @c @d @f @g
-
-rightAdjoint ::
-  forall {c} {d} (f :: c --> d) (g :: d --> c) a b.
-  ( f ⊣ g,
-    a ∈ c,
-    b ∈ d
-  ) =>
-  d (Act f a) b ->
-  c a (Act g b)
-rightAdjoint = rightAdjoint_ @c @d @f @g
-
-unit ::
-  forall
-    {c}
-    {d}
-    (m :: c --> c)
-    {f :: c --> d}
-    {g :: d --> c}
-    a.
-  ( m ~ (g ∘ f),
-    f ⊣ g,
-    a ∈ c
-  ) =>
-  c a (Act m a)
-unit = rightAdjoint @f @g identity
-
-counit ::
-  forall
-    {c}
-    {d}
-    (w :: d --> d)
-    {f :: c --> d}
-    {g :: d --> c}
-    a.
-  ( w ~ (f ∘ g),
-    f ⊣ g,
-    a ∈ d
-  ) =>
-  d (Act w a) a
-counit = leftAdjoint @f @g identity
-
-join ::
-  forall
-    {c}
-    {d}
-    {f :: c --> d}
-    {g :: d --> c}
-    (m :: c --> c)
-    a.
-  ( m ~ (g ∘ f),
-    f ⊣ g,
-    a ∈ c
-  ) =>
-  c (Act (m ∘ m) a) (Act m a)
-join = do
-  let t :: d (Act (f ∘ g ∘ f) a) (Act f a)
-      t = counit @(f ∘ g)
-  map @g t
-
-extend ::
-  forall
-    {c}
-    {d}
-    {f :: c --> d}
-    {g :: d --> c}
-    (w :: d --> d)
-    a.
-  ( w ~ (f ∘ g),
-    f ⊣ g,
-    a ∈ d
-  ) =>
-  d (Act w a) (Act (w ∘ w) a)
-extend = do
-  let t :: c (Act g a) (Act (g ∘ f ∘ g) a)
-      t = unit @(g ∘ f)
-  map @f t
-
-flatMap ::
-  forall
-    {d}
-    (m :: Types --> Types)
-    a
-    b
-    {f :: Types --> d}
-    {g :: d --> Types}.
-  ( m ~ (g ∘ f),
-    f ⊣ g
-  ) =>
-  Proxy b ->
-  Act m a ->
-  (a -> Act m b) ->
-  Act m b
-flatMap _ m t =
-  join @m @b
-    (map @m t m :: Act (m ∘ m) b)
 
 {- Adjunctions: examples -}
 
@@ -608,33 +269,26 @@ type Codensity f = f / f
 
 --
 
--- Monad & Comonad
-type MidCompositionIx :: forall c. (c --> c) -> Type
-type family MidCompositionIx m where
-  MidCompositionIx (g ∘ f) = NamesOf (CodomainOf f)
-
-type MidComposition :: forall c. forall (m :: c --> c) -> CATEGORY (MidCompositionIx m)
-type family MidComposition m where
-  MidComposition (g ∘ f) = CodomainOf f
-
-type Outer :: forall c. forall (m :: c --> c) -> (MidComposition m --> c)
-type family Outer m where
-  Outer (g ∘ f) = g
-
-type Inner :: forall c. forall (m :: c --> c) -> (c --> MidComposition m)
-type family Inner m where
-  Inner (g ∘ f) = f
-
-type TheComposition :: forall c. (c --> c) -> (c --> c)
-type TheComposition m = Outer m ∘ Inner m
-
-type Monad :: forall c. (c --> c) -> Constraint
-type Monad m = (m ~ TheComposition m, Inner m ⊣ Outer m, Functor m)
-
-type Comonad :: forall c. (c --> c) -> Constraint
-type Comonad w = (w ~ TheComposition w, Outer w ⊣ Inner w, Functor w)
-
 -- do notationy stuff
+
+bindImpl ::
+  forall
+    {d}
+    (m :: Types --> Types)
+    a
+    b
+    {f :: Types --> d}
+    {g :: d --> Types}.
+  ( m ~ (g ∘ f),
+    f ⊣ g
+  ) =>
+  Proxy b ->
+  Act m a ->
+  (a -> Act m b) ->
+  Act m b
+bindImpl _ m t =
+  join @m @b
+    (map @m t m :: Act (m ∘ m) b)
 
 newtype BindDo m
   = BindDo
@@ -668,7 +322,7 @@ makeBind ::
   forall (m :: Types --> Types) {f} {g}.
   (Monad m, m ~ (g ∘ f)) =>
   BindDo m
-makeBind = BindDo (flatMap @m)
+makeBind = BindDo (bindImpl @m)
 
 makePure ::
   forall (m :: Types --> Types) {f} {g}.
@@ -997,6 +651,22 @@ instance
   where
   mempty = Exp \_p x -> Prelude.pure x
   mappend = Exp \_p (DayD _ _ xyz fx fy) -> Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
+
+-- Foldable?
+
+class Foldable t where
+  foldMap :: (Monoid c o) => (a -> c o o) -> Act t a -> c o o
+
+data List :: Types --> Types
+
+type instance Act List t = [t]
+
+instance Functor List where
+  map_ = Prelude.fmap
+
+instance Foldable List where
+  foldMap _ [] = identity
+  foldMap f (h : t) = f h ∘ foldMap @List f t
 
 ---
 
