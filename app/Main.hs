@@ -1,9 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ImplicitParams #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
@@ -17,7 +15,7 @@ import Data.Foldable qualified as Foldable
 import Data.Kind
 import Data.Proxy
 import Defs
-import Prelude (fromInteger, ($), (.))
+import Prelude (fromInteger, ($))
 import Prelude qualified
 
 {- Category: Examples -}
@@ -165,7 +163,7 @@ data Reader :: Type -> (Types --> Types)
 type instance Act (Reader x) y = x -> y
 
 instance Functor (Reader x) where
-  map_ = (.)
+  map_ = (∘)
 
 data Env :: Type -> (Types --> Types)
 
@@ -199,15 +197,15 @@ data (∨) :: (Types × Types) --> Types
 type instance Act (∨) x = Prelude.Either (Fst x) (Snd x)
 
 instance Functor (∨) where
-  map_ (f :×: g) = Prelude.either (Prelude.Left . f) (Prelude.Right . g)
+  map_ (f :×: g) = Prelude.either (Prelude.Left ∘ f) (Prelude.Right ∘ g)
 
 instance Δ Types ⊣ (∧) where
-  leftAdjoint_ t = (Prelude.fst . t) :×: (Prelude.snd . t)
+  leftAdjoint_ t = (Prelude.fst ∘ t) :×: (Prelude.snd ∘ t)
   rightAdjoint_ (f :×: g) = \x -> (f x, g x)
 
 instance (∨) ⊣ Δ Types where
   leftAdjoint_ (f :×: g) = f `Prelude.either` g
-  rightAdjoint_ t = (t . Prelude.Left) :×: (t . Prelude.Right)
+  rightAdjoint_ t = (t ∘ Prelude.Left) :×: (t ∘ Prelude.Right)
 
 -- (∘ g) ⊣ (/ g)
 -- aka (PostCompose g ⊣ PostRan g)

@@ -13,7 +13,6 @@ module Defs where
 
 import Data.Kind
 import Data.Proxy
-import Prelude ((.))
 import Prelude qualified
 
 {- Category: definition -}
@@ -57,7 +56,7 @@ type Types = (->) :: CATEGORY Type
 type instance t ∈ Types = (t ~ t)
 
 instance Semigroupoid Types where
-  (∘) = (.)
+  (∘) = (Prelude..)
 
 instance Category Types where
   identity_ = Prelude.id
@@ -179,7 +178,7 @@ data (∘) :: (a --> b) -> (x --> a) -> (x --> b)
 type instance Act (f ∘ g) x = Act f (Act g x)
 
 instance (Functor f, Functor g) => Functor (f ∘ g) where
-  map_ = map @f . map @g
+  map_ = map @f ∘ map @g
 
 above ::
   forall {c} {d} k (f :: c --> d) g.
@@ -193,7 +192,7 @@ beneath ::
   (Functor f, Functor g, Functor k) =>
   (f ~> g) ->
   ((k ∘ f) ~> (k ∘ g))
-beneath fg = Exp (map @k . unExp fg)
+beneath fg = Exp (map @k ∘ unExp fg)
 
 -- Functor in the two functors arguments
 -- `(f ∘ g) v` is a functor in `f`, and `g`
