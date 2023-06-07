@@ -110,15 +110,15 @@ map d = map_ @_ @_ @f d
 {- Category: opposites -}
 
 data Op :: CATEGORY i -> CATEGORY i where
-  Op :: k b a -> Op k a b
+  OP :: k b a -> Op k a b
 
 type instance i ∈ Op k = i ∈ k
 
 instance Semigroupoid k => Semigroupoid (Op k) where
-  Op g ∘ Op f = Op (f ∘ g)
+  OP g ∘ OP f = OP (f ∘ g)
 
 instance Category k => Category (Op k) where
-  identity_ = Op identity
+  identity_ = OP identity
 
 {- Category: products -}
 
@@ -144,7 +144,7 @@ instance (Category l, Category r) => Category (l × r) where
 {- Category: exponentials -}
 
 data (^) :: forall c d -> CATEGORY (d --> c) where
-  Exp ::
+  EXP ::
     { unExp :: forall i. i ∈ d => Proxy i -> c (Act f i) (Act g i)
     } ->
     (c ^ d) f g
@@ -152,15 +152,15 @@ data (^) :: forall c d -> CATEGORY (d --> c) where
 type (~>) (f :: d --> c) g = (c ^ d) f g
 
 runExp :: forall x c d i o. (x ∈ d) => (c ^ d) i o -> c (Act i x) (Act o x)
-runExp (Exp f) = f (Proxy :: Proxy x)
+runExp (EXP f) = f (Proxy :: Proxy x)
 
 type instance o ∈ (c ^ d) = Functor o
 
 instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
-  l ∘ r = Exp \p -> unExp l p ∘ unExp r p
+  l ∘ r = EXP \p -> unExp l p ∘ unExp r p
 
 instance (Category d, Category c) => Category (c ^ d) where
-  identity_ = Exp \_ -> identity
+  identity_ = EXP \_ -> identity
 
 {- Functor: identity -}
 
@@ -171,7 +171,7 @@ type instance Act Id x = x
 instance Category k => Functor (Id :: k --> k) where
   map_ f = f
 
-{- Functor: composition -}
+{- Functor: composition as an operation -}
 
 data (∘) :: (a --> b) -> (x --> a) -> (x --> b)
 
@@ -180,19 +180,35 @@ type instance Act (f ∘ g) x = Act f (Act g x)
 instance (Functor f, Functor g) => Functor (f ∘ g) where
   map_ = map @f ∘ map @g
 
+{- Category: Cat -}
+
+data Cat :: forall k. CATEGORY (CATEGORY k) where
+  CAT :: Functor (f :: a --> b) => Proxy f -> Cat a b
+
+type instance c ∈ Cat = Category c
+
+instance Semigroupoid Cat where
+  CAT (Proxy :: Proxy f) ∘ CAT (Proxy :: Proxy g) =
+    CAT (Proxy @(f ∘ g))
+
+instance Category Cat where
+  identity_ = CAT (Proxy @Id)
+
+{- Functor: composition as a functor -}
+
 above ::
   forall {c} {d} k (f :: c --> d) g.
   (Functor k) =>
   (f ~> g) ->
   ((f ∘ k) ~> (g ∘ k))
-above fg = Exp \(_ :: Proxy i) -> runExp @(Act k i) fg
+above fg = EXP \(_ :: Proxy i) -> runExp @(Act k i) fg
 
 beneath ::
   forall {c} {d} k (f :: c --> d) g.
   (Functor f, Functor g, Functor k) =>
   (f ~> g) ->
   ((k ∘ f) ~> (k ∘ g))
-beneath fg = Exp (map @k ∘ unExp fg)
+beneath fg = EXP (map @k ∘ unExp fg)
 
 -- Functor in the two functors arguments
 -- `(f ∘ g) v` is a functor in `f`, and `g`
@@ -249,15 +265,15 @@ instance
   (Category a, Category b, Category c, Functor f) =>
   Functor (Curry_ @a @b @c f)
   where
-  map_ axy = Exp \(_p :: Proxy i) ->
+  map_ axy = EXP \(_p :: Proxy i) ->
     map @f (axy :×: identity @i)
 
 instance
   (Category a, Category b, Category c) =>
   Functor (Curry @a @b @c)
   where
-  map_ (Exp t) = Exp \(_p :: Proxy i) ->
-    Exp \(_q :: Proxy j) ->
+  map_ (EXP t) = EXP \(_p :: Proxy i) ->
+    EXP \(_q :: Proxy j) ->
       t (Proxy @'(i, j))
 
 {- Adjunctions -}
@@ -270,12 +286,25 @@ instance
 -- Typing '⊣': `^q u 22A3` or `^v u 22A3`
 --
 type (⊣) :: (c --> d) -> (d --> c) -> Constraint
-class (Functor f, Functor g) => f ⊣ (g :: d --> c) | f -> g, g -> f where
-  leftAdjoint_ :: forall a b. (a ∈ c, b ∈ d) => c a (Act g b) -> d (Act f a) b
-  rightAdjoint_ :: forall a b. (a ∈ c, b ∈ d) => d (Act f a) b -> c a (Act g b)
+class
+  (Functor f, Functor g) =>
+  f ⊣ (g :: d --> c)
+    | f -> g,
+      g -> f
+  where
+  leftAdjoint_ ::
+    forall a b.
+    (a ∈ c, b ∈ d) =>
+    c a (Act g b) ->
+    d (Act f a) b
+  rightAdjoint_ ::
+    forall a b.
+    (a ∈ c, b ∈ d) =>
+    d (Act f a) b ->
+    c a (Act g b)
 
 leftAdjoint ::
-  forall {c} {d} (f :: c --> d) (g :: d --> c) a b.
+  forall {c} {d} f (g :: d --> c) a b.
   ( f ⊣ g,
     a ∈ c,
     b ∈ d
@@ -285,7 +314,7 @@ leftAdjoint ::
 leftAdjoint = leftAdjoint_ @c @d @f @g
 
 rightAdjoint ::
-  forall {c} {d} (f :: c --> d) (g :: d --> c) a b.
+  forall {c} {d} f (g :: d --> c) a b.
   ( f ⊣ g,
     a ∈ c,
     b ∈ d
@@ -355,12 +384,20 @@ flatMap ::
   c (Act m a) (Act m b)
 flatMap amb = join @m @b ∘ map @m amb
 
--- why does adding Functor m break things?
--- abc ::
---   forall {c} (m :: c --> c) a b {f} {g}.
---   (Functor g, Functor f, m ~ (g ∘ f), a ∈ c, b ∈ c) =>
---   c (Act m a) (Act m b) ->
---   c (Act m (Act m a)) (Act m (Act m b))
--- abc =
---   map @(Outer m) @(Act (Inner m) (Act m a)) @(Act (Inner m) (Act m b))
---     ∘ map @(Inner m) @(Act m a) @(Act m b)
+{- Functor: 2-categories??? -}
+
+data One :: CATEGORY () where
+  ONE :: One '() '()
+
+type instance t ∈ One = (t ~ '())
+
+instance Semigroupoid One where
+  ONE ∘ ONE = ONE
+
+instance Category One where
+  identity_ = ONE
+
+type TWO_CATEGORY :: Type -> Type
+type TWO_CATEGORY j = j -> j -> CATEGORY Type
+
+-- ...

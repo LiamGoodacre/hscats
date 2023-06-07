@@ -20,28 +20,17 @@ import Prelude qualified
 
 {- Category: Examples -}
 
-data One :: CATEGORY () where
-  ONE :: One '() '()
-
-type instance t ∈ One = (t ~ '())
-
-instance Semigroupoid One where
-  ONE ∘ ONE = ONE
-
-instance Category One where
-  identity_ = ONE
-
 -- "Equality" forms a category
 data (:~:) :: CATEGORY t where
-  Refl :: x :~: x
+  REFL :: x :~: x
 
 type instance (t :: k) ∈ (:~:) = (t ~ t)
 
 instance Semigroupoid (:~:) where
-  Refl ∘ Refl = Refl
+  REFL ∘ REFL = REFL
 
 instance Category (:~:) where
-  identity_ = Refl
+  identity_ = REFL
 
 -- Natural numbers
 data N = S N | Z
@@ -94,15 +83,15 @@ boring_monoid_category_example = ()
     _eg1 = getPreludeMonoid $ PreludeMonoid [1] `_monoid_mappend` PreludeMonoid [2, 3]
 
 data Endo :: i -> CATEGORY i -> CATEGORY () where
-  Endo :: c o o -> Endo o c '() '()
+  ENDO :: c o o -> Endo o c '() '()
 
 type instance x ∈ Endo o c = (x ~ '())
 
 instance (Semigroupoid c, o ∈ c) => Semigroupoid (Endo o c) where
-  Endo l ∘ Endo r = Endo (l ∘ r)
+  ENDO l ∘ ENDO r = ENDO (l ∘ r)
 
 instance (Category c, o ∈ c) => Category (Endo o c) where
-  identity_ = Endo identity
+  identity_ = ENDO identity
 
 {- Functor: examples -}
 
@@ -145,14 +134,14 @@ data YoDomain :: forall (k :: CATEGORY i) -> i -> (Op k --> Types)
 type instance Act (YoDomain k c) d = k d c
 
 instance (d ∈ k, Category k) => Functor (YoDomain k d) where
-  map_ (Op g) f = f ∘ g
+  map_ (OP g) f = f ∘ g
 
 data Hom :: forall (k :: CATEGORY i) -> ((Op k × k) --> Types)
 
 type instance Act (Hom k) o = k (Fst o) (Snd o)
 
 instance Category k => Functor (Hom k) where
-  map_ (Op f :×: g) t = g ∘ t ∘ f
+  map_ (OP f :×: g) t = g ∘ t ∘ f
 
 {- Adjunctions: examples -}
 
@@ -222,7 +211,7 @@ instance
 
 type Ran :: (x --> Types) -> (x --> z) -> NamesOf z -> Type
 data Ran h g a where
-  Ran ::
+  RAN ::
     Functor f =>
     Proxy f ->
     ((f ∘ g) ~> h) ->
@@ -235,8 +224,8 @@ data (/) :: (x --> y) -> (x --> z) -> (z --> y)
 type instance Act (h / g) o = Ran h g o
 
 instance (Category x, Category z) => Functor ((/) @x @Types @z h g) where
-  map_ zab (Ran (pf :: Proxy f) fgh fa) =
-    Ran pf fgh (map @f zab fa)
+  map_ zab (RAN (pf :: Proxy f) fgh fa) =
+    RAN pf fgh (map @f zab fa)
 
 -- NOTE: currently y is always Types
 data PostRan :: (x --> z) -> (y ^ x) --> (y ^ z)
@@ -248,19 +237,19 @@ instance
   Functor (PostRan @x @z @Types g)
   where
   map_ ab =
-    Exp \_ (Ran p fga fi) ->
-      Ran p (ab ∘ fga) fi
+    EXP \_ (RAN p fga fi) ->
+      RAN p (ab ∘ fga) fi
 
 instance (Functor g) => PostCompose g ⊣ PostRan @x @z @Types g where
   leftAdjoint_ a_bg =
-    Exp \(Proxy :: Proxy i) ag ->
+    EXP \(Proxy :: Proxy i) ag ->
       case runExp @(Act g i) a_bg ag of
-        Ran _ fg_b fgi ->
+        RAN _ fg_b fgi ->
           runExp @i fg_b fgi
 
   rightAdjoint_ ag_b =
-    Exp \(Proxy :: Proxy i) (a :: Act a i) ->
-      Ran (Proxy @a) ag_b a
+    EXP \(Proxy :: Proxy i) (a :: Act a i) ->
+      RAN (Proxy @a) ag_b a
 
 type Codensity :: (x --> Types) -> (Types --> Types)
 type Codensity f = f / f
@@ -394,7 +383,7 @@ egState = twicePostincShow 10
 newtype NT t m = NT (t ~> m)
 
 type Free :: (Types --> Types) -> Type -> Type
-data Free t a = Free
+data Free t a = FREE
   { runFree ::
       forall m.
       Monad m =>
@@ -417,7 +406,7 @@ type instance Act Free1 f = Free0 f
 type instance Act Free2 fx = Free (Fst fx) (Snd fx)
 
 instance Functor (Free0 @Types t) where
-  map_ (a_b :: a -> b) r = Free do
+  map_ (a_b :: a -> b) r = FREE do
     let outer ::
           forall m.
           Monad m =>
@@ -430,12 +419,12 @@ instance Functor (Free0 @Types t) where
     outer
 
 instance Functor (Free1 @Types) where
-  map_ ab = Exp \_ (Free f) ->
-    Free \m a (NT tm) -> f m a (NT (tm ∘ ab))
+  map_ ab = EXP \_ (FREE f) ->
+    FREE \m a (NT tm) -> f m a (NT (tm ∘ ab))
 
 instance Functor (Free2 @Types) where
-  map_ (st :×: (ab :: Types a b)) = \(Free f) ->
-    Free \(m :: Proxy m) _ (NT tm) ->
+  map_ (st :×: (ab :: Types a b)) = \(FREE f) ->
+    FREE \(m :: Proxy m) _ (NT tm) ->
       map @m ab (f m (Proxy @a) (NT (tm ∘ st)))
 
 ---
@@ -548,7 +537,7 @@ type DayD ::
   i ->
   Type
 data DayD p f g z where
-  DayD :: Proxy x -> Proxy y -> k (Act p '(x, y)) z -> Act f x -> Act g y -> DayD @k p f g z
+  DAY_D :: Proxy x -> Proxy y -> k (Act p '(x, y)) z -> Act f x -> Act g y -> DayD @k p f g z
 
 data
   DayF ::
@@ -560,8 +549,8 @@ data
 type instance Act (DayF p f g) x = DayD p f g x
 
 instance Functor p => Functor (DayF p f g) where
-  map_ (zw :: k z w) (DayD px py (xyz :: k xy z) fx gy) =
-    DayD px py (zw ∘ xyz :: k xy w) fx gy
+  map_ (zw :: k z w) (DAY_D px py (xyz :: k xy z) fx gy) =
+    DAY_D px py (zw ∘ xyz :: k xy w) fx gy
 
 data
   Day ::
@@ -571,17 +560,23 @@ data
 type instance Act (Day p) '(f, g) = DayF p f g
 
 instance Functor p => Functor (Day p) where
-  map_ (Exp l :×: Exp r) =
-    Exp \_p (DayD px py (xyz :: k xy z) fx gy) ->
-      DayD
+  map_ (EXP l :×: EXP r) =
+    EXP \_p (DAY_D px py (xyz :: k xy z) fx gy) ->
+      DAY_D
         px
         py
         xyz
         (l px fx)
         (r py gy)
 
-data ProductD :: (Types --> Types) -> (Types --> Types) -> Type -> Type where
+data
   ProductD ::
+    (Types --> Types) ->
+    (Types --> Types) ->
+    Type ->
+    Type
+  where
+  PRODUCT_D ::
     Act f x ->
     Act g x ->
     ProductD f g x
@@ -596,8 +591,8 @@ instance
   ) =>
   Functor (ProductF f g)
   where
-  map_ ab (ProductD fa ga) =
-    ProductD
+  map_ ab (PRODUCT_D fa ga) =
+    PRODUCT_D
       (map @f ab fa)
       (map @g ab ga)
 
@@ -606,11 +601,11 @@ data Identity :: One --> (Types ^ Types)
 type instance Act Identity t = Id
 
 instance Functor Identity where
-  map_ ONE = Exp \_ x -> x
+  map_ ONE = EXP \_ x -> x
 
 instance Associative p => Associative (Day p) where
-  lassoc_ = Exp \_p (DayD (px :: Proxy x) (_py :: Proxy y) xyz fx (DayD (pa :: Proxy a) (pb :: Proxy b) aby ga hb)) ->
-    DayD
+  lassoc_ = EXP \_p (DAY_D (px :: Proxy x) (_py :: Proxy y) xyz fx (DAY_D (pa :: Proxy a) (pb :: Proxy b) aby ga hb)) ->
+    DAY_D
       Proxy
       pb
       ( xyz
@@ -619,10 +614,10 @@ instance Associative p => Associative (Day p) where
             )
           ∘ rassoc @p @x @a @b
       )
-      (DayD px pa (\x -> x) fx ga)
+      (DAY_D px pa (\x -> x) fx ga)
       hb
-  rassoc_ = Exp \_p (DayD (_px :: Proxy x) (py :: Proxy y) xyz (DayD (pa :: Proxy a) (pb :: Proxy b) abx fa gb) hy) ->
-    DayD
+  rassoc_ = EXP \_p (DAY_D (_px :: Proxy x) (py :: Proxy y) xyz (DAY_D (pa :: Proxy a) (pb :: Proxy b) abx fa gb) hy) ->
+    DAY_D
       pa
       Proxy
       ( xyz
@@ -632,13 +627,13 @@ instance Associative p => Associative (Day p) where
           ∘ lassoc @p @a @b @y
       )
       fa
-      (DayD pb py (\x -> x) gb hy)
+      (DAY_D pb py (\x -> x) gb hy)
 
 instance Monoidal (Day (∧)) Identity where
-  idl = Exp \_p (DayD _ _ xyz x my :: DayD (∧) Id m z) -> map @m (\y -> xyz (x, y)) my
-  coidl = Exp \_p my -> DayD Proxy Proxy (\(_, y) -> y) () my
-  idr = Exp \_p (DayD _ _ xyz mx y :: DayD (∧) m Id z) -> map @m (\x -> xyz (x, y)) mx
-  coidr = Exp \_p mx -> DayD Proxy Proxy (\(x, _) -> x) mx ()
+  idl = EXP \_p (DAY_D _ _ xyz x my :: DayD (∧) Id m z) -> map @m (\y -> xyz (x, y)) my
+  coidl = EXP \_p my -> DAY_D Proxy Proxy (\(_, y) -> y) () my
+  idr = EXP \_p (DAY_D _ _ xyz mx y :: DayD (∧) m Id z) -> map @m (\x -> xyz (x, y)) mx
+  coidr = EXP \_p mx -> DAY_D Proxy Proxy (\(x, _) -> x) mx ()
 
 instance
   Prelude.Applicative m =>
@@ -647,8 +642,8 @@ instance
     Identity
     (PreludeFunctor m)
   where
-  mempty = Exp \_p x -> Prelude.pure x
-  mappend = Exp \_p (DayD _ _ xyz fx fy) -> Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
+  mempty = EXP \_p x -> Prelude.pure x
+  mappend = EXP \_p (DAY_D _ _ xyz fx fy) -> Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
 -- Foldable?
 
