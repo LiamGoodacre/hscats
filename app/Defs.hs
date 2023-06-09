@@ -384,7 +384,7 @@ flatMap ::
   c (Act m a) (Act m b)
 flatMap amb = join @m @b ∘ map @m amb
 
-{- Functor: 2-categories??? -}
+{- Category: 1 -}
 
 data One :: CATEGORY () where
   ONE :: One '() '()
@@ -396,8 +396,3 @@ instance Semigroupoid One where
 
 instance Category One where
   identity_ = ONE
-
-type TWO_CATEGORY :: Type -> Type
-type TWO_CATEGORY j = j -> j -> CATEGORY Type
-
--- ...
