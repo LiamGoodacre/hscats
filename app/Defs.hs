@@ -455,6 +455,10 @@ rassoc ::
     ((a ☼ (b ☼ c) op) op)
 rassoc = rassoc_ @k @op @a @b @c
 
+instance Category k => Associative (Compose :: BINARY_OP (k ^ k)) where
+  lassoc_ = EXP \_ -> identity
+  rassoc_ = EXP \_ -> identity
+
 type Braided ::
   forall {i}.
   forall (k :: CATEGORY i).
@@ -502,35 +506,16 @@ type SymmetricMonoidal ::
   Constraint
 class (Monoidal p id, Symmetric p) => SymmetricMonoidal p id
 
-data
-  GivenFirst ::
-    forall (k :: CATEGORY i).
-    BINARY_OP k ->
-    i ->
-    (k --> k)
+data Spin :: BINARY_OP k -> BINARY_OP k
 
-type instance Act (GivenFirst p x) y = (x ☼ y) p
+type instance Act (Spin p) x = Act p '(Snd x, Fst x)
 
-instance
-  (x ∈ k, Functor p) =>
-  Functor (GivenFirst (p :: BINARY_OP k) x)
-  where
-  map_ t = map @p (identity @x :×: t)
+instance Functor p => Functor (Spin p) where
+  map_ (r :×: l) = map @p (l :×: r)
 
-data
-  GivenSecond ::
-    forall (k :: CATEGORY i).
-    BINARY_OP k ->
-    i ->
-    (k --> k)
+type With¹ p = Curry__ p
 
-type instance Act (GivenSecond p y) x = (x ☼ y) p
-
-instance
-  (y ∈ k, Functor p) =>
-  Functor (GivenSecond (p :: BINARY_OP k) y)
-  where
-  map_ t = map @p (t :×: identity @y)
+type With² p = Curry__ (Spin p)
 
 type ClosedMonoidal ::
   forall {i}.
@@ -540,7 +525,7 @@ type ClosedMonoidal ::
   i ->
   Constraint
 class
-  ( forall y. y ∈ k => GivenSecond p y ⊣ GivenFirst e y,
+  ( forall y. y ∈ k => With² p y ⊣ With¹ e y,
     Monoidal p id
   ) =>
   ClosedMonoidal p (e :: BINARY_OP k) id
@@ -575,3 +560,26 @@ class
   where
   mempty :: k id m
   mappend :: k ((m ☼ m) p) m
+
+instance
+  Category k =>
+  Monoidal
+    (Compose :: BINARY_OP (k ^ k))
+    (Id :: k --> k)
+  where
+  idl = EXP \_ -> identity
+  coidl = EXP \_ -> identity
+  idr = EXP \_ -> identity
+  coidr = EXP \_ -> identity
+
+instance
+  ( Monad m,
+    m ~ (f ∘ g)
+  ) =>
+  MonoidObject
+    (Compose :: BINARY_OP (k ^ k))
+    (Id :: k --> k)
+    (m :: k --> k)
+  where
+  mempty = EXP \_ -> unit @m
+  mappend = EXP \(_p :: Proxy i) -> join @m @i
