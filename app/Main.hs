@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE StrictData #-}
@@ -339,7 +340,7 @@ egDuped = monadDo @Dup do
   x <- (v Prelude.+ 1, v Prelude.+ 2)
   pure (x Prelude.* 2)
 
--- $> egDuped -- (22,204)
+-- !$> egDuped -- (22,204)
 
 type States s = Reader s ∘ Env s
 
@@ -378,7 +379,7 @@ twicePostincShow = stateMonad do
 egState :: (Prelude.String, Prelude.Integer)
 egState = twicePostincShow 10
 
--- $> egState
+-- !$> egState
 
 newtype NT t m = NT (t ~> m)
 
@@ -583,8 +584,24 @@ instance OpArrTo Types r ⊣ ArrTo Types r where
 
 -- Foldable?
 
-class Foldable t where
-  foldMap :: (Monoid c o) => (a -> c o o) -> Act t a -> c o o
+type Foldable ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  BINARY_OP k ->
+  i ->
+  (k --> k) ->
+  Constraint
+class Monoidal p id => Foldable p id (t :: k --> k) | p -> id where
+  foldMap_ ::
+    MonoidObject p id m =>
+    k a m ->
+    k (Act t a) m
+
+foldMap ::
+  forall {k} p id (t :: k --> k) m a.
+  (Foldable p id t, MonoidObject p id m) =>
+  k a m -> k (Act t a) m
+foldMap = foldMap_ @k @p @id @t @m @a
 
 data List :: Types --> Types
 
@@ -593,9 +610,9 @@ type instance Act List t = [t]
 instance Functor List where
   map_ = Prelude.fmap
 
-instance Foldable List where
-  foldMap _ [] = identity
-  foldMap f (h : t) = f h ∘ foldMap @List f t
+instance Foldable (∧) () List where
+  foldMap_ _ [] = mempty @_ @(∧) ()
+  foldMap_ f (h : t) = mappend @_ @(∧) (f h, foldMap @(∧) @() @List f t)
 
 ---
 
