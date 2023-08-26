@@ -285,6 +285,7 @@ instance
 --
 -- Typing '⊣': `^q u 22A3` or `^v u 22A3`
 --
+
 type (⊣) :: (c --> d) -> (d --> c) -> Constraint
 class
   (Functor f, Functor g) =>
@@ -344,14 +345,22 @@ type family Inner m where
 type TheComposition :: forall c. (c --> c) -> (c --> c)
 type TheComposition m = Outer m ∘ Inner m
 
-type Invert :: forall c. forall (m :: c --> c) -> (MidComposition m --> MidComposition m)
-type Invert m = Inner m ∘ Outer m
-
 type Monad :: forall c. (c --> c) -> Constraint
-type Monad m = (m ~ TheComposition m, Inner m ⊣ Outer m, Functor m)
+type Monad m =
+  ( m ~ TheComposition m,
+    Inner m ⊣ Outer m,
+    Functor m
+  )
 
 type Comonad :: forall c. (c --> c) -> Constraint
-type Comonad w = (w ~ TheComposition w, Outer w ⊣ Inner w, Functor w)
+type Comonad w =
+  ( w ~ TheComposition w,
+    Outer w ⊣ Inner w,
+    Functor w
+  )
+
+type Invert :: forall c. forall (m :: c --> c) -> (MidComposition m --> MidComposition m)
+type Invert m = Inner m ∘ Outer m
 
 unit ::
   forall {c} (m :: c --> c) a {f} {g}.
@@ -484,6 +493,7 @@ class
   ( Associative p
   ) =>
   Monoidal (p :: BINARY_OP k) id
+  | p -> id
   where
   idl :: (m ∈ k) => k ((id ☼ m) p) m
   coidl :: (m ∈ k) => k m ((id ☼ m) p)
@@ -496,7 +506,12 @@ type BraidedMonoidal ::
   BINARY_OP k ->
   i ->
   Constraint
-class (Monoidal p id, Braided p) => BraidedMonoidal p id
+class
+  ( Monoidal p id,
+    Braided p
+  ) =>
+  BraidedMonoidal p id
+  | p -> id
 
 type SymmetricMonoidal ::
   forall {i}.
@@ -504,7 +519,12 @@ type SymmetricMonoidal ::
   BINARY_OP k ->
   i ->
   Constraint
-class (Monoidal p id, Symmetric p) => SymmetricMonoidal p id
+class
+  ( Monoidal p id,
+    Symmetric p
+  ) =>
+  SymmetricMonoidal p id
+  | p -> id
 
 data Spin :: BINARY_OP k -> BINARY_OP k
 
@@ -529,6 +549,8 @@ class
     Monoidal p id
   ) =>
   ClosedMonoidal p (e :: BINARY_OP k) id
+  | p -> e id
+  , e -> p id
 
 type SymmetricClosedMonoidal ::
   forall {i}.
@@ -542,6 +564,8 @@ class
     ClosedMonoidal p e id
   ) =>
   SymmetricClosedMonoidal p e id
+  | p -> e id
+  , e -> p id
 
 {- Tensory objects -}
 
@@ -557,15 +581,14 @@ class
     m ∈ k
   ) =>
   MonoidObject (p :: BINARY_OP k) id m
+  | p -> id
   where
   mempty :: k id m
   mappend :: k ((m ☼ m) p) m
 
 instance
   Category k =>
-  Monoidal
-    (Compose :: BINARY_OP (k ^ k))
-    (Id :: k --> k)
+  Monoidal Compose (Id :: k --> k)
   where
   idl = EXP \_ -> identity
   coidl = EXP \_ -> identity
@@ -576,10 +599,7 @@ instance
   ( Monad m,
     m ~ (f ∘ g)
   ) =>
-  MonoidObject
-    (Compose :: BINARY_OP (k ^ k))
-    (Id :: k --> k)
-    (m :: k --> k)
+  MonoidObject Compose Id m
   where
   mempty = EXP \_ -> unit @m
   mappend = EXP \(_p :: Proxy i) -> join @m @i

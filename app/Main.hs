@@ -439,10 +439,6 @@ instance Monoidal (∧) () where
   idr = \(m, _) -> m
   coidr = \m -> (m, ())
 
-instance Prelude.Monoid m => MonoidObject (∧) () m where
-  mempty = \() -> Prelude.mempty
-  mappend = \(l, r) -> Prelude.mappend l r
-
 type DayD ::
   forall {i}.
   forall (k :: CATEGORY i).
@@ -544,14 +540,26 @@ instance Monoidal (Day (∧)) Id where
   coidr = EXP \_p mx -> DAY_D Proxy Proxy (\(x, _) -> x) mx ()
 
 instance
+  Prelude.Monoid m =>
+  MonoidObject (∧) () m
+  where
+  mempty = \() -> Prelude.mempty
+  mappend = \(l, r) -> Prelude.mappend l r
+
+instance
   Prelude.Applicative m =>
-  MonoidObject
-    (Day (∧))
-    Id
-    (PreludeFunctor m)
+  MonoidObject (Day (∧)) Id (PreludeFunctor m)
   where
   mempty = EXP \_p x -> Prelude.pure x
-  mappend = EXP \_p (DAY_D _ _ xyz fx fy) -> Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
+  mappend = EXP \_p (DAY_D _ _ xyz fx fy) ->
+    Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
+
+instance
+  Prelude.Monad m =>
+  MonoidObject Compose Id (PreludeFunctor m)
+  where
+  mempty = EXP \_ -> Prelude.pure
+  mappend = EXP \_ -> (Prelude.>>= identity)
 
 ---
 
