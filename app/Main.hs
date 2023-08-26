@@ -429,102 +429,17 @@ instance Functor (Free2 @Types) where
 
 ---
 
-type Associative ::
-  forall {i}.
-  forall (k :: CATEGORY i).
-  ((k × k) --> k) ->
-  Constraint
-class Functor op => Associative (op :: (k × k) --> k) where
-  lassoc_ ::
-    (a ∈ k, b ∈ k, c ∈ k) =>
-    k
-      (Act op '(a, Act op '(b, c)))
-      (Act op '(Act op '(a, b), c))
-  rassoc_ ::
-    (a ∈ k, b ∈ k, c ∈ k) =>
-    k
-      (Act op '(Act op '(a, b), c))
-      (Act op '(a, Act op '(b, c)))
-
-lassoc ::
-  forall
-    {i}
-    {k :: CATEGORY i}
-    (op :: (k × k) --> k)
-    a
-    b
-    c.
-  (Associative op, a ∈ k, b ∈ k, c ∈ k) =>
-  k
-    (Act op '(a, Act op '(b, c)))
-    (Act op '(Act op '(a, b), c))
-lassoc = lassoc_ @k @op @a @b @c
-
-rassoc ::
-  forall
-    {i}
-    {k :: CATEGORY i}
-    (op :: (k × k) --> k)
-    a
-    b
-    c.
-  (Associative op, a ∈ k, b ∈ k, c ∈ k) =>
-  k
-    (Act op '(Act op '(a, b), c))
-    (Act op '(a, Act op '(b, c)))
-rassoc = rassoc_ @k @op @a @b @c
-
-type Monoidal ::
-  forall {i}.
-  forall (k :: CATEGORY i).
-  ((k × k) --> k) ->
-  (One --> k) ->
-  Constraint
-class
-  ( Associative p,
-    Functor id
-  ) =>
-  Monoidal p (id :: One --> k)
-  where
-  idl :: (m ∈ k) => k (Act p '(Act id '(), m)) m
-  coidl :: (m ∈ k) => k m (Act p '(Act id '(), m))
-  idr :: (m ∈ k) => k (Act p '(m, Act id '())) m
-  coidr :: (m ∈ k) => k m (Act p '(m, Act id '()))
-
-type MonoidObject ::
-  forall {i}.
-  forall (k :: CATEGORY i).
-  ((k × k) --> k) ->
-  (One --> k) ->
-  i ->
-  Constraint
-class
-  ( Monoidal p id,
-    m ∈ k
-  ) =>
-  MonoidObject p (id :: One --> k) m
-  where
-  mempty :: k (Act id '()) m
-  mappend :: k (Act p '(m, m)) m
-
-data Unit :: One --> Types
-
-type instance Act Unit x = ()
-
-instance Functor Unit where
-  map_ ONE = \x -> x
-
 instance Associative (∧) where
   lassoc_ = \(a, (b, c)) -> ((a, b), c)
   rassoc_ = \((a, b), c) -> (a, (b, c))
 
-instance Monoidal (∧) Unit where
+instance Monoidal (∧) () where
   idl = \(_, m) -> m
   coidl = \m -> ((), m)
   idr = \(m, _) -> m
   coidr = \m -> (m, ())
 
-instance Prelude.Monoid m => MonoidObject (∧) Unit m where
+instance Prelude.Monoid m => MonoidObject (∧) () m where
   mempty = \() -> Prelude.mempty
   mappend = \(l, r) -> Prelude.mappend l r
 
@@ -596,13 +511,6 @@ instance
       (map @f ab fa)
       (map @g ab ga)
 
-data Identity :: One --> (Types ^ Types)
-
-type instance Act Identity t = Id
-
-instance Functor Identity where
-  map_ ONE = EXP \_ x -> x
-
 instance Associative p => Associative (Day p) where
   lassoc_ = EXP \_p (DAY_D (px :: Proxy x) (_py :: Proxy y) xyz fx (DAY_D (pa :: Proxy a) (pb :: Proxy b) aby ga hb)) ->
     DAY_D
@@ -629,7 +537,7 @@ instance Associative p => Associative (Day p) where
       fa
       (DAY_D pb py (\x -> x) gb hy)
 
-instance Monoidal (Day (∧)) Identity where
+instance Monoidal (Day (∧)) Id where
   idl = EXP \_p (DAY_D _ _ xyz x my :: DayD (∧) Id m z) -> map @m (\y -> xyz (x, y)) my
   coidl = EXP \_p my -> DAY_D Proxy Proxy (\(_, y) -> y) () my
   idr = EXP \_p (DAY_D _ _ xyz mx y :: DayD (∧) m Id z) -> map @m (\x -> xyz (x, y)) mx
@@ -639,11 +547,31 @@ instance
   Prelude.Applicative m =>
   MonoidObject
     (Day (∧))
-    Identity
+    Id
     (PreludeFunctor m)
   where
   mempty = EXP \_p x -> Prelude.pure x
   mappend = EXP \_p (DAY_D _ _ xyz fx fy) -> Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
+
+---
+
+data ArrTo :: forall (k :: CATEGORY i) -> i -> Op k --> Types
+
+type instance Act (ArrTo k r) a = k a r
+
+instance (Category k, r ∈ k) => Functor (ArrTo k r) where
+  map_ (OP ba) = (∘ ba)
+
+data OpArrTo :: forall (k :: CATEGORY i) -> i -> k --> Op Types
+
+type instance Act (OpArrTo k r) a = k a r
+
+instance (Category k, r ∈ k) => Functor (OpArrTo k r) where
+  map_ ba = OP (∘ ba)
+
+instance OpArrTo Types r ⊣ ArrTo Types r where
+  leftAdjoint_ = OP ∘ Prelude.flip
+  rightAdjoint_ = Prelude.flip ∘ runOP
 
 -- Foldable?
 

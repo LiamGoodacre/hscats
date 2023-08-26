@@ -110,7 +110,7 @@ map d = map_ @_ @_ @f d
 {- Category: opposites -}
 
 data Op :: CATEGORY i -> CATEGORY i where
-  OP :: k b a -> Op k a b
+  OP :: {runOP :: k b a} -> Op k a b
 
 type instance i ∈ Op k = i ∈ k
 
@@ -396,3 +396,182 @@ instance Semigroupoid One where
 
 instance Category One where
   identity_ = ONE
+
+{- Binary functors: associative, monoidal, braided, symmetric, closed -}
+
+type BINARY_OP k = (k × k) --> k
+
+type (☼) ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  i ->
+  i ->
+  BINARY_OP k ->
+  i
+type (☼) l r p = Act p '(l, r)
+
+type Associative ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  ((k × k) --> k) ->
+  Constraint
+class Functor op => Associative (op :: BINARY_OP k) where
+  lassoc_ ::
+    (a ∈ k, b ∈ k, c ∈ k) =>
+    k
+      ((a ☼ (b ☼ c) op) op)
+      (((a ☼ b) op ☼ c) op)
+  rassoc_ ::
+    (a ∈ k, b ∈ k, c ∈ k) =>
+    k
+      (((a ☼ b) op ☼ c) op)
+      ((a ☼ (b ☼ c) op) op)
+
+lassoc ::
+  forall
+    {i}
+    {k :: CATEGORY i}
+    (op :: BINARY_OP k)
+    a
+    b
+    c.
+  (Associative op, a ∈ k, b ∈ k, c ∈ k) =>
+  k
+    ((a ☼ (b ☼ c) op) op)
+    (((a ☼ b) op ☼ c) op)
+lassoc = lassoc_ @k @op @a @b @c
+
+rassoc ::
+  forall
+    {i}
+    {k :: CATEGORY i}
+    (op :: BINARY_OP k)
+    a
+    b
+    c.
+  (Associative op, a ∈ k, b ∈ k, c ∈ k) =>
+  k
+    (((a ☼ b) op ☼ c) op)
+    ((a ☼ (b ☼ c) op) op)
+rassoc = rassoc_ @k @op @a @b @c
+
+type Braided ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  BINARY_OP k ->
+  Constraint
+class Associative p => Braided (p :: BINARY_OP k) where
+  braid :: (x ∈ k, y ∈ k) => k ((x ☼ y) p) ((y ☼ x) p)
+
+type Symmetric ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  BINARY_OP k ->
+  Constraint
+class Braided p => Symmetric p
+
+type Monoidal ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  BINARY_OP k ->
+  i ->
+  Constraint
+class
+  ( Associative p
+  ) =>
+  Monoidal (p :: BINARY_OP k) id
+  where
+  idl :: (m ∈ k) => k ((id ☼ m) p) m
+  coidl :: (m ∈ k) => k m ((id ☼ m) p)
+  idr :: (m ∈ k) => k ((m ☼ id) p) m
+  coidr :: (m ∈ k) => k m ((m ☼ id) p)
+
+type BraidedMonoidal ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  BINARY_OP k ->
+  i ->
+  Constraint
+class (Monoidal p id, Braided p) => BraidedMonoidal p id
+
+type SymmetricMonoidal ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  BINARY_OP k ->
+  i ->
+  Constraint
+class (Monoidal p id, Symmetric p) => SymmetricMonoidal p id
+
+data
+  GivenFirst ::
+    forall (k :: CATEGORY i).
+    BINARY_OP k ->
+    i ->
+    (k --> k)
+
+type instance Act (GivenFirst p x) y = (x ☼ y) p
+
+instance
+  (x ∈ k, Functor p) =>
+  Functor (GivenFirst (p :: BINARY_OP k) x)
+  where
+  map_ t = map @p (identity @x :×: t)
+
+data
+  GivenSecond ::
+    forall (k :: CATEGORY i).
+    BINARY_OP k ->
+    i ->
+    (k --> k)
+
+type instance Act (GivenSecond p y) x = (x ☼ y) p
+
+instance
+  (y ∈ k, Functor p) =>
+  Functor (GivenSecond (p :: BINARY_OP k) y)
+  where
+  map_ t = map @p (t :×: identity @y)
+
+type ClosedMonoidal ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  BINARY_OP k ->
+  BINARY_OP k ->
+  i ->
+  Constraint
+class
+  ( forall y. y ∈ k => GivenSecond p y ⊣ GivenFirst e y,
+    Monoidal p id
+  ) =>
+  ClosedMonoidal p (e :: BINARY_OP k) id
+
+type SymmetricClosedMonoidal ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  BINARY_OP k ->
+  BINARY_OP k ->
+  i ->
+  Constraint
+class
+  ( SymmetricMonoidal p id,
+    ClosedMonoidal p e id
+  ) =>
+  SymmetricClosedMonoidal p e id
+
+{- Tensory objects -}
+
+type MonoidObject ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  BINARY_OP k ->
+  i ->
+  i ->
+  Constraint
+class
+  ( Monoidal p id,
+    m ∈ k
+  ) =>
+  MonoidObject (p :: BINARY_OP k) id m
+  where
+  mempty :: k id m
+  mappend :: k ((m ☼ m) p) m
