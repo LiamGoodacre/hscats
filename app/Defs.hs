@@ -583,8 +583,22 @@ class
   MonoidObject (p :: BINARY_OP k) id m
   | p -> id
   where
-  mempty :: k id m
-  mappend :: k ((m ☼ m) p) m
+  mempty_ :: k id m
+  mappend_ :: k ((m ☼ m) p) m
+
+mempty ::
+  forall {i} {k :: CATEGORY i} (p :: BINARY_OP k) {id :: i} (m :: i).
+  MonoidObject p id m =>
+  k id m
+mempty = mempty_ @k @p @id @m
+
+-- $> :t mappend_
+
+mappend ::
+  forall {i} {k :: CATEGORY i} (p :: BINARY_OP k) {id :: i} (m :: i).
+  MonoidObject p id m =>
+  k ((☼) m m p) m
+mappend = mappend_ @k @p @id @m
 
 instance
   Category k =>
@@ -601,5 +615,5 @@ instance
   ) =>
   MonoidObject Compose Id m
   where
-  mempty = EXP \_ -> unit @m
-  mappend = EXP \(_p :: Proxy i) -> join @m @i
+  mempty_ = EXP \_ -> unit @m
+  mappend_ = EXP \(_p :: Proxy i) -> join @m @i

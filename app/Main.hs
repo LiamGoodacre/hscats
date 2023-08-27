@@ -544,23 +544,23 @@ instance
   Prelude.Monoid m =>
   MonoidObject (∧) () m
   where
-  mempty = \() -> Prelude.mempty
-  mappend = \(l, r) -> Prelude.mappend l r
+  mempty_ = \() -> Prelude.mempty
+  mappend_ = \(l, r) -> Prelude.mappend l r
 
 instance
   Prelude.Applicative m =>
   MonoidObject (Day (∧)) Id (PreludeFunctor m)
   where
-  mempty = EXP \_p x -> Prelude.pure x
-  mappend = EXP \_p (DAY_D _ _ xyz fx fy) ->
+  mempty_ = EXP \_p x -> Prelude.pure x
+  mappend_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
 instance
   Prelude.Monad m =>
   MonoidObject Compose Id (PreludeFunctor m)
   where
-  mempty = EXP \_ -> Prelude.pure
-  mappend = EXP \_ -> (Prelude.>>= identity)
+  mempty_ = EXP \_ -> Prelude.pure
+  mappend_ = EXP \_ -> (Prelude.>>= identity)
 
 ---
 
@@ -591,17 +591,22 @@ type Foldable ::
   i ->
   (k --> k) ->
   Constraint
-class Monoidal p id => Foldable p id (t :: k --> k) | p -> id where
+class
+  Monoidal p id =>
+  Foldable p id (t :: k --> k)
+    | p -> id
+  where
   foldMap_ ::
-    MonoidObject p id m =>
+    (a ∈ k, m ∈ k, MonoidObject p id m) =>
     k a m ->
     k (Act t a) m
 
 foldMap ::
-  forall {k} p id (t :: k --> k) m a.
-  (Foldable p id t, MonoidObject p id m) =>
-  k a m -> k (Act t a) m
-foldMap = foldMap_ @k @p @id @t @m @a
+  forall {k} (t :: k --> k) p {id} m a.
+  (Foldable p id t, a ∈ k, m ∈ k, MonoidObject p id m) =>
+  k a m ->
+  k (Act t a) m
+foldMap = foldMap_ @k @p @id @t @a @m
 
 data List :: Types --> Types
 
@@ -610,9 +615,68 @@ type instance Act List t = [t]
 instance Functor List where
   map_ = Prelude.fmap
 
+(<>) :: MonoidObject (∧) () m => m -> m -> m
+l <> r = mappend @(∧) (l, r)
+
 instance Foldable (∧) () List where
-  foldMap_ _ [] = mempty @_ @(∧) ()
-  foldMap_ f (h : t) = mappend @_ @(∧) (f h, foldMap @(∧) @() @List f t)
+  foldMap_ _ [] = mempty @(∧) ()
+  foldMap_ f (h : t) = f h <> foldMap @List @(∧) f t
+
+-- Types () m
+-- Types (m, m) m
+-- (Types ^ Types) Id m
+-- (Types ^ Types) (Day (∧) m m) m
+
+-- t m -> m
+-- t ∘ m -> m ∘ t
+
+type Traversable ::
+  forall {i}.
+  forall (k :: CATEGORY i).
+  BINARY_OP (k ^ k) ->
+  (k --> k) ->
+  (k --> k) ->
+  Constraint
+class
+  Monoidal p id =>
+  Traversable p id (t :: k --> k)
+    | p -> id
+  where
+  sequence_ ::
+    (MonoidObject p id m) =>
+    (t ∘ m) ~> (m ∘ t)
+
+instance Traversable (Day (∧)) Id List where
+  sequence_ :: forall m. MonoidObject (Day (∧)) Id m => (List ∘ m) ~> (m ∘ List)
+  sequence_ = EXP \(_p :: Proxy i) ->
+    let go :: [Act m i] -> Act m [i]
+        go [] =
+          runExp
+            (mempty @(Day (∧)) @m)
+            ([] :: [i])
+        go (h : t) =
+          runExp
+            (mappend @(Day (∧)) @m)
+            ( DAY_D
+                (Proxy @i)
+                (Proxy @[i])
+                (\(h', t') -> (h' : t'))
+                h
+                (go t)
+            )
+     in go
+
+sequence ::
+  forall
+    {i}
+    {k :: CATEGORY i}
+    (p :: BINARY_OP (k ^ k))
+    {id :: k --> k}
+    (t :: k --> k)
+    (m :: k --> k).
+  (Traversable p id t, MonoidObject p id m) =>
+  (t ∘ m) ~> (m ∘ t)
+sequence = sequence_ @k @p @id @t @m
 
 ---
 
