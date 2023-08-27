@@ -451,6 +451,22 @@ type DayD ::
 data DayD p f g z where
   DAY_D :: Proxy x -> Proxy y -> k (Act p '(x, y)) z -> Act f x -> Act g y -> DayD @k p f g z
 
+day ::
+  forall
+    {i}
+    {k :: CATEGORY i}
+    (p :: (k × k) --> k)
+    (x :: i)
+    (y :: i)
+    (z :: i)
+    (f :: k --> Types)
+    (g :: k --> Types).
+  k (Act p '(x, y)) z ->
+  Act f x ->
+  Act g y ->
+  DayD p f g z
+day = DAY_D @x @y @k @p @z @f @g Proxy Proxy
+
 data
   DayF ::
     ((Types × Types) --> Types) ->
@@ -561,11 +577,17 @@ instance
   append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
-lift0 :: forall m. MonoidObject (Day (∧)) Id m => Id ~> m
-lift0 = empty @(Day (∧))
+lift0 :: forall m a. MonoidObject (Day (∧)) Id m => a -> Act m a
+lift0 = runExp (empty @(Day (∧)) @m)
 
-lift2 :: forall m. MonoidObject (Day (∧)) Id m => DayF (∧) m m ~> m
-lift2 = append @(Day (∧))
+lift2 ::
+  forall m c a b.
+  MonoidObject (Day (∧)) Id m =>
+  (a -> b -> c) ->
+  Act m a ->
+  Act m b ->
+  Act m c
+lift2 abc ma mb = runExp (append @(Day (∧)) @m) (day @_ @a @b @c (\(a, b) -> abc a b) ma mb)
 
 instance
   Prelude.Monad m =>
@@ -662,17 +684,14 @@ class
     (t ∘ m) ~> (m ∘ t)
 
 instance Traversable (Day (∧)) Id List where
-  sequence_ :: forall m. MonoidObject (Day (∧)) Id m => (List ∘ m) ~> (m ∘ List)
+  sequence_ ::
+    forall m.
+    MonoidObject (Day (∧)) Id m =>
+    (List ∘ m) ~> (m ∘ List)
   sequence_ = EXP \(_p :: Proxy i) ->
-    let go :: [Act m i] -> Act m [i]
-        go [] =
-          runExp (lift0 @m) ([] @i)
-        go (h : t) =
-          runExp
-            (lift2 @m)
-            ( DAY_D @i Proxy Proxy (\(h', t') -> (h' : t')) h (go t)
-            )
-     in go
+    Prelude.foldr
+      (lift2 @m ((:) @i))
+      (lift0 @m ([] @i))
 
 sequence ::
   forall
@@ -685,6 +704,47 @@ sequence ::
   (Traversable p id t, MonoidObject p id m) =>
   (t ∘ m) ~> (m ∘ t)
 sequence = sequence_ @k @p @id @t @m
+
+---
+
+data
+  ConstF ::
+    forall
+      {i}
+      {j}
+      (x :: CATEGORY j)
+      (k :: CATEGORY i).
+    i ->
+    x --> k
+
+type instance Act (ConstF a) b = a
+
+data Const :: forall x k. k --> (k ^ x)
+
+type instance Act Const a = ConstF a
+
+{-
+class TraversableV2 p id t where
+  traverse_ ::
+    MonoidObject p id m =>
+    (ConstF a ~> m) ->
+    (t ~> (m ∘ t))
+
+instance TraversableV2 (Day (∧)) Id List where
+  traverse_ ::
+    forall m a.
+    MonoidObject (Day (∧)) Id m =>
+    (ConstF a ~> m) ->
+    (List ~> (m ∘ List))
+  traverse_ (EXP f) =
+    EXP \(Proxy @i) ->
+      let go :: [i] -> Act m [i]
+          go [] = runExp (lift0 @m) ([] @i)
+          go (h : t) = runExp (lift2 @m) (DAY_D )
+      in go
+-}
+
+-- (Either () (a, [a]) -> Δ c) -> ([a] -> c)
 
 ---
 
