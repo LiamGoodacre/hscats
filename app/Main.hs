@@ -544,23 +544,41 @@ instance
   Prelude.Monoid m =>
   MonoidObject (∧) () m
   where
-  mempty_ = \() -> Prelude.mempty
-  mappend_ = \(l, r) -> Prelude.mappend l r
+  empty_ = \() -> Prelude.mempty
+  append_ = \(l, r) -> Prelude.mappend l r
+
+mempty :: MonoidObject (∧) () m => m
+mempty = empty @(∧) ()
+
+(<>) :: MonoidObject (∧) () m => m -> m -> m
+l <> r = append @(∧) (l, r)
 
 instance
   Prelude.Applicative m =>
   MonoidObject (Day (∧)) Id (PreludeFunctor m)
   where
-  mempty_ = EXP \_p x -> Prelude.pure x
-  mappend_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
+  empty_ = EXP \_p x -> Prelude.pure x
+  append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
+
+lift0 :: forall m. MonoidObject (Day (∧)) Id m => Id ~> m
+lift0 = empty @(Day (∧))
+
+lift2 :: forall m. MonoidObject (Day (∧)) Id m => DayF (∧) m m ~> m
+lift2 = append @(Day (∧))
 
 instance
   Prelude.Monad m =>
   MonoidObject Compose Id (PreludeFunctor m)
   where
-  mempty_ = EXP \_ -> Prelude.pure
-  mappend_ = EXP \_ -> (Prelude.>>= identity)
+  empty_ = EXP \_ -> Prelude.pure
+  append_ = EXP \_ -> (Prelude.>>= identity)
+
+join0 :: forall m. MonoidObject Compose Id m => Id ~> m
+join0 = empty @Compose
+
+join2 :: forall m. MonoidObject Compose Id m => (m ∘ m) ~> m
+join2 = append @Compose
 
 ---
 
@@ -615,11 +633,8 @@ type instance Act List t = [t]
 instance Functor List where
   map_ = Prelude.fmap
 
-(<>) :: MonoidObject (∧) () m => m -> m -> m
-l <> r = mappend @(∧) (l, r)
-
 instance Foldable (∧) () List where
-  foldMap_ _ [] = mempty @(∧) ()
+  foldMap_ _ [] = empty @(∧) ()
   foldMap_ f (h : t) = f h <> foldMap @List @(∧) f t
 
 -- Types () m
@@ -651,18 +666,11 @@ instance Traversable (Day (∧)) Id List where
   sequence_ = EXP \(_p :: Proxy i) ->
     let go :: [Act m i] -> Act m [i]
         go [] =
-          runExp
-            (mempty @(Day (∧)) @m)
-            ([] :: [i])
+          runExp (lift0 @m) ([] @i)
         go (h : t) =
           runExp
-            (mappend @(Day (∧)) @m)
-            ( DAY_D
-                (Proxy @i)
-                (Proxy @[i])
-                (\(h', t') -> (h' : t'))
-                h
-                (go t)
+            (lift2 @m)
+            ( DAY_D @i Proxy Proxy (\(h', t') -> (h' : t')) h (go t)
             )
      in go
 

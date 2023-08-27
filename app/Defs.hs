@@ -493,7 +493,7 @@ class
   ( Associative p
   ) =>
   Monoidal (p :: BINARY_OP k) id
-  | p -> id
+    | p -> id
   where
   idl :: (m ∈ k) => k ((id ☼ m) p) m
   coidl :: (m ∈ k) => k m ((id ☼ m) p)
@@ -511,7 +511,7 @@ class
     Braided p
   ) =>
   BraidedMonoidal p id
-  | p -> id
+    | p -> id
 
 type SymmetricMonoidal ::
   forall {i}.
@@ -524,7 +524,7 @@ class
     Symmetric p
   ) =>
   SymmetricMonoidal p id
-  | p -> id
+    | p -> id
 
 data Spin :: BINARY_OP k -> BINARY_OP k
 
@@ -549,8 +549,8 @@ class
     Monoidal p id
   ) =>
   ClosedMonoidal p (e :: BINARY_OP k) id
-  | p -> e id
-  , e -> p id
+    | p -> e id,
+      e -> p id
 
 type SymmetricClosedMonoidal ::
   forall {i}.
@@ -564,8 +564,8 @@ class
     ClosedMonoidal p e id
   ) =>
   SymmetricClosedMonoidal p e id
-  | p -> e id
-  , e -> p id
+    | p -> e id,
+      e -> p id
 
 {- Tensory objects -}
 
@@ -581,24 +581,22 @@ class
     m ∈ k
   ) =>
   MonoidObject (p :: BINARY_OP k) id m
-  | p -> id
+    | p -> id
   where
-  mempty_ :: k id m
-  mappend_ :: k ((m ☼ m) p) m
+  empty_ :: k id m
+  append_ :: k ((m ☼ m) p) m
 
-mempty ::
+empty ::
   forall {i} {k :: CATEGORY i} (p :: BINARY_OP k) {id :: i} (m :: i).
   MonoidObject p id m =>
   k id m
-mempty = mempty_ @k @p @id @m
+empty = empty_ @k @p @id @m
 
--- $> :t mappend_
-
-mappend ::
+append ::
   forall {i} {k :: CATEGORY i} (p :: BINARY_OP k) {id :: i} (m :: i).
   MonoidObject p id m =>
   k ((☼) m m p) m
-mappend = mappend_ @k @p @id @m
+append = append_ @k @p @id @m
 
 instance
   Category k =>
@@ -615,5 +613,5 @@ instance
   ) =>
   MonoidObject Compose Id m
   where
-  mempty_ = EXP \_ -> unit @m
-  mappend_ = EXP \(_p :: Proxy i) -> join @m @i
+  empty_ = EXP \_ -> unit @m
+  append_ = EXP \(_p :: Proxy i) -> join @m @i
