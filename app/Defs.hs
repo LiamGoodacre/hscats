@@ -648,37 +648,23 @@ cata ::
   k (Act (Fix k) f) a
 cata t = go where go = t ∘ map @f go ∘ unwrap @f
 
-data TyConF :: ((a --> b) -> Type) -> (b ^ a) --> Types
+ana ::
+  forall {k} f a.
+  (HasFixed k, Functor f, a ∈ k) =>
+  k a (Act f a) ->
+  k a (Act (Fix k) f)
+ana t = go where go = wrap @f ∘ map @f go ∘ t
 
-type instance Act (TyConF c) f = c f
+data AsFunctor :: forall k. (NamesOf k -> Type) -> (k --> Types)
 
-data DataFix (f :: Types --> Types) = In {out :: Act f (DataFix f)}
+type instance Act (AsFunctor f) x = f x
 
-instance Functor (TyConF DataFix) where
+newtype DataFix (f :: Types --> Types) = In {out :: Act f (DataFix f)}
+
+instance Functor (AsFunctor @(Types ^ Types) DataFix) where
   map_ = map @(Fix Types)
 
 instance HasFixed Types where
-  type Fix_ Types = TyConF DataFix
+  type Fix_ Types = AsFunctor DataFix
   wrap_ = In
   unwrap_ = out
-
--- fix example with lists
-
-data DataListF x l = Nil | Cons x l
-
-embed :: DataListF x [x] -> [x]
-embed Nil = []
-embed (Cons x xs) = x : xs
-
-data ListF :: Type -> Types --> Types
-
-type instance Act (ListF x) l = DataListF x l
-
-instance Functor (ListF x) where
-  map_ _ Nil = Nil
-  map_ f (Cons x l) = Cons x (f l)
-
-toList :: Act (Fix Types) (ListF x) -> [x]
-toList = cata embed
-
--- $> toList (In (Cons 42 (In (Cons 99 (In Nil)))))
