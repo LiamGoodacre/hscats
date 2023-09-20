@@ -26,7 +26,8 @@ extra-source-files:
 executable hscats
     main-is:          Main.hs
     other-modules:
-      Defs
+      Defs,
+      Do
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    base

@@ -3,7 +3,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ImplicitParams #-}
-{-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE QualifiedDo #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -16,7 +16,9 @@ import Data.Foldable qualified as Foldable
 import Data.Kind
 import Data.Proxy
 import Defs
-import Prelude (fromInteger, ($))
+import Do (pure)
+import Do qualified
+import Prelude (($))
 import Prelude qualified
 
 {- Category: Examples -}
@@ -255,87 +257,15 @@ instance (Functor g) => PostCompose g ⊣ PostRan @x @z @Types g where
 type Codensity :: (x --> Types) -> (Types --> Types)
 type Codensity f = f / f
 
---
-
--- do notationy stuff
-
-bindImpl ::
-  forall
-    {d}
-    (m :: Types --> Types)
-    a
-    b
-    {f :: Types --> d}
-    {g :: d --> Types}.
-  ( m ~ (g ∘ f),
-    f ⊣ g
-  ) =>
-  Proxy b ->
-  Act m a ->
-  (a -> Act m b) ->
-  Act m b
-bindImpl _ m t =
-  join @m @b
-    (map @m t m :: Act (m ∘ m) b)
-
-newtype BindDo m
-  = BindDo
-      ( forall a b.
-        Proxy b ->
-        Act m a ->
-        (a -> Act m b) ->
-        Act m b
-      )
-
-newtype PureDo m
-  = PureDo
-      (forall a. a -> Act m a)
-
-type MonadDo m =
-  forall r.
-  ( ( ?bind :: BindDo m,
-      ?pure :: PureDo m
-    ) =>
-    Act m r
-  ) ->
-  Act m r
-
-(>>=) :: forall m a b. (?bind :: BindDo m) => Act m a -> (a -> Act m b) -> Act m b
-(>>=) = let BindDo f = ?bind in f @a (Proxy @b)
-
-pure :: forall m a. (?pure :: PureDo m) => a -> Act m a
-pure = let PureDo u = ?pure in u
-
-makeBind ::
-  forall (m :: Types --> Types) {f} {g}.
-  (Monad m, m ~ (g ∘ f)) =>
-  BindDo m
-makeBind = BindDo (bindImpl @m)
-
-makePure ::
-  forall (m :: Types --> Types) {f} {g}.
-  (Monad m, m ~ (g ∘ f)) =>
-  PureDo m
-makePure = PureDo (unit @m)
-
-monadDo ::
-  forall (m :: Types --> Types) {f} {g}.
-  (Monad m, m ~ (g ∘ f)) =>
-  MonadDo m
-monadDo t = do
-  let ?bind = makeBind @m
-  let ?pure = makePure @m
-  t
-
 ---
 
 type Dup = (∧) ∘ Δ Types
 
-dupMonad :: MonadDo Dup
-dupMonad = monadDo
+dupMonad :: Do.MonadDo Dup
+dupMonad = Do.with
 
 egDuped :: (Prelude.Integer, Prelude.Integer)
-egDuped = monadDo @Dup do
+egDuped = Do.with @Dup Do.do
   v <- (10, 100)
   x <- (v Prelude.+ 1, v Prelude.+ 2)
   pure (x Prelude.* 2)
@@ -344,8 +274,8 @@ egDuped = monadDo @Dup do
 
 type States s = Reader s ∘ Env s
 
-stateMonad :: MonadDo (States s)
-stateMonad = monadDo
+stateMonad :: Do.MonadDo (States s)
+stateMonad = Do.with
 
 type State s i = Act (States s) i
 
@@ -359,16 +289,16 @@ modify :: (s -> s) -> State s ()
 modify t s = ((), t s)
 
 postinc :: State Prelude.Integer Prelude.Integer
-postinc = stateMonad do
+postinc = stateMonad Do.do
   x <- get
   _ <- put (x Prelude.+ 1)
   pure x
 
 twicePostincShow :: State Prelude.Integer Prelude.String
-twicePostincShow = stateMonad do
+twicePostincShow = stateMonad Do.do
   a <- postinc
   b <- postinc
-  c <- pure $ dupMonad do
+  c <- pure $ dupMonad Do.do
     v <- (10, 100)
     x <- (v Prelude.+ 1, v Prelude.+ 2)
     pure (x Prelude.* 2 :: Prelude.Integer)
