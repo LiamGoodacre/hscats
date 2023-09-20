@@ -615,3 +615,38 @@ instance
   where
   empty_ = EXP \_ -> unit @m
   append_ = EXP \(_p :: Proxy i) -> join @m @i
+
+{- fixed point functors -}
+
+class Functor (Fixed k :: (k ^ k) --> k) => HasFixed (k :: CATEGORY i) where
+  type Fixed k :: (k ^ k) --> k
+  wrap_ :: forall (f :: k --> k). Functor f => k (Act f (Act (Fixed k) f)) (Act (Fixed k) f)
+  unwrap_ :: forall (f :: k --> k). Functor f => k (Act (Fixed k) f) (Act f (Act (Fixed k) f))
+
+wrap :: forall {k} (f :: k --> k). (HasFixed k, Functor f) => k (Act f (Act (Fixed k) f)) (Act (Fixed k) f)
+wrap = wrap_ @_ @k @f
+
+unwrap :: forall {k} (f :: k --> k). (HasFixed k, Functor f) => k (Act (Fixed k) f) (Act f (Act (Fixed k) f))
+unwrap = unwrap_ @_ @k @f
+
+cata ::
+  forall {k} (f :: k --> k) a.
+  (HasFixed k, Functor f, a ∈ k) =>
+  k (Act f a) a ->
+  k (Act (Fixed k) f) a
+cata t = go where go = t ∘ map @f go ∘ unwrap @f
+
+data DataFix f = In {out :: Act f (DataFix f)}
+
+data Fix :: (Types ^ Types) --> Types
+
+type instance Act Fix f = DataFix f
+
+instance Functor Fix where
+  map_ :: forall a b. (Functor a, Functor b) => (a ~> b) -> (Act Fix a) -> (Act Fix b)
+  map_ t = In ∘ map @b (map @Fix t) ∘ runExp @(Act Fix a) t ∘ out
+
+instance HasFixed Types where
+  type Fixed Types = Fix
+  wrap_ = In
+  unwrap_ = out
