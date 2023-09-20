@@ -617,3 +617,14 @@ instance
   empty_ = EXP \_ -> unit @m
   append_ = EXP \(_p :: Proxy i) -> join @m @i
 
+{- coyoneda -}
+
+data DataCoyoneda :: forall k. (k --> Types) -> NamesOf k -> Type where
+  MakeDataCoyoneda :: a ∈ k => Act f a -> k a b -> DataCoyoneda @k f b
+
+data Coyoneda :: (k --> Types) -> (k --> Types)
+
+type instance Act (Coyoneda f) x = DataCoyoneda f x
+
+instance Category k => Functor (Coyoneda @k f) where
+  map_ ab (MakeDataCoyoneda fx xa) = MakeDataCoyoneda fx (ab ∘ xa)
