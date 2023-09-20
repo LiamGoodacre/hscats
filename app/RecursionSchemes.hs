@@ -1,10 +1,10 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall -Werror -Wextra #-}
 
 module RecursionSchemes where
@@ -19,30 +19,30 @@ type instance Act (AsFunctor f) x = f x
 
 {- fixed point functors -}
 
-type Base :: forall {i} (k :: CATEGORY i) . i -> k --> k
+type Base :: forall k. NamesOf k -> k --> k
 type family Base t
 
 class Functor (Base @k t) => Corecursive k t where
   embed_ :: t ∈ k => k (Act (Base @k t) t) t
 
-embed :: forall {k} t . (Corecursive k t, t ∈ k) => k (Act (Base @k t) t) t
+embed :: forall {k} t. (Corecursive k t, t ∈ k) => k (Act (Base @k t) t) t
 embed = embed_
 
 class Functor (Base @k t) => Recursive k t where
   project_ :: t ∈ k => k t (Act (Base @k t) t)
 
-project :: forall {k} t . (Recursive k t, t ∈ k) => k t (Act (Base @k t) t)
+project :: forall {k} t. (Recursive k t, t ∈ k) => k t (Act (Base @k t) t)
 project = project_
 
 ana ::
-  forall {k} t a .
+  forall {k} t a.
   (Corecursive k t, t ∈ k, a ∈ k) =>
   k a (Act (Base @k t) a) ->
   k a t
 ana t = go where go = embed @t ∘ map @(Base @k t) go ∘ t
 
 cata ::
-  forall {k} t a .
+  forall {k} t a.
   (Recursive k t, t ∈ k, a ∈ k) =>
   k (Act (Base @k t) a) a ->
   k t a
@@ -53,7 +53,8 @@ refix ::
     Corecursive Types t,
     Base @Types s ~ Base @Types t
   ) =>
-  s -> t
+  s ->
+  t
 refix = cata embed
 
 -- fix example with lists
@@ -77,7 +78,7 @@ instance Functor (AsFunctor @Types (ListF x)) where
   map_ f (Cons x l) = Cons x (f l)
 
 abc :: [Prelude.Int]
-abc = refix [1,2,3]
+abc = refix [1, 2, 3]
 
 -- fix fix
 
