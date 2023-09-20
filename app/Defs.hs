@@ -4,9 +4,10 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall -Werror -Wextra #-}
 
 module Defs where
@@ -616,55 +617,3 @@ instance
   empty_ = EXP \_ -> unit @m
   append_ = EXP \(_p :: Proxy i) -> join @m @i
 
-{- fixed point functors -}
-
-class (Category k, Functor (Fix_ k)) => HasFixed (k :: CATEGORY i) where
-  type Fix_ k :: (k ^ k) --> k
-  wrap_ :: Functor f => k (Act f (Act (Fix_ k) f)) (Act (Fix_ k) f)
-  unwrap_ :: Functor f => k (Act (Fix_ k) f) (Act f (Act (Fix_ k) f))
-
-wrap :: forall {k} f. (HasFixed k, Functor f) => k (Act f (Act (Fix_ k) f)) (Act (Fix_ k) f)
-wrap = wrap_ @_ @k @f
-
-unwrap :: forall {k} f. (HasFixed k, Functor f) => k (Act (Fix_ k) f) (Act f (Act (Fix_ k) f))
-unwrap = unwrap_ @_ @k @f
-
-data Fix :: forall k -> (k ^ k) --> k
-
-type instance Act (Fix k) f = Act (Fix_ k) f
-
-instance HasFixed k => Functor (Fix k) where
-  map_ :: forall a b. (Functor a, Functor b) => (a ~> b) -> k (Act (Fix k) a) (Act (Fix k) b)
-  map_ t =
-    wrap @b
-      ∘ map @b (map @(Fix k) t)
-      ∘ runExp @(Act (Fix k) a) t
-      ∘ unwrap @a
-
-cata ::
-  forall {k} f a.
-  (HasFixed k, Functor f, a ∈ k) =>
-  k (Act f a) a ->
-  k (Act (Fix k) f) a
-cata t = go where go = t ∘ map @f go ∘ unwrap @f
-
-ana ::
-  forall {k} f a.
-  (HasFixed k, Functor f, a ∈ k) =>
-  k a (Act f a) ->
-  k a (Act (Fix k) f)
-ana t = go where go = wrap @f ∘ map @f go ∘ t
-
-data AsFunctor :: forall k. (NamesOf k -> Type) -> (k --> Types)
-
-type instance Act (AsFunctor f) x = f x
-
-newtype DataFix (f :: Types --> Types) = In {out :: Act f (DataFix f)}
-
-instance Functor (AsFunctor @(Types ^ Types) DataFix) where
-  map_ = map @(Fix Types)
-
-instance HasFixed Types where
-  type Fix_ Types = AsFunctor DataFix
-  wrap_ = In
-  unwrap_ = out

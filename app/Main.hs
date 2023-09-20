@@ -3,9 +3,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE QualifiedDo #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 {-# OPTIONS_GHC -Wall -Werror -Wextra #-}
@@ -675,32 +677,6 @@ instance TraversableV2 (Day (∧)) Id List where
 -}
 
 -- (Either () (a, [a]) -> Δ c) -> ([a] -> c)
-
--- fix example with lists
-
-data DataListF x l = Nil | Cons x l
-
-embed :: DataListF x [x] -> [x]
-embed Nil = []
-embed (Cons x xs) = x : xs
-
-project :: [x] -> DataListF x [x]
-project [] = Nil
-project (x : xs) = Cons x xs
-
-data ListF :: Type -> Types --> Types
-
-type instance Act (ListF x) l = DataListF x l
-
-instance Functor (ListF x) where
-  map_ _ Nil = Nil
-  map_ f (Cons x l) = Cons x (f l)
-
-toList :: Act (Fix Types) (ListF x) -> [x]
-toList = cata embed
-
-fromList :: [x] -> Act (Fix Types) (ListF x)
-fromList = ana project
 
 ---
 

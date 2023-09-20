@@ -27,7 +27,8 @@ executable hscats
     main-is:          Main.hs
     other-modules:
       Defs,
-      Do
+      Do,
+      RecursionSchemes
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    base
