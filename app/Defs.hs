@@ -618,25 +618,15 @@ instance
 
 {- fixed point functors -}
 
-class (Category k, Functor (Fix_ k :: (k ^ k) --> k)) => HasFixed (k :: CATEGORY i) where
+class (Category k, Functor (Fix_ k)) => HasFixed (k :: CATEGORY i) where
   type Fix_ k :: (k ^ k) --> k
-  wrap_ ::
-    forall (f :: k --> k).
-    Functor f =>
-    k
-      (Act f (Act (Fix_ k) f))
-      (Act (Fix_ k) f)
-  unwrap_ ::
-    forall (f :: k --> k).
-    Functor f =>
-    k
-      (Act (Fix_ k) f)
-      (Act f (Act (Fix_ k) f))
+  wrap_ :: Functor f => k (Act f (Act (Fix_ k) f)) (Act (Fix_ k) f)
+  unwrap_ :: Functor f => k (Act (Fix_ k) f) (Act f (Act (Fix_ k) f))
 
-wrap :: forall {k} (f :: k --> k). (HasFixed k, Functor f) => k (Act f (Act (Fix_ k) f)) (Act (Fix_ k) f)
+wrap :: forall {k} f. (HasFixed k, Functor f) => k (Act f (Act (Fix_ k) f)) (Act (Fix_ k) f)
 wrap = wrap_ @_ @k @f
 
-unwrap :: forall {k} (f :: k --> k). (HasFixed k, Functor f) => k (Act (Fix_ k) f) (Act f (Act (Fix_ k) f))
+unwrap :: forall {k} f. (HasFixed k, Functor f) => k (Act (Fix_ k) f) (Act f (Act (Fix_ k) f))
 unwrap = unwrap_ @_ @k @f
 
 data Fix :: forall k -> (k ^ k) --> k
@@ -652,7 +642,7 @@ instance HasFixed k => Functor (Fix k) where
       ∘ unwrap @a
 
 cata ::
-  forall {k} (f :: k --> k) a.
+  forall {k} f a.
   (HasFixed k, Functor f, a ∈ k) =>
   k (Act f a) a ->
   k (Act (Fix k) f) a
