@@ -618,35 +618,77 @@ instance
 
 {- fixed point functors -}
 
-class Functor (Fixed k :: (k ^ k) --> k) => HasFixed (k :: CATEGORY i) where
-  type Fixed k :: (k ^ k) --> k
-  wrap_ :: forall (f :: k --> k). Functor f => k (Act f (Act (Fixed k) f)) (Act (Fixed k) f)
-  unwrap_ :: forall (f :: k --> k). Functor f => k (Act (Fixed k) f) (Act f (Act (Fixed k) f))
+class (Category k, Functor (Fix_ k :: (k ^ k) --> k)) => HasFixed (k :: CATEGORY i) where
+  type Fix_ k :: (k ^ k) --> k
+  wrap_ ::
+    forall (f :: k --> k).
+    Functor f =>
+    k
+      (Act f (Act (Fix_ k) f))
+      (Act (Fix_ k) f)
+  unwrap_ ::
+    forall (f :: k --> k).
+    Functor f =>
+    k
+      (Act (Fix_ k) f)
+      (Act f (Act (Fix_ k) f))
 
-wrap :: forall {k} (f :: k --> k). (HasFixed k, Functor f) => k (Act f (Act (Fixed k) f)) (Act (Fixed k) f)
+wrap :: forall {k} (f :: k --> k). (HasFixed k, Functor f) => k (Act f (Act (Fix_ k) f)) (Act (Fix_ k) f)
 wrap = wrap_ @_ @k @f
 
-unwrap :: forall {k} (f :: k --> k). (HasFixed k, Functor f) => k (Act (Fixed k) f) (Act f (Act (Fixed k) f))
+unwrap :: forall {k} (f :: k --> k). (HasFixed k, Functor f) => k (Act (Fix_ k) f) (Act f (Act (Fix_ k) f))
 unwrap = unwrap_ @_ @k @f
+
+data Fix :: forall k -> (k ^ k) --> k
+
+type instance Act (Fix k) f = Act (Fix_ k) f
+
+instance HasFixed k => Functor (Fix k) where
+  map_ :: forall a b. (Functor a, Functor b) => (a ~> b) -> k (Act (Fix k) a) (Act (Fix k) b)
+  map_ t =
+    wrap @b
+      ∘ map @b (map @(Fix k) t)
+      ∘ runExp @(Act (Fix k) a) t
+      ∘ unwrap @a
 
 cata ::
   forall {k} (f :: k --> k) a.
   (HasFixed k, Functor f, a ∈ k) =>
   k (Act f a) a ->
-  k (Act (Fixed k) f) a
+  k (Act (Fix k) f) a
 cata t = go where go = t ∘ map @f go ∘ unwrap @f
 
-data DataFix f = In {out :: Act f (DataFix f)}
+data TyConF :: ((a --> b) -> Type) -> (b ^ a) --> Types
 
-data Fix :: (Types ^ Types) --> Types
+type instance Act (TyConF c) f = c f
 
-type instance Act Fix f = DataFix f
+data DataFix (f :: Types --> Types) = In {out :: Act f (DataFix f)}
 
-instance Functor Fix where
-  map_ :: forall a b. (Functor a, Functor b) => (a ~> b) -> (Act Fix a) -> (Act Fix b)
-  map_ t = In ∘ map @b (map @Fix t) ∘ runExp @(Act Fix a) t ∘ out
+instance Functor (TyConF DataFix) where
+  map_ = map @(Fix Types)
 
 instance HasFixed Types where
-  type Fixed Types = Fix
+  type Fix_ Types = TyConF DataFix
   wrap_ = In
   unwrap_ = out
+
+-- fix example with lists
+
+data DataListF x l = Nil | Cons x l
+
+embed :: DataListF x [x] -> [x]
+embed Nil = []
+embed (Cons x xs) = x : xs
+
+data ListF :: Type -> Types --> Types
+
+type instance Act (ListF x) l = DataListF x l
+
+instance Functor (ListF x) where
+  map_ _ Nil = Nil
+  map_ f (Cons x l) = Cons x (f l)
+
+toList :: Act (Fix Types) (ListF x) -> [x]
+toList = cata embed
+
+-- $> toList (In (Cons 42 (In (Cons 99 (In Nil)))))
