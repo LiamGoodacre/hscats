@@ -1,9 +1,12 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wall -Werror -Wextra #-}
 
@@ -19,78 +22,106 @@ type instance Act (AsFunctor f) x = f x
 
 {- fixed point functors -}
 
-type Base :: forall k. NamesOf k -> k --> k
+type Base :: forall c. OBJECT c -> (c --> c)
 type family Base t
 
-class Functor (Base @k t) => Corecursive k t where
-  embed_ :: t ∈ k => k (Act (Base @k t) t) t
+type Corecursive :: forall c. OBJECT c -> Constraint
+class (ObjectName t ∈ c, Functor (Base t)) => Corecursive (t :: OBJECT c) where
+  embed_ :: c (Act (Base t) (ObjectName t)) (ObjectName t)
 
-embed :: forall {k} t. (Corecursive k t, t ∈ k) => k (Act (Base @k t) t) t
-embed = embed_
+embed ::
+  forall {c} (t :: OBJECT c).
+  (Corecursive t) =>
+  c (Act (Base t) (ObjectName t)) (ObjectName t)
+embed = embed_ @_ @t
 
-class Functor (Base @k t) => Recursive k t where
-  project_ :: t ∈ k => k t (Act (Base @k t) t)
+type Recursive :: forall c. OBJECT c -> Constraint
+class (ObjectName t ∈ c, Functor (Base t)) => Recursive (t :: OBJECT c) where
+  project_ :: c (ObjectName t) (Act (Base t) (ObjectName t))
 
-project :: forall {k} t. (Recursive k t, t ∈ k) => k t (Act (Base @k t) t)
-project = project_
+project ::
+  forall {c} (t :: OBJECT c).
+  (Recursive t) =>
+  c (ObjectName t) (Act (Base t) (ObjectName t))
+project = project_ @_ @t
 
 ana ::
-  forall {k} t a.
-  (Corecursive k t, t ∈ k, a ∈ k) =>
-  k a (Act (Base @k t) a) ->
-  k a t
-ana t = go where go = embed @t ∘ map @(Base @k t) go ∘ t
+  forall {c} (t :: OBJECT c) a.
+  (Corecursive t, a ∈ c) =>
+  c a (Act (Base t) a) ->
+  c a (ObjectName t)
+ana t = go where go = embed @t ∘ map @(Base t) go ∘ t
 
 cata ::
-  forall {k} t a.
-  (Recursive k t, t ∈ k, a ∈ k) =>
-  k (Act (Base @k t) a) a ->
-  k t a
-cata t = go where go = t ∘ map @(Base @k t) go ∘ project @t
+  forall {c} (t :: OBJECT c) a.
+  (Recursive t, a ∈ c) =>
+  c (Act (Base t) a) a ->
+  c (ObjectName t) a
+cata t = go where go = t ∘ map @(Base t) go ∘ project @t
 
 refix ::
-  ( Recursive Types s,
-    Corecursive Types t,
-    Base @Types s ~ Base @Types t
+  forall (s :: OBJECT Types) (t :: OBJECT Types).
+  ( Recursive s,
+    Corecursive t,
+    Base s ~ Base t
   ) =>
-  s ->
-  t
-refix = cata embed
+  ObjectName s ->
+  ObjectName t
+refix = cata @s (embed @t)
 
 -- fix example with lists
 
 data ListF x l = Nil | Cons x l
 
-type instance Base @Types [x] = AsFunctor (ListF x)
-
-instance Corecursive Types [x] where
-  embed_ = \case
-    Nil -> []
-    Cons x xs -> x : xs
-
-instance Recursive Types [x] where
-  project_ = \case
-    [] -> Nil
-    (x : xs) -> Cons x xs
+type instance Base (AnObject Types [x]) = AsFunctor (ListF x)
 
 instance Functor (AsFunctor @Types (ListF x)) where
   map_ _ Nil = Nil
   map_ f (Cons x l) = Cons x (f l)
 
-abc :: [Prelude.Int]
-abc = refix [1, 2, 3]
+instance Corecursive (AnObject Types [x]) where
+  embed_ = \case
+    Nil -> []
+    Cons x xs -> x : xs
+
+instance Recursive (AnObject Types [x]) where
+  project_ = \case
+    [] -> Nil
+    (x : xs) -> Cons x xs
 
 -- fix fix
 
-newtype Fix (f :: Types --> Types) = In {out :: Act f (Fix f)}
+data Fix f = In {out :: Act f (Fix f)}
 
-type instance Base @Types (Fix f) = f
+type instance Base (AnObject Types (Fix f)) = f
 
-instance Functor f => Corecursive Types (Fix f) where
+data FixOf :: (Types --> Types) -> OBJECT Types
+
+type instance ObjectName (FixOf f) = Fix f
+
+type instance Base (FixOf f) = f
+
+instance Functor f => Corecursive (FixOf f) where
   embed_ = In
 
-instance Functor f => Recursive Types (Fix f) where
+instance Functor f => Recursive (FixOf f) where
   project_ = out
 
-def :: Fix (AsFunctor (ListF Prelude.Int))
-def = refix abc
+type IsFixed :: OBJECT k -> Constraint
+class (Corecursive f, Recursive f) => IsFixed (f :: OBJECT k)
+
+instance Functor f => IsFixed (FixOf f)
+
+abc :: [Prelude.Int]
+abc =
+  refix
+    @(AnObject Types [Prelude.Int])
+    @(AnObject Types [Prelude.Int])
+    [1, 2, 3]
+
+def :: Fix (AsFunctor @Types (ListF Prelude.Int))
+def =
+  refix
+    @(AnObject Types [Prelude.Int])
+    @(FixOf (AsFunctor (ListF Prelude.Int)))
+    abc

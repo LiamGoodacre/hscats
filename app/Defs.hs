@@ -77,7 +77,7 @@ type CodomainOf :: forall j d (c :: CATEGORY j). (d --> c) -> CATEGORY j
 type CodomainOf (f :: d --> c) = c
 
 -- Functors act on object names
-type Act :: ((d :: CATEGORY i) --> (c :: CATEGORY j)) -> i -> j
+type Act :: (d --> c) -> NamesOf d -> NamesOf c
 type family Act f o
 
 -- Type of evidence that `f` acting on `o` is an object in `f`'s codomain
@@ -107,6 +107,28 @@ map ::
   d a b ->
   c (Act f a) (Act f b)
 map d = map_ @_ @_ @f d
+
+type OnActing ::
+  forall {d} {k}.
+  (NamesOf k -> Constraint) ->
+  (d --> k) ->
+  NamesOf d ->
+  Constraint
+class c (Act f x) => OnActing c f x
+
+instance c (Act f x) => OnActing c f x
+
+{- Referencing special objects -}
+
+type OBJECT :: forall i. CATEGORY i -> Type
+type OBJECT k = Proxy k -> Type
+
+type ObjectName :: OBJECT k -> NamesOf k
+type family ObjectName o
+
+data AnObject :: forall (k :: CATEGORY i) -> NamesOf k -> OBJECT k
+
+type instance ObjectName (AnObject k n) = n
 
 {- Category: opposites -}
 
