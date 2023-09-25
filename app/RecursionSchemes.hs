@@ -89,11 +89,9 @@ instance Recursive (AnObject Types [x]) where
     [] -> Nil
     (x : xs) -> Cons x xs
 
--- fix fix
+{- Fix in Types -}
 
 data Fix f = In {out :: Act f (Fix f)}
-
-type instance Base (AnObject Types (Fix f)) = f
 
 data FixOf :: (Types --> Types) -> OBJECT Types
 
@@ -108,9 +106,11 @@ instance Functor f => Recursive (FixOf f) where
   project_ = out
 
 type IsFixed :: OBJECT k -> Constraint
-class (Corecursive f, Recursive f) => IsFixed (f :: OBJECT k)
+class (Corecursive f, Recursive f) => IsFixed f
 
 instance Functor f => IsFixed (FixOf f)
+
+{- examples -}
 
 abc :: [Prelude.Int]
 abc =
