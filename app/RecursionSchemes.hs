@@ -141,3 +141,33 @@ def =
     @(AnObject Types [Prelude.Int])
     @(FixOf (AsFunctor (ListF Prelude.Int)))
     abc
+
+{- Fix in Types^Types -}
+
+type FixTT :: ((Types ^ Types) --> (Types ^ Types)) -> Type -> Type
+data FixTT f a = InTT {outTT :: Act (Act f (AsFunctor (FixTT f))) a}
+
+instance Functor f => Functor (AsFunctor @Types (FixTT f)) where
+  map_ ab = InTT ∘ map @(Act f (AsFunctor (FixTT f))) ab ∘ outTT
+
+data FixTTOf :: ((Types ^ Types) --> (Types ^ Types)) -> OBJECT (Types ^ Types)
+
+type instance ObjectName (FixTTOf f) = AsFunctor (FixTT f)
+
+type instance Base (FixTTOf f) = f
+
+instance Functor f => Corecursive (FixTTOf f) where
+  embed_ = EXP \_ -> InTT
+
+instance Functor f => Recursive (FixTTOf f) where
+  project_ = EXP \_ -> outTT
+
+instance HasFixed (Types ^ Types) where
+  type Fixed (Types ^ Types) f = FixTTOf f
+
+hcata ::
+  forall h f.
+  (Functor h, Functor f) =>
+  (Act h f ~> f) ->
+  (ObjectName (FixTTOf h) ~> f)
+hcata = cata @(FixTTOf h)
