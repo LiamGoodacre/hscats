@@ -45,6 +45,24 @@ project ::
   c (ObjectName t) (Act (Base t) (ObjectName t))
 project = project_ @_ @t
 
+type WithFixed ::
+  forall (k :: CATEGORY i) ->
+  (OBJECT k -> Constraint) ->
+  (k --> k) ->
+  Constraint
+class c (Fixed k f) => WithFixed k c (f :: k --> k)
+
+instance c (Fixed k f) => WithFixed k c (f :: k --> k)
+
+type HasFixed :: CATEGORY i -> Constraint
+class
+  ( forall f. Functor f => WithFixed k Corecursive f,
+    forall f. Functor f => WithFixed k Recursive f
+  ) =>
+  HasFixed k
+  where
+  type Fixed k (f :: (k --> k)) :: OBJECT k
+
 ana ::
   forall {c} (t :: OBJECT c) a.
   (Corecursive t, a ∈ c) =>
@@ -105,10 +123,8 @@ instance Functor f => Corecursive (FixOf f) where
 instance Functor f => Recursive (FixOf f) where
   project_ = out
 
-type IsFixed :: OBJECT k -> Constraint
-class (Corecursive f, Recursive f) => IsFixed f
-
-instance Functor f => IsFixed (FixOf f)
+instance HasFixed Types where
+  type Fixed Types f = FixOf f
 
 {- examples -}
 
