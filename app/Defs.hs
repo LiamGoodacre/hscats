@@ -62,6 +62,20 @@ instance Semigroupoid Types where
 instance Category Types where
   identity_ = Prelude.id
 
+{- Category: equality -}
+
+-- "Equality" forms a category
+data (:~:) :: CATEGORY t where
+  REFL :: x :~: x
+
+type instance (t :: k) ∈ (:~:) = (t ~ t)
+
+instance Semigroupoid (:~:) where
+  REFL ∘ REFL = REFL
+
+instance Category (:~:) where
+  identity_ = REFL
+
 {- Functor: definition -}
 
 -- Type of functors indexed by domain & codomain categories
@@ -650,3 +664,25 @@ type instance Act (Coyoneda f) x = DataCoyoneda f x
 
 instance Category k => Functor (Coyoneda @k f) where
   map_ ab (MakeDataCoyoneda fx xa) = MakeDataCoyoneda fx (ab ∘ xa)
+
+-- Natural numbers
+data N = S N | Z
+
+-- "Less than or equal to for Natural numbers" forms a category
+data (≤) :: CATEGORY N where
+  E :: n ≤ n
+  B :: l ≤ u -> l ≤ 'S u
+
+type CanonicalN :: N -> N
+type family CanonicalN n where
+  CanonicalN 'Z = 'Z
+  CanonicalN ('S k) = 'S (CanonicalN k)
+
+type instance x ∈ (≤) = x ~ CanonicalN x
+
+instance Semigroupoid (≤) where
+  E ∘ r = r
+  B l ∘ r = B (l ∘ r)
+
+instance Category (≤) where
+  identity_ = E

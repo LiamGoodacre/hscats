@@ -15,6 +15,7 @@ module RecursionSchemes where
 import Data.Kind
 import Defs
 import Prelude qualified
+import Data.Proxy
 
 data AsFunctor :: forall k. (NamesOf k -> Type) -> (k --> Types)
 
@@ -142,28 +143,28 @@ def =
     @(FixOf (AsFunctor (ListF Prelude.Int)))
     abc
 
-{- Fix in Types^Types -}
+{- Fix in Types^k -}
 
-type FixTT :: ((Types ^ Types) --> (Types ^ Types)) -> Type -> Type
+type FixTT :: forall k . ((Types ^ k) --> (Types ^ k)) -> NamesOf k -> Type
 data FixTT f a = InTT {outTT :: Act (Act f (AsFunctor (FixTT f))) a}
 
-instance Functor f => Functor (AsFunctor @Types (FixTT f)) where
+instance (Category k, Functor f) => Functor (AsFunctor @k (FixTT @k f)) where
   map_ ab = InTT ∘ map @(Act f (AsFunctor (FixTT f))) ab ∘ outTT
 
-data FixTTOf :: ((Types ^ Types) --> (Types ^ Types)) -> OBJECT (Types ^ Types)
+data FixTTOf :: forall k . ((Types ^ k) --> (Types ^ k)) -> OBJECT (Types ^ k)
 
-type instance ObjectName (FixTTOf f) = AsFunctor (FixTT f)
+type instance ObjectName (FixTTOf @k f) = AsFunctor @k (FixTT @k f)
 
 type instance Base (FixTTOf f) = f
 
-instance Functor f => Corecursive (FixTTOf f) where
+instance (Category k, Functor f) => Corecursive (FixTTOf @k f) where
   embed_ = EXP \_ -> InTT
 
-instance Functor f => Recursive (FixTTOf f) where
+instance (Category k, Functor f) => Recursive (FixTTOf @k f) where
   project_ = EXP \_ -> outTT
 
-instance HasFixed (Types ^ Types) where
-  type Fixed (Types ^ Types) f = FixTTOf f
+instance Category k => HasFixed (Types ^ k) where
+  type Fixed (Types ^ k) f = FixTTOf @k f
 
 hcata ::
   forall h f.
@@ -171,3 +172,65 @@ hcata ::
   (Act h f ~> f) ->
   (ObjectName (FixTTOf h) ~> f)
 hcata = cata @(FixTTOf h)
+
+{- Demonstrate FixTT with Vectors -}
+
+type VecF :: Type -> ((:~:) @N --> Types) -> N -> Type
+data VecF v rec n where
+  ConsF :: v -> Act rec n -> VecF v rec ('S n)
+  NilF :: VecF v rec 'Z
+
+data VecFunc0 :: Type -> ((:~:) @N --> Types) -> ((:~:) @N --> Types)
+type instance Act (VecFunc0 v rec) n = VecF v rec n
+
+instance Functor rec => Functor (VecFunc0 v rec) where
+  map_ REFL x = x
+
+data VecFunc1 :: Type -> (Types ^ (:~:) @N) --> (Types ^ (:~:) @N)
+type instance Act (VecFunc1 v) rec = VecFunc0 v rec
+
+instance Functor (VecFunc1 v) where
+  map_ ::
+    (a ∈ (Types ^ (:~:)), b ∈ (Types ^ (:~:))) =>
+    (a ~> b) ->
+    (Act (VecFunc1 v) a ~> Act (VecFunc1 v) b)
+  map_ f = EXP \(Proxy  @hello) -> \case
+    NilF -> NilF
+    ConsF @_ @_ @n x xs -> ConsF x (runExp @n f xs)
+
+type Vec' a n = FixTT (VecFunc1 a) n
+
+nil :: Vec' a 'Z
+nil = InTT NilF
+
+cons :: a -> Vec' a n -> Vec' a ('S n)
+cons x xs = InTT (ConsF x xs)
+
+type Plus :: N -> N -> N
+type family Plus l r where
+  Plus 'Z r = r
+  Plus ('S l) r = 'S (Plus l r)
+
+newtype Appended m a n =
+  Append { getAppended :: Vec' a m -> Vec' a (Plus n m) }
+
+type Appending m a = AsFunctor @(:~:) (Appended m a)
+
+instance Functor (AsFunctor @(:~:) (Appended m a)) where
+  map_ REFL = identity
+
+appendVec :: forall a n m . Vec' a n -> Vec' a m -> Vec' a (Plus n m)
+appendVec xs ys = getAppended (runExp (hcata alg) xs) ys where
+  alg :: VecFunc0 a (Appending m a) ~> Appending m a
+  alg = EXP \_ -> \case
+    NilF -> Append identity
+    ConsF x rec -> Append \zs -> cons x (getAppended rec zs)
+
+example0 :: Vec' Prelude.Integer ('S ('S ('S 'Z)))
+example0 = cons 1 (cons 2 (cons 3 nil))
+
+example1 :: Vec' Prelude.Integer ('S ('S 'Z))
+example1 = cons 4 (cons 5 nil)
+
+example2 :: Vec' Prelude.Integer ('S ('S ('S ('S ('S 'Z)))))
+example2 = appendVec example0 example1

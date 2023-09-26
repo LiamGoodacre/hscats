@@ -23,42 +23,6 @@ import Do qualified
 import Prelude (($))
 import Prelude qualified
 
-{- Category: Examples -}
-
--- "Equality" forms a category
-data (:~:) :: CATEGORY t where
-  REFL :: x :~: x
-
-type instance (t :: k) ∈ (:~:) = (t ~ t)
-
-instance Semigroupoid (:~:) where
-  REFL ∘ REFL = REFL
-
-instance Category (:~:) where
-  identity_ = REFL
-
--- Natural numbers
-data N = S N | Z
-
--- "Less than or equal to for Natural numbers" forms a category
-data (≤) :: CATEGORY N where
-  E :: n ≤ n
-  B :: l ≤ u -> l ≤ 'S u
-
-type CanonicalN :: N -> N
-type family CanonicalN n where
-  CanonicalN 'Z = 'Z
-  CanonicalN ('S k) = 'S (CanonicalN k)
-
-type instance x ∈ (≤) = x ~ CanonicalN x
-
-instance Semigroupoid (≤) where
-  E ∘ r = r
-  B l ∘ r = B (l ∘ r)
-
-instance Category (≤) where
-  identity_ = E
-
 {- Monoid: examples -}
 
 data PreludeMonoid :: Type -> CATEGORY () where
