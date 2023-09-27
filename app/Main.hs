@@ -22,6 +22,7 @@ import Do (pure)
 import Do qualified
 import Prelude (($))
 import Prelude qualified
+import RecursionSchemes
 
 {- Monoid: examples -}
 
@@ -543,13 +544,6 @@ foldMap ::
   k a m ->
   k (Act t a) m
 foldMap = foldMap_ @k @p @id @t @a @m
-
-data List :: Types --> Types
-
-type instance Act List t = [t]
-
-instance Functor List where
-  map_ = Prelude.fmap
 
 instance Foldable (∧) () List where
   foldMap_ _ [] = empty @(∧) ()

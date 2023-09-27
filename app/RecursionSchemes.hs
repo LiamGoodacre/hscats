@@ -129,19 +129,19 @@ instance HasFixed Types where
 
 {- examples -}
 
-abc :: [Prelude.Int]
-abc =
+_abc :: [Prelude.Int]
+_abc =
   refix
     @(AnObject Types [Prelude.Int])
     @(AnObject Types [Prelude.Int])
     [1, 2, 3]
 
-def :: Fix (AsFunctor @Types (ListF Prelude.Int))
-def =
+_def :: Fix (AsFunctor @Types (ListF Prelude.Int))
+_def =
   refix
     @(AnObject Types [Prelude.Int])
     @(FixOf (AsFunctor (ListF Prelude.Int)))
-    abc
+    _abc
 
 {- Fix in Types^k -}
 
@@ -172,6 +172,14 @@ hcata ::
   (Act h f ~> f) ->
   (ObjectName (FixTTOf h) ~> f)
 hcata = cata @(FixTTOf h)
+
+refold ::
+  forall {k} (t :: k --> k) a b .
+  (Functor t, a ∈ k, b ∈ k) =>
+  k (Act t b) b ->
+  k a (Act t a) ->
+  k a b
+refold f g = f ∘ map @t (refold @t f g) ∘ g
 
 {- Demonstrate FixTT with Vectors -}
 
@@ -234,3 +242,57 @@ example1 = cons 4 (cons 5 nil)
 
 example2 :: Vec' Prelude.Integer ('S ('S ('S ('S ('S 'Z)))))
 example2 = appendVec example0 example1
+
+{- polymorphically recursive type -}
+
+data List :: Types --> Types
+
+type instance Act List t = [t]
+
+instance Functor List where
+  map_ = Prelude.fmap
+
+data Nested a = a :<: (Nested [a]) | Epsilon
+infixr 5 :<:
+
+nested :: Nested Prelude.Int
+nested = 1 :<: [2,3,4] :<: [[5,6],[7],[8,9]] :<: Epsilon
+
+nestedLength :: Nested a -> Prelude.Int
+nestedLength Epsilon = 0
+nestedLength (_ :<: xs) = 1 Prelude.+ nestedLength xs
+
+type NestedF :: forall k . NamesOf k -> ((Types ^ k) --> Types) -> (k --> Types) -> Type
+data NestedF a rec f = Act f a :<<: Act rec (List ∘ f) | EpsilonF
+
+data NestedF0 :: forall k . NamesOf k -> ((Types ^ k) --> Types) -> (Types ^ k) --> Types
+
+type instance Act (NestedF0 a rec) f = NestedF a rec f
+
+instance (a ∈ k, Category k, Functor rec) => Functor (NestedF0 @k a rec) where
+  map_ ::
+    forall f g .
+    (f ∈ (Types ^ k), g ∈ (Types ^ k)) =>
+    (f ~> g) ->
+    NestedF a rec f -> NestedF a rec g
+  map_ fg = \case
+    EpsilonF -> EpsilonF
+    x :<<: xs -> runExp @a fg x :<<:
+      map
+        @rec
+        @(List ∘ f)
+        @(List ∘ g)
+        (EXP \(Proxy @i) -> map @List (runExp @i fg))
+        xs
+
+data NestedF1 :: forall k . NamesOf k -> (Types ^ (Types ^ k)) --> (Types ^ (Types ^ k))
+
+type instance Act (NestedF1 a) rec = NestedF0 a rec
+
+instance (a ∈ k, Category k) => Functor (NestedF1 @k a) where
+  map_ st = EXP \(Proxy @i) -> \case
+    EpsilonF -> EpsilonF
+    x :<<: xs -> x :<<: runExp @(List ∘ i) st xs
+
+-- convert :: Nested a -> FixTT (NestedF1 a) Id
+-- convert = _
