@@ -29,8 +29,7 @@ bindImpl ::
   (a -> Act m b) ->
   Act m b
 bindImpl _ ma t =
-  join @m @b
-    (map m t ma :: Act (m • m) b)
+  join m b (map m t ma :: Act (m • m) b)
 
 newtype BindDo m
   = BindDo
@@ -70,7 +69,7 @@ makePure ::
   forall (m :: Types --> Types) {f} {g}.
   (Monad m, m ~ (g • f)) =>
   PureDo m
-makePure = PureDo (unit @m)
+makePure = PureDo (unit m _)
 
 with ::
   forall (m :: Types --> Types) ->

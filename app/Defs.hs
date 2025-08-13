@@ -367,35 +367,40 @@ type Invert :: forall c. forall (m :: c --> c) -> (MidComposition m --> MidCompo
 type Invert m = Inner m • Outer m
 
 unit ::
-  forall {c} (m :: c --> c) a {f} {g}.
-  (Monad m, m ~ (g • f), a ∈ c) =>
+  forall {c} g f.
+  forall (m :: c --> c) a ->
+  (m ~ (g • f), Monad (g • f), a ∈ c) =>
   c a (Act m a)
-unit = rightAdjoint f g (identity _)
+unit _ a = rightAdjoint f g (identity (Act f a))
 
 counit ::
-  forall {d} (w :: d --> d) a {f} {g}.
+  forall {d} f g.
+  forall (w :: d --> d) a ->
   (Comonad w, w ~ (f • g), a ∈ d) =>
   d (Act w a) a
-counit = leftAdjoint g f (identity _)
+counit _ a = leftAdjoint g f (identity (Act g a))
 
 join ::
-  forall {c} (m :: c --> c) a {f} {g}.
+  forall {c} f g.
+  forall (m :: c --> c) a ->
   (m ~ (g • f), f ⊣ g, a ∈ c) =>
   c (Act (m • m) a) (Act m a)
-join = map g (counit @(Invert m) @(Act f a))
+join m a = map g (counit (Invert m) (Act f a))
 
 extend ::
-  forall {d} (w :: d --> d) a {f} {g}.
+  forall {d} f g.
+  forall (w :: d --> d) a ->
   (w ~ (f • g), f ⊣ g, a ∈ d) =>
   d (Act w a) (Act (w • w) a)
-extend = map f (unit @(Invert w) @(Act g a))
+extend w a = map f (unit (Invert w) (Act g a))
 
 flatMap ::
-  forall {c} (m :: c --> c) a b {f} {g}.
+  forall {c} a b {f} {g}.
+  forall (m :: c --> c) ->
   (m ~ (g • f), f ⊣ g, a ∈ c, b ∈ c) =>
   c a (Act m b) ->
   c (Act m a) (Act m b)
-flatMap amb = join @m @b ∘ map m amb
+flatMap m amb = join m b ∘ map m amb
 
 {- Category: 1 -}
 
@@ -408,7 +413,7 @@ instance Semigroupoid One where
   ONE ∘ ONE = ONE
 
 instance Category One where
-  identity _ = ONE
+  identity () = ONE
 
 {- Binary functors: associative, monoidal, braided, symmetric, closed -}
 
@@ -592,8 +597,8 @@ instance
   ) =>
   MonoidObject Compose Id m
   where
-  empty_ = EXP \_ -> unit @m
-  append_ = EXP \i -> join @m @i
+  empty_ = EXP \_ -> unit m _
+  append_ = EXP \i -> join m i
 
 {- coyoneda -}
 
