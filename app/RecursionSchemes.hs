@@ -12,6 +12,8 @@
 
 module RecursionSchemes where
 
+{-
+
 import Data.Kind
 import Defs
 import Prelude qualified
@@ -296,3 +298,5 @@ instance (a ∈ k, Category k) => Functor (NestedF1 @k a) where
 
 -- convert :: Nested a -> FixTT (NestedF1 a) Id
 -- convert = _
+
+-}
