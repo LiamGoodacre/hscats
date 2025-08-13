@@ -14,8 +14,8 @@
 
 module Defs where
 
-import Data.Kind
-import Data.Proxy
+import Data.Kind (Constraint, Type)
+import Data.Proxy (Proxy (Proxy))
 import Data.Type.Equality ((:~:) (Refl), type (~))
 import Prelude qualified
 

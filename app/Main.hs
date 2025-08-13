@@ -17,11 +17,11 @@ module Main where
 import Data.Foldable qualified as Foldable
 import Data.Kind
 import Data.Proxy
--- import RecursionSchemes
 import Data.Type.Equality (type (~))
 import Defs
 import Do (pure)
 import Do qualified
+import RecursionSchemes
 import Prelude (($))
 import Prelude qualified
 
@@ -451,19 +451,43 @@ instance
   append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
-lift0 :: forall m a. (MonoidObject (Day (∧)) Id m) => a -> Act m a
-lift0 = empty @(Day (∧)) @m $$ a
+instance MonoidObject (Day (∧)) Id Id where
+  empty_ = EXP \_p x -> x
+  append_ = EXP \_p (DAY_D _ _ xyz fx fy) -> xyz (fx, fy)
+
+instance MonoidObject (Day (∧)) Id Dup where
+  empty_ = EXP \_p x -> (x, x)
+  append_ = EXP \_p (DAY_D _ _ xyz (fx0, fx1) (fy0, fy1)) ->
+    (xyz (fx0, fy0), xyz (fx1, fy1))
+
+instance MonoidObject (Day (∧)) Id List where
+  empty_ = EXP \_p x -> [x]
+  append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
+    Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
+
+lift0 :: forall a. forall m -> (MonoidObject (Day (∧)) Id m) => a -> Act m a
+lift0 m = empty @(Day (∧)) @m $$ a
 
 lift2 ::
-  forall m c a b.
+  forall c a b.
+  forall m ->
   (MonoidObject (Day (∧)) Id m) =>
   (a -> b -> c) ->
   Act m a ->
   Act m b ->
   Act m c
-lift2 abc ma mb =
+lift2 m abc ma mb =
   (append @(Day (∧)) @m $$ c)
     (day @_ @a @b @c (\(a, b) -> abc a b) ma mb)
+
+_egLift0Id :: Prelude.Int -> Prelude.Int
+_egLift0Id = lift0 Id
+
+_egLift0Dup :: Prelude.Int -> (Prelude.Int, Prelude.Int)
+_egLift0Dup = lift0 Dup
+
+_egLift0List :: Prelude.Int -> [Prelude.Int]
+_egLift0List = lift0 List
 
 instance
   (Prelude.Monad m) =>
@@ -524,11 +548,9 @@ foldMap ::
   k (Act t a) m
 foldMap = foldMap_ @k @p @id @t @a @m
 
-{-
 instance Foldable (∧) () List where
   foldMap_ _ [] = empty @(∧) ()
   foldMap_ f (h : t) = f h <> foldMap @List @(∧) f t
--}
 
 -- Types () m
 -- Types (m, m) m
@@ -539,85 +561,89 @@ instance Foldable (∧) () List where
 -- t • m -> m • t
 
 type Traversable ::
-  forall {i}.
-  forall (k :: CATEGORY i).
   BINARY_OP (k ^ k) ->
   (k --> k) ->
   (k --> k) ->
   Constraint
-class
-  (Monoidal p id) =>
-  Traversable p id (t :: k --> k)
-    | p -> id
-  where
-  sequence_ ::
-    (MonoidObject p id m) =>
+class (Monoidal p id) => Traversable p id t | p -> id where
+  sequence ::
+    forall p' t' m ->
+    (p' ~ p, t' ~ t, MonoidObject p id m) =>
     (t • m) ~> (m • t)
 
-{-
-instance Traversable (Day (∧)) Id List where
-  sequence_ ::
-    forall m.
-    (MonoidObject (Day (∧)) Id m) =>
-    (List • m) ~> (m • List)
-  sequence_ = EXP \(_p :: Proxy i) ->
-    Prelude.foldr
-      (lift2 @m ((:) @i))
-      (lift0 @m ([] @i))
--}
+sequenceA ::
+  forall i.
+  forall t m ->
+  (Traversable (Day (∧)) Id t, MonoidObject (Day (∧)) Id m) =>
+  Act (t • m) i -> Act (m • t) i
+sequenceA t m = sequence (Day (∧)) t m $$ i
 
-sequence ::
-  forall
-    {i}
-    {k :: CATEGORY i}
-    (p :: BINARY_OP (k ^ k))
-    {id :: k --> k}
-    (t :: k --> k)
-    (m :: k --> k).
-  (Traversable p id t, MonoidObject p id m) =>
-  (t • m) ~> (m • t)
-sequence = sequence_ @k @p @id @t @m
+instance Traversable (Day (∧)) Id Id where
+  sequence ::
+    forall p' t' m ->
+    (p' ~ Day (∧), t' ~ Id, MonoidObject (Day (∧)) Id m) =>
+    (Id • m) ~> (m • Id)
+  sequence _ _ m = EXP \i -> identity (Act m i)
+
+instance Traversable (Day (∧)) Id List where
+  sequence ::
+    forall p' t' m ->
+    (p' ~ Day (∧), t' ~ List, MonoidObject (Day (∧)) Id m) =>
+    (List • m) ~> (m • List)
+  sequence _ _ m = EXP \i ->
+    Prelude.foldr
+      (lift2 m ((:) @i))
+      (lift0 m ([] @i))
+
+instance Traversable (Day (∧)) Id Dup where
+  sequence ::
+    forall p' t' m ->
+    (p' ~ Day (∧), t' ~ Dup, MonoidObject (Day (∧)) Id m) =>
+    (Dup • m) ~> (m • Dup)
+  sequence _ _ m = EXP \i (l, r) -> lift2 @(Act Dup i) m (,) l r
+
+_egSeqId :: Prelude.Int -> Prelude.String
+_egSeqId =
+  (Id `sequenceA` PreludeFunctor _)
+    Prelude.show
+
+_egSeqList :: Prelude.Int -> [Prelude.String]
+_egSeqList =
+  (List `sequenceA` PreludeFunctor _)
+    [Prelude.show, Prelude.show]
+
+_egSeqDup :: Prelude.Int -> (Prelude.String, Prelude.String)
+_egSeqDup =
+  (Dup `sequenceA` PreludeFunctor _)
+    (Prelude.show, Prelude.show)
 
 ---
 
-data
-  ConstF ::
-    forall
-      {i}
-      {j}
-      (x :: CATEGORY j)
-      (k :: CATEGORY i).
-    i ->
-    x --> k
+data ConstF :: NamesOf k -> x --> k
 
 type instance Act (ConstF a) b = a
 
-data Const :: forall x k. k --> (k ^ x)
+data Const :: k --> (k ^ x)
 
-type instance Act Const a = ConstF a
+type instance Act (Const @k) a = ConstF @k a
 
-{-
 class TraversableV2 p id t where
   traverse_ ::
-    MonoidObject p id m =>
+    (MonoidObject p id m) =>
     (ConstF a ~> m) ->
-    (t ~> (m • t))
+    ((t • ConstF a) ~> (m • t))
 
 instance TraversableV2 (Day (∧)) Id List where
   traverse_ ::
     forall m a.
-    MonoidObject (Day (∧)) Id m =>
+    (MonoidObject (Day (∧)) Id m) =>
     (ConstF a ~> m) ->
-    (List ~> (m • List))
+    ((List • ConstF a) ~> (m • List))
   traverse_ (EXP f) =
-    EXP \(Proxy @i) ->
-      let go :: [i] -> Act m [i]
-          go [] = runExp (lift0 @m) ([] @i)
-          go (h : t) = runExp (lift2 @m) (DAY_D )
-      in go
--}
-
--- (Either () (a, [a]) -> Δ c) -> ([a] -> c)
+    EXP \i ->
+      Prelude.foldr
+        (lift2 @[i] m (:) ∘ f i)
+        (lift0 m ([] @i))
 
 ---
 

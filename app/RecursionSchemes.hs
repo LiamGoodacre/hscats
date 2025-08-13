@@ -12,12 +12,10 @@
 
 module RecursionSchemes where
 
-{-
-
-import Data.Kind
+import Data.Kind (Constraint, Type)
+import Data.Type.Equality (type (~))
 import Defs
 import Prelude qualified
-import Data.Proxy
 
 data AsFunctor :: forall k. (NamesOf k -> Type) -> (k --> Types)
 
@@ -53,14 +51,14 @@ type WithFixed ::
   (OBJECT k -> Constraint) ->
   (k --> k) ->
   Constraint
-class c (Fixed k f) => WithFixed k c (f :: k --> k)
+class (c (Fixed k f)) => WithFixed k c (f :: k --> k)
 
-instance c (Fixed k f) => WithFixed k c (f :: k --> k)
+instance (c (Fixed k f)) => WithFixed k c (f :: k --> k)
 
 type HasFixed :: CATEGORY i -> Constraint
 class
-  ( forall f. Functor f => WithFixed k Corecursive f,
-    forall f. Functor f => WithFixed k Recursive f
+  ( forall f. (Functor f) => WithFixed k Corecursive f,
+    forall f. (Functor f) => WithFixed k Recursive f
   ) =>
   HasFixed k
   where
@@ -71,14 +69,14 @@ ana ::
   (Corecursive t, a ∈ c) =>
   c a (Act (Base t) a) ->
   c a (ObjectName t)
-ana t = go where go = embed @t ∘ map @(Base t) go ∘ t
+ana ata = go where go = embed @t ∘ map (Base t) go ∘ ata
 
 cata ::
   forall {c} (t :: OBJECT c) a.
   (Recursive t, a ∈ c) =>
   c (Act (Base t) a) a ->
   c (ObjectName t) a
-cata t = go where go = t ∘ map @(Base t) go ∘ project @t
+cata taa = go where go = taa ∘ map (Base t) go ∘ project @t
 
 refix ::
   forall (s :: OBJECT Types) (t :: OBJECT Types).
@@ -97,8 +95,8 @@ data ListF x l = Nil | Cons x l
 type instance Base (AnObject Types [x]) = AsFunctor (ListF x)
 
 instance Functor (AsFunctor @Types (ListF x)) where
-  map_ _ Nil = Nil
-  map_ f (Cons x l) = Cons x (f l)
+  map _ _ Nil = Nil
+  map _ f (Cons x l) = Cons x (f l)
 
 instance Corecursive (AnObject Types [x]) where
   embed_ = \case
@@ -112,7 +110,7 @@ instance Recursive (AnObject Types [x]) where
 
 {- Fix in Types -}
 
-data Fix f = In {out :: Act f (Fix f)}
+newtype Fix f = In {out :: Act f (Fix f)}
 
 data FixOf :: (Types --> Types) -> OBJECT Types
 
@@ -120,10 +118,10 @@ type instance ObjectName (FixOf f) = Fix f
 
 type instance Base (FixOf f) = f
 
-instance Functor f => Corecursive (FixOf f) where
+instance (Functor f) => Corecursive (FixOf f) where
   embed_ = In
 
-instance Functor f => Recursive (FixOf f) where
+instance (Functor f) => Recursive (FixOf f) where
   project_ = out
 
 instance HasFixed Types where
@@ -147,11 +145,13 @@ _def =
 
 {- Fix in Types^k -}
 
+{-
+
 type FixTT :: forall k . ((Types ^ k) --> (Types ^ k)) -> NamesOf k -> Type
 data FixTT f a = InTT {outTT :: Act (Act f (AsFunctor (FixTT f))) a}
 
 instance (Category k, Functor f) => Functor (AsFunctor @k (FixTT @k f)) where
-  map_ ab = InTT ∘ map @(Act f (AsFunctor (FixTT f))) ab ∘ outTT
+  map _ ab = InTT ∘ map (Act f (AsFunctor (FixTT f))) ab ∘ outTT
 
 data FixTTOf :: forall k . ((Types ^ k) --> (Types ^ k)) -> OBJECT (Types ^ k)
 
@@ -245,6 +245,8 @@ example1 = cons 4 (cons 5 nil)
 example2 :: Vec' Prelude.Integer ('S ('S ('S ('S ('S 'Z)))))
 example2 = appendVec example0 example1
 
+-}
+
 {- polymorphically recursive type -}
 
 data List :: Types --> Types
@@ -252,7 +254,9 @@ data List :: Types --> Types
 type instance Act List t = [t]
 
 instance Functor List where
-  map_ = Prelude.fmap
+  map _ = Prelude.fmap
+
+{-
 
 data Nested a = a :<: (Nested [a]) | Epsilon
 infixr 5 :<:
