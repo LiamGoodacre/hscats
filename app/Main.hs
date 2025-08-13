@@ -3,7 +3,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE QualifiedDo #-}
+{-# LANGUAGE RequiredTypeArguments #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE TypeAbstractions #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
@@ -34,7 +36,7 @@ instance (Prelude.Semigroup m) => Semigroupoid (PreludeMonoid m) where
   PreludeMonoid l ∘ PreludeMonoid r = PreludeMonoid (l Prelude.<> r)
 
 instance (Prelude.Monoid m) => Category (PreludeMonoid m) where
-  identity_ = PreludeMonoid Prelude.mempty
+  identity _ = PreludeMonoid Prelude.mempty
 
 boring_monoid_category_example :: ()
 boring_monoid_category_example = ()
@@ -43,7 +45,7 @@ boring_monoid_category_example = ()
     _monoid_mappend = (∘)
 
     _monoid_mempty :: (Monoid c o) => c o o
-    _monoid_mempty = identity
+    _monoid_mempty = identity _
 
     _eg0 :: [Prelude.Integer]
     _eg0 = getPreludeMonoid _monoid_mempty
@@ -60,7 +62,7 @@ instance (Semigroupoid c, o ∈ c) => Semigroupoid (Endo o c) where
   ENDO l ∘ ENDO r = ENDO (l ∘ r)
 
 instance (Category c, o ∈ c) => Category (Endo o c) where
-  identity_ = ENDO identity
+  identity _ = ENDO (identity _)
 
 {- Functor: examples -}
 
@@ -131,8 +133,8 @@ instance Functor (Env x) where
   map _ f (l, r) = (f l, r)
 
 instance Env s ⊣ Reader s where
-  leftAdjoint_ = Prelude.uncurry
-  rightAdjoint_ = Prelude.curry
+  leftAdjoint _ _ = Prelude.uncurry
+  rightAdjoint _ _ = Prelude.curry
 
 -- (∨) ⊣ Δ Types ⊣ (∧)
 
@@ -158,12 +160,12 @@ instance Functor (∨) where
   map _ (f :×: g) = Prelude.either (Prelude.Left ∘ f) (Prelude.Right ∘ g)
 
 instance Δ Types ⊣ (∧) where
-  leftAdjoint_ t = (Prelude.fst ∘ t) :×: (Prelude.snd ∘ t)
-  rightAdjoint_ (f :×: g) = \x -> (f x, g x)
+  leftAdjoint _ _ t = (Prelude.fst ∘ t) :×: (Prelude.snd ∘ t)
+  rightAdjoint _ _ (f :×: g) = \x -> (f x, g x)
 
 instance (∨) ⊣ Δ Types where
-  leftAdjoint_ (f :×: g) = f `Prelude.either` g
-  rightAdjoint_ t = (t ∘ Prelude.Left) :×: (t ∘ Prelude.Right)
+  leftAdjoint _ _ (f :×: g) = f `Prelude.either` g
+  rightAdjoint _ _ t = (t ∘ Prelude.Left) :×: (t ∘ Prelude.Right)
 
 -- (• g) ⊣ (/ g)
 -- aka (PostCompose g ⊣ PostRan g)
@@ -193,8 +195,8 @@ data (/) :: (x --> y) -> (x --> z) -> (z --> y)
 type instance Act (h / g) o = Ran h g o
 
 instance (Category x, Category z) => Functor ((/) @x @Types @z h g) where
-  map _ zab (RAN (pf :: Proxy f) fgh fa) =
-    RAN pf fgh (map f zab fa)
+  map _ zab (RAN (Proxy @f) fgh fa) =
+    RAN (Proxy @f) fgh (map f zab fa)
 
 -- NOTE: currently y is always Types
 data PostRan :: (x --> z) -> (y ^ x) --> (y ^ z)
@@ -210,15 +212,14 @@ instance
       RAN p (ab ∘ fga) fi
 
 instance (Functor g) => PostCompose g ⊣ PostRan @x @z @Types g where
-  leftAdjoint_ a_bg =
-    EXP \(Proxy :: Proxy i) ag ->
-      case runExp @(Act g i) a_bg ag of
+  leftAdjoint _ _ a_bg =
+    EXP \i ag ->
+      case (a_bg $$ Act g i) ag of
         RAN _ fg_b fgi ->
-          runExp @i fg_b fgi
+          (fg_b $$ i) fgi
 
-  rightAdjoint_ ag_b =
-    EXP \(Proxy :: Proxy i) (a :: Act a i) ->
-      RAN (Proxy @a) ag_b a
+  rightAdjoint _ _ ag_b =
+    EXP \_ -> RAN Proxy ag_b
 
 type Codensity :: (x --> Types) -> (Types --> Types)
 type Codensity f = f / f
@@ -228,10 +229,10 @@ type Codensity f = f / f
 type Dup = (∧) • Δ Types
 
 dupMonad :: Do.MonadDo Dup
-dupMonad = Do.with
+dupMonad = Do.with _
 
 egDuped :: (Prelude.Integer, Prelude.Integer)
-egDuped = Do.with @Dup Do.do
+egDuped = Do.with Dup Do.do
   v <- (10, 100)
   x <- (v Prelude.+ 1, v Prelude.+ 2)
   pure (x Prelude.* 2)
@@ -241,7 +242,7 @@ egDuped = Do.with @Dup Do.do
 type States s = Reader s • Env s
 
 stateMonad :: Do.MonadDo (States s)
-stateMonad = Do.with
+stateMonad = Do.with _
 
 type State s i = Act (States s) i
 
@@ -264,10 +265,10 @@ twicePostincShow :: State Prelude.Integer Prelude.String
 twicePostincShow = stateMonad Do.do
   a <- postinc
   b <- postinc
-  c <- pure $ dupMonad Do.do
-    v <- (10, 100)
-    x <- (v Prelude.+ 1, v Prelude.+ 2)
-    pure (x Prelude.* 2 :: Prelude.Integer)
+  let c = dupMonad Do.do
+        v <- (10, 100)
+        x <- (v Prelude.+ 1, v Prelude.+ 2)
+        pure (x Prelude.* 2 :: Prelude.Integer)
   pure $
     Foldable.fold
       [Prelude.show a, "-", Prelude.show b, "-", Prelude.show c]
@@ -280,12 +281,10 @@ egState = twicePostincShow 10
 newtype NT t m = NT (t ~> m)
 
 type Free :: (Types --> Types) -> Type -> Type
-data Free t a = FREE
+newtype Free t a = FREE
   { runFree ::
-      forall m.
-      (Monad m) =>
-      Proxy m ->
-      Proxy a ->
+      forall m a' ->
+      (Monad m, a' ~ a) =>
       NT t m ->
       Act m a
   }
@@ -303,32 +302,21 @@ type instance Act Free1 f = Free0 f
 type instance Act Free2 fx = Free (Fst fx) (Snd fx)
 
 instance Functor (Free0 @Types t) where
-  map _ (a_b :: a -> b) r = FREE do
-    let outer ::
-          forall m.
-          (Monad m) =>
-          Proxy m ->
-          Proxy b ->
-          NT t m ->
-          Act m b
-        outer pm _pb tm =
-          map m a_b (runFree r pm (Proxy @a) tm)
-    outer
+  map _ (a_b :: a -> b) r = FREE \m _ t_m -> map m a_b (runFree r m a t_m)
 
 instance Functor (Free1 @Types) where
-  map _ ab = EXP \_ (FREE f) ->
-    FREE \m a (NT tm) -> f m a (NT (tm ∘ ab))
+  map _ a_b = EXP \_ (FREE f) -> FREE \m a (NT t_m) -> f m a (NT (t_m ∘ a_b))
 
 instance Functor (Free2 @Types) where
-  map _ (st :×: (ab :: Types a b)) = \(FREE f) ->
-    FREE \(pm :: Proxy m) _ (NT tm) ->
-      map m ab (f pm (Proxy @a) (NT (tm ∘ st)))
+  map _ (s_t :×: (a_b :: Types a b)) = \(FREE f) ->
+    FREE \m _ (NT t_m) ->
+      map m a_b (f m a (NT (t_m ∘ s_t)))
 
 ---
 
 instance Associative (∧) where
-  lassoc_ = \(a, (b, c)) -> ((a, b), c)
-  rassoc_ = \((a, b), c) -> (a, (b, c))
+  lassoc _ _ _ _ = \(a, (b, c)) -> ((a, b), c)
+  rassoc _ _ _ _ = \((a, b), c) -> (a, (b, c))
 
 instance Monoidal (∧) () where
   idl = \(_, m) -> m
@@ -385,10 +373,10 @@ type instance Act (Day p) '(f, g) = DayF p f g
 
 instance (Functor p) => Functor (Day p) where
   map _ (EXP l :×: EXP r) =
-    EXP \_p (DAY_D px py (xyz :: k xy z) fx gy) ->
+    EXP \_p (DAY_D (Proxy @px) (Proxy @py) (xyz :: k xy z) fx gy) ->
       DAY_D
-        px
-        py
+        (Proxy @px)
+        (Proxy @py)
         xyz
         (l px fx)
         (r py gy)
@@ -421,36 +409,26 @@ instance
       (map g ab ga)
 
 instance (Associative p) => Associative (Day p) where
-  lassoc_ = EXP \_p (DAY_D (px :: Proxy x) (_py :: Proxy y) xyz fx (DAY_D (pa :: Proxy a) (pb :: Proxy b) aby ga hb)) ->
+  lassoc _ _ _ _ = EXP \_ (DAY_D (Proxy @x) Proxy xyz fx (DAY_D (Proxy @a) (Proxy @b) aby ga hb)) ->
     DAY_D
       Proxy
-      pb
-      ( xyz
-          ∘ map
-            p
-            (identity @x :×: (aby :: Types (Act p '(a, b)) y))
-          ∘ rassoc @p @x @a @b
-      )
-      (DAY_D px pa (\x -> x) fx ga)
+      (Proxy @b)
+      (xyz ∘ map p (identity x :×: aby) ∘ rassoc p x a b)
+      (DAY_D (Proxy @x) (Proxy @a) (identity _) fx ga)
       hb
-  rassoc_ = EXP \_p (DAY_D (_px :: Proxy x) (py :: Proxy y) xyz (DAY_D (pa :: Proxy a) (pb :: Proxy b) abx fa gb) hy) ->
+  rassoc _ _ _ _ = EXP \_ (DAY_D Proxy (Proxy @y) xyz (DAY_D (Proxy @a) (Proxy @b) abx fa gb) hy) ->
     DAY_D
-      pa
+      (Proxy @a)
       Proxy
-      ( xyz
-          ∘ map
-            p
-            ((abx :: Types (Act p '(a, b)) x) :×: identity @y)
-          ∘ lassoc @p @a @b @y
-      )
+      (xyz ∘ map p (abx :×: identity y) ∘ lassoc p a b y)
       fa
-      (DAY_D pb py (\x -> x) gb hy)
+      (DAY_D (Proxy @b) (Proxy @y) (identity _) gb hy)
 
 instance Monoidal (Day (∧)) Id where
-  idl = EXP \_p (DAY_D _ _ xyz x my :: DayD (∧) Id m z) -> map m (\y -> xyz (x, y)) my
-  coidl = EXP \_p my -> DAY_D Proxy Proxy (\(_, y) -> y) () my
-  idr = EXP \_p (DAY_D _ _ xyz mx y :: DayD (∧) m Id z) -> map m (\x -> xyz (x, y)) mx
-  coidr = EXP \_p mx -> DAY_D Proxy Proxy (\(x, _) -> x) mx ()
+  idl = EXP \_ (DAY_D _ _ xyz x my :: DayD (∧) Id m z) -> map m (\y -> xyz (x, y)) my
+  coidl = EXP \_ my -> DAY_D Proxy Proxy Prelude.snd () my
+  idr = EXP \_ (DAY_D _ _ xyz mx y :: DayD (∧) m Id z) -> map m (\x -> xyz (x, y)) mx
+  coidr = EXP \_ mx -> DAY_D Proxy Proxy Prelude.fst mx ()
 
 instance
   (Prelude.Monoid m) =>
@@ -474,7 +452,7 @@ instance
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
 lift0 :: forall m a. (MonoidObject (Day (∧)) Id m) => a -> Act m a
-lift0 = runExp (empty @(Day (∧)) @m)
+lift0 = empty @(Day (∧)) @m $$ a
 
 lift2 ::
   forall m c a b.
@@ -483,14 +461,16 @@ lift2 ::
   Act m a ->
   Act m b ->
   Act m c
-lift2 abc ma mb = runExp (append @(Day (∧)) @m) (day @_ @a @b @c (\(a, b) -> abc a b) ma mb)
+lift2 abc ma mb =
+  (append @(Day (∧)) @m $$ c)
+    (day @_ @a @b @c (\(a, b) -> abc a b) ma mb)
 
 instance
   (Prelude.Monad m) =>
   MonoidObject Compose Id (PreludeFunctor m)
   where
   empty_ = EXP \_ -> Prelude.pure
-  append_ = EXP \_ -> (Prelude.>>= identity)
+  append_ = EXP \_ -> (Prelude.>>= identity _)
 
 join0 :: forall m. (MonoidObject Compose Id m) => Id ~> m
 join0 = empty @Compose
@@ -515,8 +495,8 @@ instance (Category k, r ∈ k) => Functor (OpArrTo k r) where
   map _ ba = OP (∘ ba)
 
 instance OpArrTo Types r ⊣ ArrTo Types r where
-  leftAdjoint_ = OP ∘ Prelude.flip
-  rightAdjoint_ = Prelude.flip ∘ runOP
+  leftAdjoint _ _ = OP ∘ Prelude.flip
+  rightAdjoint _ _ = Prelude.flip ∘ runOP
 
 -- Foldable?
 

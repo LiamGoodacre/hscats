@@ -5,6 +5,7 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RequiredTypeArguments #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE TypeAbstractions #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
@@ -15,7 +16,7 @@ module Defs where
 
 import Data.Kind
 import Data.Proxy
-import Data.Type.Equality (type (~))
+import Data.Type.Equality ((:~:) (Refl), type (~))
 import Prelude qualified
 
 {- Category: definition -}
@@ -26,7 +27,7 @@ type CATEGORY i = i -> i -> Type
 
 -- Lookup the type of a category's object names
 type NamesOf :: forall i. CATEGORY i -> Type
-type NamesOf (c :: CATEGORY i) = i
+type NamesOf @i c = i
 
 -- Categories must specify what it means to be an object in that category
 type (∈) :: forall i. i -> CATEGORY i -> Constraint
@@ -40,10 +41,7 @@ class Semigroupoid k where
 -- Categories are Semigroupoids with an identity arrow
 type Category :: CATEGORY i -> Constraint
 class (Semigroupoid k) => Category k where
-  identity_ :: (i ∈ k) => k i i
-
-identity :: forall i k. (Category k, i ∈ k) => k i i
-identity = identity_
+  identity :: forall o -> (o ∈ k) => k o o
 
 {- Monoid: definition -}
 
@@ -63,21 +61,18 @@ instance Semigroupoid Types where
   (∘) = (Prelude..)
 
 instance Category Types where
-  identity_ = Prelude.id
+  identity _ = Prelude.id
 
 {- Category: equality -}
 
 -- "Equality" forms a category
-data (:~:) :: CATEGORY t where
-  REFL :: x :~: x
-
 type instance (t :: k) ∈ (:~:) = (t ~ t)
 
 instance Semigroupoid (:~:) where
-  REFL ∘ REFL = REFL
+  Refl ∘ Refl = Refl
 
 instance Category (:~:) where
-  identity_ = REFL
+  identity _ = Refl
 
 {- Functor: definition -}
 
@@ -109,7 +104,10 @@ instance (Act f o ∈ CodomainOf f) => Acts f o
 -- Also arrows can be mapped.
 type Functor :: (d --> c) -> Constraint
 class (Category d, Category c, forall o. (o ∈ DomainOf f) => Acts f o) => Functor (f :: d --> c) where
-  map :: forall f' -> (f' ~ f, a ∈ d, b ∈ d) => d a b -> c (Act f a) (Act f b)
+  map ::
+    forall f' ->
+    (f' ~ f, a ∈ d, b ∈ d) =>
+    d a b -> c (Act f a) (Act f b)
 
 type OnActing ::
   forall {d} {k}.
@@ -144,7 +142,7 @@ instance (Semigroupoid k) => Semigroupoid (Op k) where
   OP g ∘ OP f = OP (f ∘ g)
 
 instance (Category k) => Category (Op k) where
-  identity_ = OP identity
+  identity o = OP (identity o)
 
 {- Category: products -}
 
@@ -165,28 +163,28 @@ instance (Semigroupoid l, Semigroupoid r) => Semigroupoid (l × r) where
   (a :×: b) ∘ (c :×: d) = (a ∘ c) :×: (b ∘ d)
 
 instance (Category l, Category r) => Category (l × r) where
-  identity_ = identity :×: identity
+  identity (a, b) = identity a :×: identity b
 
 {- Category: exponentials -}
 
 data (^) :: forall c d -> CATEGORY (d --> c) where
   EXP ::
-    { unExp :: forall i. (i ∈ d) => Proxy i -> c (Act f i) (Act g i)
+    { ($$) ::
+        forall (i :: NamesOf d) ->
+        (i ∈ d) =>
+        c (Act f i) (Act g i)
     } ->
     (c ^ d) f g
 
 type (~>) (f :: d --> c) g = (c ^ d) f g
 
-runExp :: forall x c d i o. (x ∈ d) => (c ^ d) i o -> c (Act i x) (Act o x)
-runExp (EXP f) = f (Proxy :: Proxy x)
-
 type instance o ∈ (c ^ d) = Functor o
 
 instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
-  l ∘ r = EXP \p -> unExp l p ∘ unExp r p
+  l ∘ r = EXP \i -> (l $$ i) ∘ (r $$ i)
 
 instance (Category d, Category c) => Category (c ^ d) where
-  identity_ = EXP \_ -> identity
+  identity f = EXP \i -> identity (Act f i)
 
 {- Functor: identity -}
 
@@ -214,27 +212,27 @@ data Cat :: forall k. CATEGORY (CATEGORY k) where
 type instance c ∈ Cat = Category c
 
 instance Semigroupoid Cat where
-  CAT (Proxy :: Proxy f) ∘ CAT (Proxy :: Proxy g) =
+  CAT (Proxy @f) ∘ CAT (Proxy @g) =
     CAT (Proxy @(f • g))
 
 instance Category Cat where
-  identity_ = CAT (Proxy @Id)
+  identity _ = CAT (Proxy @Id)
 
 {- Functor: composition as a functor -}
 
 above ::
-  forall {c} {d} k (f :: c --> d) g.
+  forall k f g.
   (Functor k) =>
   (f ~> g) ->
   ((f • k) ~> (g • k))
-above fg = EXP \(_ :: Proxy i) -> runExp @(Act k i) fg
+above fg = EXP \i -> fg $$ Act k i
 
 beneath ::
-  forall {c} {d} k (f :: c --> d) g.
-  (Functor f, Functor g, Functor k) =>
+  forall k f g.
+  (Functor k, Functor f, Functor g) =>
   (f ~> g) ->
   ((k • f) ~> (k • g))
-beneath fg = EXP (map k ∘ unExp fg)
+beneath fg = EXP \i -> map k (fg $$ i)
 
 -- Functor in the two functors arguments
 -- `(f • g) v` is a functor in `f`, and `g`
@@ -243,16 +241,16 @@ data Compose :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
 -- `(f • g) v` is a functor in `f`, `g`, and `v`
 data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
 
-type instance Act (Compose @a @b @x) e = Fst e • Snd e
+type instance Act Compose e = Fst e • Snd e
 
-type instance Act (Composed @a @b @c) e = Act (Act Compose (Fst e)) (Snd e)
+type instance Act Composed e = Act (Act Compose (Fst e)) (Snd e)
 
 instance
   (Category aa, Category bb, Category cc) =>
   Functor (Compose @aa @bb @cc)
   where
   map _ ((fh :: f ~> h) :×: (gi :: g ~> i)) =
-    beneath @h gi ∘ above @g fh :: (f • g) ~> (h • i)
+    beneath gi ∘ above fh :: (f • g) ~> (h • i)
 
 instance
   (Category aa, Category bb, Category cc) =>
@@ -261,7 +259,7 @@ instance
   map _ (fhgi :×: (xy :: cc x y)) =
     case map (Compose @aa @bb) fhgi of
       (v :: (f • g) ~> (h • i)) ->
-        map (h • i) xy ∘ runExp @x v
+        map (h • i) xy ∘ (v $$ x)
 
 {- Functor: eval/curry -}
 
@@ -285,22 +283,20 @@ instance
   (Category a, Category b, Functor f, x ∈ a) =>
   Functor (Curry__ @a @b @c f x)
   where
-  map _ byz = map f (identity @x :×: byz)
+  map _ byz = map f (identity x :×: byz)
 
 instance
   (Category a, Category b, Category c, Functor f) =>
   Functor (Curry_ @a @b @c f)
   where
-  map _ axy = EXP \(_p :: Proxy i) ->
-    map f (axy :×: identity @i)
+  map _ axy = EXP \i ->
+    map f (axy :×: identity i)
 
 instance
   (Category a, Category b, Category c) =>
   Functor (Curry @a @b @c)
   where
-  map _ (EXP t) = EXP \(_p :: Proxy i) ->
-    EXP \(_q :: Proxy j) ->
-      t (Proxy @'(i, j))
+  map _ (EXP t) = EXP \i -> EXP \j -> t (i, j)
 
 {- Adjunctions -}
 
@@ -319,36 +315,18 @@ class
     | f -> g,
       g -> f
   where
-  leftAdjoint_ ::
-    forall a b.
+  leftAdjoint ::
+    forall g' f' ->
+    (f' ~ f, g' ~ g) =>
     (a ∈ c, b ∈ d) =>
     c a (Act g b) ->
     d (Act f a) b
-  rightAdjoint_ ::
-    forall a b.
+  rightAdjoint ::
+    forall f' g' ->
+    (f' ~ f, g' ~ g) =>
     (a ∈ c, b ∈ d) =>
     d (Act f a) b ->
     c a (Act g b)
-
-leftAdjoint ::
-  forall {c} {d} f (g :: d --> c) a b.
-  ( f ⊣ g,
-    a ∈ c,
-    b ∈ d
-  ) =>
-  c a (Act g b) ->
-  d (Act f a) b
-leftAdjoint = leftAdjoint_ @c @d @f @g
-
-rightAdjoint ::
-  forall {c} {d} f (g :: d --> c) a b.
-  ( f ⊣ g,
-    a ∈ c,
-    b ∈ d
-  ) =>
-  d (Act f a) b ->
-  c a (Act g b)
-rightAdjoint = rightAdjoint_ @c @d @f @g
 
 {- Monad & Comonad -}
 
@@ -392,13 +370,13 @@ unit ::
   forall {c} (m :: c --> c) a {f} {g}.
   (Monad m, m ~ (g • f), a ∈ c) =>
   c a (Act m a)
-unit = rightAdjoint @f @g identity
+unit = rightAdjoint f g (identity _)
 
 counit ::
   forall {d} (w :: d --> d) a {f} {g}.
   (Comonad w, w ~ (f • g), a ∈ d) =>
   d (Act w a) a
-counit = leftAdjoint @f @g identity
+counit = leftAdjoint g f (identity _)
 
 join ::
   forall {c} (m :: c --> c) a {f} {g}.
@@ -430,7 +408,7 @@ instance Semigroupoid One where
   ONE ∘ ONE = ONE
 
 instance Category One where
-  identity_ = ONE
+  identity _ = ONE
 
 {- Binary functors: associative, monoidal, braided, symmetric, closed -}
 
@@ -451,48 +429,24 @@ type Associative ::
   ((k × k) --> k) ->
   Constraint
 class (Functor op) => Associative (op :: BINARY_OP k) where
-  lassoc_ ::
+  lassoc ::
+    forall op' a b c ->
+    (op' ~ op) =>
     (a ∈ k, b ∈ k, c ∈ k) =>
     k
       ((a ☼ (b ☼ c) op) op)
       (((a ☼ b) op ☼ c) op)
-  rassoc_ ::
+  rassoc ::
+    forall op' a b c ->
+    (op' ~ op) =>
     (a ∈ k, b ∈ k, c ∈ k) =>
     k
       (((a ☼ b) op ☼ c) op)
       ((a ☼ (b ☼ c) op) op)
-
-lassoc ::
-  forall
-    {i}
-    {k :: CATEGORY i}
-    (op :: BINARY_OP k)
-    a
-    b
-    c.
-  (Associative op, a ∈ k, b ∈ k, c ∈ k) =>
-  k
-    ((a ☼ (b ☼ c) op) op)
-    (((a ☼ b) op ☼ c) op)
-lassoc = lassoc_ @k @op @a @b @c
-
-rassoc ::
-  forall
-    {i}
-    {k :: CATEGORY i}
-    (op :: BINARY_OP k)
-    a
-    b
-    c.
-  (Associative op, a ∈ k, b ∈ k, c ∈ k) =>
-  k
-    (((a ☼ b) op ☼ c) op)
-    ((a ☼ (b ☼ c) op) op)
-rassoc = rassoc_ @k @op @a @b @c
 
 instance (Category k) => Associative (Compose :: BINARY_OP (k ^ k)) where
-  lassoc_ = EXP \_ -> identity
-  rassoc_ = EXP \_ -> identity
+  lassoc _ _ _ _ = EXP \_ -> identity _
+  rassoc _ _ _ _ = EXP \_ -> identity _
 
 type Braided ::
   forall {i}.
@@ -627,10 +581,10 @@ instance
   (Category k) =>
   Monoidal Compose (Id :: k --> k)
   where
-  idl = EXP \_ -> identity
-  coidl = EXP \_ -> identity
-  idr = EXP \_ -> identity
-  coidr = EXP \_ -> identity
+  idl = EXP \_ -> identity _
+  coidl = EXP \_ -> identity _
+  idr = EXP \_ -> identity _
+  coidr = EXP \_ -> identity _
 
 instance
   ( Monad m,
@@ -639,7 +593,7 @@ instance
   MonoidObject Compose Id m
   where
   empty_ = EXP \_ -> unit @m
-  append_ = EXP \(_p :: Proxy i) -> join @m @i
+  append_ = EXP \i -> join @m @i
 
 {- coyoneda -}
 
@@ -673,4 +627,4 @@ instance Semigroupoid (≤) where
   B l ∘ r = B (l ∘ r)
 
 instance Category (≤) where
-  identity_ = E
+  identity _ = E

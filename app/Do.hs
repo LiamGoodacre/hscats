@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE RequiredTypeArguments #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wall -Werror -Wextra #-}
@@ -72,10 +73,10 @@ makePure ::
 makePure = PureDo (unit @m)
 
 with ::
-  forall (m :: Types --> Types) {f} {g}.
+  forall (m :: Types --> Types) ->
   (Monad m, m ~ (g • f)) =>
   MonadDo m
-with t = do
+with m t = do
   let ?bind = makeBind @m
   let ?pure = makePure @m
   t
