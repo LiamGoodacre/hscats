@@ -366,61 +366,66 @@ type MidComposition :: forall c. forall (m :: c --> c) -> CATEGORY (MidCompositi
 type family MidComposition m where
   MidComposition (g • f) = DomainOf g
 
-type Outer :: forall c. forall (m :: c --> c) -> (MidComposition m --> c)
-type family Outer m where
-  Outer (g • f) = g
+type OuterBy :: (c --> c) -> forall (d :: CATEGORY i) -> (d --> c)
+type family OuterBy m d where
+  OuterBy (g • f) d = g
 
-type Inner :: forall c. forall (m :: c --> c) -> (c --> MidComposition m)
-type family Inner m where
-  Inner (g • f) = f
+type InnerBy :: (c --> c) -> forall (d :: CATEGORY i) -> (c --> d)
+type family InnerBy m d where
+  InnerBy (g • f) d = f
 
-type TheComposition :: forall c. (c --> c) -> (c --> c)
-type TheComposition m = Outer m • Inner m
+type Inner :: forall (m :: c --> c) -> (c --> MidComposition m)
+type Inner m = InnerBy m (MidComposition m)
 
-type Monad :: forall c. (c --> c) -> Constraint
-type Monad m =
-  ( m ~ TheComposition m,
-    Inner m ⊣ Outer m,
+type Outer :: forall (m :: c --> c) -> (MidComposition m --> c)
+type Outer m = OuterBy m (MidComposition m)
+
+type TheCompositionBy :: (c --> c) -> CATEGORY i -> (c --> c)
+type TheCompositionBy m d = OuterBy m d • InnerBy m d
+
+type TheComposition :: (c --> c) -> (c --> c)
+type TheComposition m = TheCompositionBy m (MidComposition m)
+
+type MonadBy :: (c --> c) -> CATEGORY i -> Constraint
+type MonadBy m d =
+  ( m ~ TheCompositionBy m d,
+    InnerBy m d ⊣ OuterBy m d,
     Functor m
   )
 
-type Comonad :: forall c. (c --> c) -> Constraint
-type Comonad w =
-  ( w ~ TheComposition w,
-    Outer w ⊣ Inner w,
+type Monad :: (c --> c) -> Constraint
+type Monad m = MonadBy m (MidComposition m)
+
+type ComonadBy :: (c --> c) -> CATEGORY i -> Constraint
+type ComonadBy w d =
+  ( w ~ TheCompositionBy w d,
+    OuterBy w d ⊣ InnerBy w d,
     Functor w
   )
+
+type Comonad :: (c --> c) -> Constraint
+type Comonad w = ComonadBy w (MidComposition w)
 
 type Invert :: forall c. forall (m :: c --> c) -> (MidComposition m --> MidComposition m)
 type Invert m = Inner m • Outer m
 
-unit ::
-  forall {c} g f.
-  forall (m :: c --> c) a ->
-  (m ~ (g • f), Monad (g • f), a ∈ c) =>
-  c a (Act m a)
-unit _ a = rightAdjoint f g (identity (Act f a))
+unit :: forall (m :: c --> c) a -> (MonadBy m d, a ∈ c) => c a (Act m a)
+unit m a = rightAdjoint (Inner m) (Outer m) (identity (Act (Inner m) a))
 
-counit ::
-  forall {d} f g.
-  forall (w :: d --> d) a ->
-  (Comonad w, w ~ (f • g), a ∈ d) =>
-  d (Act w a) a
-counit _ a = leftAdjoint g f (identity (Act g a))
+counit :: forall (w :: d --> d) a -> (ComonadBy w c, a ∈ d) => d (Act w a) a
+counit w a = leftAdjoint (Inner w) (Outer w) (identity (Act (Inner w) a))
 
 join ::
-  forall {c} f g.
   forall (m :: c --> c) a ->
   (m ~ (g • f), f ⊣ g, a ∈ c) =>
   c (Act (m • m) a) (Act m a)
-join m a = map g (counit (Invert m) (Act f a))
+join m a = map (Outer m) (counit (Invert m) (Act (Inner m) a))
 
 extend ::
-  forall {d} f g.
   forall (w :: d --> d) a ->
   (w ~ (f • g), f ⊣ g, a ∈ d) =>
   d (Act w a) (Act (w • w) a)
-extend w a = map f (unit (Invert w) (Act g a))
+extend w a = map (Outer w) (unit (Invert w) (Act (Inner w) a))
 
 flatMap ::
   forall {c} a b {f} {g}.

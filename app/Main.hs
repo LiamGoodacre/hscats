@@ -247,10 +247,10 @@ egState = twicePostincShow 10
 newtype NT t m = NT (t ~> m)
 
 type Free :: (Types --> Types) -> Type -> Type
-newtype Free t a = FREE
+data Free t a = FREE
   { runFree ::
       forall m a' ->
-      (Monad m, a' ~ a) =>
+      (MonadBy m Types, a' ~ a) =>
       NT t m ->
       Act m a
   }
