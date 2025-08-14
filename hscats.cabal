@@ -16,5 +16,18 @@ executable hscats
     build-depends:
       , base
     hs-source-dirs: app
-    default-language: GHC2021
-    ghc-options: -O2
+    default-language: GHC2024
+    default-extensions:
+      AllowAmbiguousTypes,
+      BlockArguments,
+      FunctionalDependencies,
+      ImplicitParams,
+      NoImplicitPrelude,
+      QualifiedDo,
+      QuantifiedConstraints,
+      RequiredTypeArguments,
+      TypeAbstractions,
+      TypeFamilies,
+      UndecidableInstances,
+      UndecidableSuperClasses
+    ghc-options: -O2 -Wall

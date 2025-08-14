@@ -1,16 +1,4 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE QualifiedDo #-}
-{-# LANGUAGE RequiredTypeArguments #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeAbstractions #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# OPTIONS_GHC -Wall -Werror -Wextra #-}
 
 module Main where
 

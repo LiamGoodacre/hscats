@@ -1,14 +1,4 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# OPTIONS_GHC -Wall -Werror -Wextra #-}
 
 module RecursionSchemes where
 

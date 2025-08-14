@@ -1,11 +1,5 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE RequiredTypeArguments #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# OPTIONS_GHC -Wall -Werror -Wextra #-}
 
 module Do where
 
