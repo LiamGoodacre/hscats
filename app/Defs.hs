@@ -253,38 +253,78 @@ instance
 
 data Eval :: forall d c. ((c ^ d) × d) --> c
 
+-- Typing '²': `^q 2 S`
+data Curry² :: forall a b c. ((a × b) --> c) -> NamesOf a -> (b --> c)
+
+-- Typing '¹': `^q 1 S`
+data Curry¹ :: forall a b c. ((a × b) --> c) -> (a --> (c ^ b))
+
+-- Typing '⁰': `^q 0 S`
+data Curry⁰ :: forall a b c. (c ^ (a × b)) --> ((c ^ b) ^ a)
+
 type instance Act Eval fx = Act (Fst fx) (Snd fx)
 
-data Curry__ :: forall a b c. ((a × b) --> c) -> NamesOf a -> (b --> c)
+type instance Act (Curry² f x) y = Act f '(x, y)
 
-type instance Act (Curry__ f x) y = Act f '(x, y)
+type instance Act (Curry¹ f) x = Curry² f x
 
-data Curry_ :: forall a b c. ((a × b) --> c) -> (a --> (c ^ b))
+type instance Act Curry⁰ f = Curry¹ f
 
-type instance Act (Curry_ f) x = Curry__ f x
-
-data Curry :: forall a b c. (c ^ (a × b)) --> ((c ^ b) ^ a)
-
-type instance Act Curry f = Curry_ f
+instance
+  (Category d, Category c) =>
+  Functor (Eval @d @c)
+  where
+  map @a @b _ (f :×: x) = map (Fst b) x ∘ (f $$ Snd a)
 
 instance
   (Category a, Category b, Functor f, x ∈ a) =>
-  Functor (Curry__ @a @b @c f x)
+  Functor (Curry² @a @b f x)
   where
   map _ byz = map f (identity x :×: byz)
 
 instance
   (Category a, Category b, Category c, Functor f) =>
-  Functor (Curry_ @a @b @c f)
+  Functor (Curry¹ @a @b @c f)
   where
   map _ axy = EXP \i ->
     map f (axy :×: identity i)
 
 instance
   (Category a, Category b, Category c) =>
-  Functor (Curry @a @b @c)
+  Functor (Curry⁰ @a @b @c)
   where
   map _ (EXP t) = EXP \i -> EXP \j -> t (i, j)
+
+{- Spin -}
+
+type BI d c k = (d × c) --> k
+
+data Spin :: BI d c k -> BI c d k
+
+type instance Act (Spin b) x = Act b '(Snd x, Fst x)
+
+instance
+  (Category d, Category c, Functor b) =>
+  Functor (Spin (b :: BI d c k))
+  where
+  map _ (l :×: r) = map b (r :×: l)
+
+{- Hom Functors -}
+
+data Hom :: forall c -> Op c × c --> Types
+
+type instance Act (Hom c) o = c (Fst o) (Snd o)
+
+instance (Category c) => Functor (Hom c) where
+  map _ (OP f :×: g) t = g ∘ t ∘ f
+
+-- Typing '⁰': `^q 0 S`
+type Hom⁰ :: forall (c :: CATEGORY o) -> c --> (Types ^ Op c)
+type Hom⁰ c = Curry¹ (Spin (Hom c))
+
+-- Typing '₀': `^q 0 s`
+type Hom₀ :: forall (c :: CATEGORY o) -> Op c --> (Types ^ c)
+type Hom₀ c = Curry¹ (Hom c)
 
 {- Adjunctions -}
 
@@ -405,7 +445,7 @@ instance Category One where
 
 {- Binary functors: associative, monoidal, braided, symmetric, closed -}
 
-type BINARY_OP k = (k × k) --> k
+type BINARY_OP c = BI c c c
 
 type (☼) ::
   forall {i}.
@@ -498,16 +538,16 @@ class
   SymmetricMonoidal p id
     | p -> id
 
-data Spin :: BINARY_OP k -> BINARY_OP k
+data Twist :: BINARY_OP k -> BINARY_OP k
 
-type instance Act (Spin p) x = Act p '(Snd x, Fst x)
+type instance Act (Twist p) x = Act p '(Snd x, Fst x)
 
-instance (Functor p) => Functor (Spin p) where
+instance (Functor p) => Functor (Twist p) where
   map _ (r :×: l) = map p (l :×: r)
 
-type With¹ p = Curry__ p
+type With¹ p = Curry² p
 
-type With² p = Curry__ (Spin p)
+type With² p = Curry² (Twist p)
 
 type ClosedMonoidal ::
   forall {i}.

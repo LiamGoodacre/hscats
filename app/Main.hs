@@ -80,28 +80,6 @@ type instance Act (f &&& g) o = '(Act f o, Act g o)
 instance (Functor f, Functor g) => Functor (f &&& g) where
   map _ t = map f t :×: map g t
 
--- Some Yoneda embeddings
-data YoCodomain :: forall (k :: CATEGORY i) -> i -> (k --> Types)
-
-type instance Act (YoCodomain k d) c = k d c
-
-instance (d ∈ k, Category k) => Functor (YoCodomain k d) where
-  map _ = (∘)
-
-data YoDomain :: forall (k :: CATEGORY i) -> i -> (Op k --> Types)
-
-type instance Act (YoDomain k c) d = k d c
-
-instance (d ∈ k, Category k) => Functor (YoDomain k d) where
-  map _ (OP g) f = f ∘ g
-
-data Hom :: forall (k :: CATEGORY i) -> ((Op k × k) --> Types)
-
-type instance Act (Hom k) o = k (Fst o) (Snd o)
-
-instance (Category k) => Functor (Hom k) where
-  map _ (OP f :×: g) t = g ∘ t ∘ f
-
 {- Adjunctions: examples -}
 
 -- Env s ⊣ Reader s
