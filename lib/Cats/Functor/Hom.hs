@@ -6,7 +6,7 @@ import Cats.Category.Opposite
 import Cats.Category.Product
 import Cats.Functor
 import Cats.Functor.Curry
-import Cats.Functor.Spin
+import Cats.Functor.Flip
 
 type data Hom :: forall c -> Op c × c --> Types
 
@@ -17,7 +17,7 @@ instance (Category c) => Functor (Hom c) where
 
 -- Typing '⁰': `^q 0 S`
 type Hom⁰ :: forall (c :: CATEGORY o) -> c --> (Types ^ Op c)
-type Hom⁰ c = Curry¹ (Spin (Hom c))
+type Hom⁰ c = Curry¹ (Flip (Hom c))
 
 -- Typing '₀': `^q 0 s`
 type Hom₀ :: forall (c :: CATEGORY o) -> Op c --> (Types ^ c)
