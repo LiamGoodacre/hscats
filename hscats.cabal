@@ -15,6 +15,7 @@ library
       Cats.Category.Exponential,
       Cats.Functor,
       Cats.Functor.Curry,
+      Cats.Functor.Spin,
       Cats.Adjoint,
       Cats,
       Do,

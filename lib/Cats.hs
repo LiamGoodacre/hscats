@@ -5,6 +5,7 @@ module Cats
     module Cats.Category.Exponential,
     module Cats.Functor,
     module Cats.Functor.Curry,
+    module Cats.Functor.Spin,
     module Cats.Adjoint,
     module Cats,
   )
@@ -17,6 +18,7 @@ import Cats.Category.Op
 import Cats.Category.Product
 import Cats.Functor
 import Cats.Functor.Curry
+import Cats.Functor.Spin
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
 import Data.Type.Equality (type (~))
@@ -95,20 +97,6 @@ instance
   Functor (Eval @d @c)
   where
   map @a @b _ (f :×: x) = map (Fst b) x ∘ (f $$ Snd a)
-
-{- Spin -}
-
-type BI d c k = (d × c) --> k
-
-data Spin :: BI d c k -> BI c d k
-
-type instance Act (Spin b) x = Act b '(Snd x, Fst x)
-
-instance
-  (Category d, Category c, Functor b) =>
-  Functor (Spin (b :: BI d c k))
-  where
-  map _ (l :×: r) = map b (r :×: l)
 
 {- Hom Functors -}
 
@@ -220,6 +208,8 @@ instance Category One where
   identity () = ONE
 
 {- Binary functors: associative, monoidal, braided, symmetric, closed -}
+
+type BI d c k = (d × c) --> k
 
 type BINARY_OP c = BI c c c
 
