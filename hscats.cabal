@@ -10,6 +10,7 @@ extra-source-files:
 library
     exposed-modules:
       Cats.Category,
+      Cats.Category.Op,
       Cats.Functor,
       Cats.Adjoint,
       Cats,

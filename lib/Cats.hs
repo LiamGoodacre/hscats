@@ -1,5 +1,6 @@
 module Cats
   ( module Cats.Category,
+    module Cats.Category.Op,
     module Cats.Functor,
     module Cats.Adjoint,
     module Cats,
@@ -8,6 +9,7 @@ where
 
 import Cats.Adjoint
 import Cats.Category
+import Cats.Category.Op
 import Cats.Functor
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
@@ -32,19 +34,6 @@ type family ObjectName o
 data AnObject :: forall (k :: CATEGORY i) -> NamesOf k -> OBJECT k
 
 type instance ObjectName (AnObject k n) = n
-
-{- Category: opposites -}
-
-data Op :: CATEGORY i -> CATEGORY i where
-  OP :: {runOP :: k b a} -> Op k a b
-
-type instance i ∈ Op k = i ∈ k
-
-instance (Semigroupoid k) => Semigroupoid (Op k) where
-  OP g ∘ OP f = OP (f ∘ g)
-
-instance (Category k) => Category (Op k) where
-  identity o = OP (identity o)
 
 {- Category: products -}
 
