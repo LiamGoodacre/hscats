@@ -62,7 +62,7 @@ makePure ::
   forall (m :: Types --> Types) {f} {g}.
   (Monad m, m ~ (g • f)) =>
   PureDo m
-makePure = PureDo (unit m _)
+makePure = PureDo (adjointUnit m _)
 
 with ::
   forall (m :: Types --> Types) ->

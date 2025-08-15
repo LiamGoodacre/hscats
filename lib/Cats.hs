@@ -96,8 +96,7 @@ type TheComposition m = TheCompositionBy m (MidComposition m)
 type MonadBy :: (c --> c) -> CATEGORY i -> Constraint
 type MonadBy m d =
   ( m ~ TheCompositionBy m d,
-    InnerBy m d ⊣ OuterBy m d,
-    Functor m
+    InnerBy m d ⊣ OuterBy m d
   )
 
 type Monad :: (c --> c) -> Constraint
@@ -106,8 +105,7 @@ type Monad m = MonadBy m (MidComposition m)
 type ComonadBy :: (c --> c) -> CATEGORY i -> Constraint
 type ComonadBy w d =
   ( w ~ TheCompositionBy w d,
-    OuterBy w d ⊣ InnerBy w d,
-    Functor w
+    OuterBy w d ⊣ InnerBy w d
   )
 
 type Comonad :: (c --> c) -> Constraint
@@ -116,23 +114,17 @@ type Comonad w = ComonadBy w (MidComposition w)
 type Invert :: forall c. forall (m :: c --> c) -> (MidComposition m --> MidComposition m)
 type Invert m = Inner m • Outer m
 
-unit :: forall (m :: c --> c) a -> (MonadBy m d, a ∈ c) => c a (Act m a)
-unit m a = rightAdjoint (Inner m) (Outer m) (identity (Act (Inner m) a))
-
-counit :: forall (w :: d --> d) a -> (ComonadBy w c, a ∈ d) => d (Act w a) a
-counit w a = leftAdjoint (Inner w) (Outer w) (identity (Act (Inner w) a))
-
 join ::
   forall (m :: c --> c) a ->
   (m ~ (g • f), f ⊣ g, a ∈ c) =>
   c (Act (m • m) a) (Act m a)
-join m a = map (Outer m) (counit (Invert m) (Act (Inner m) a))
+join m a = map (Outer m) (adjointCounit (Invert m) (Act (Inner m) a))
 
 extend ::
   forall (w :: d --> d) a ->
   (w ~ (f • g), f ⊣ g, a ∈ d) =>
   d (Act w a) (Act (w • w) a)
-extend w a = map (Outer w) (unit (Invert w) (Act (Inner w) a))
+extend w a = map (Outer w) (adjointUnit (Invert w) (Act (Inner w) a))
 
 flatMap ::
   forall {c} a b {f} {g}.
@@ -339,7 +331,7 @@ instance
   ) =>
   MonoidObject Composing Id m
   where
-  empty_ = EXP \_ -> unit m _
+  empty_ = EXP \_ -> adjointUnit m _
   append_ = EXP \i -> join m i
 
 {- coyoneda -}

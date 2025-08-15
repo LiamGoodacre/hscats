@@ -2,6 +2,7 @@ module Cats.Adjoint where
 
 import Cats.Category
 import Cats.Functor
+import Cats.Functor.Compose
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 
@@ -22,3 +23,17 @@ class (Functor f, Functor g) => (⊣) @d @c f g | f -> g, g -> f where
     forall f' g' ->
     (f' ~ f, g' ~ g, a ∈ c, b ∈ d) =>
     d (Act f a) b -> c a (Act g b)
+
+adjointUnit ::
+  forall {c} f g.
+  forall (m :: c --> c) a ->
+  (m ~ (g • f), f ⊣ g, a ∈ c) =>
+  c a (Act (g • f) a)
+adjointUnit _ a = rightAdjoint f g (identity (Act f a))
+
+adjointCounit ::
+  forall {d} g f.
+  forall (w :: d --> d) a ->
+  (w ~ (f • g), f ⊣ g, a ∈ d) =>
+  d (Act (f • g) a) a
+adjointCounit _ a = leftAdjoint g f (identity (Act g a))
