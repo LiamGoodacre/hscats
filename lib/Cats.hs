@@ -1,12 +1,16 @@
 module Cats
-  ( module Cats,
-    module Cats.Core,
+  ( module Cats.Category,
+    module Cats.Functor,
+    module Cats.Adjoint,
+    module Cats,
   )
 where
 
-import Cats.Core
+import Cats.Adjoint
+import Cats.Category
+import Cats.Functor
 import Data.Kind (Constraint, Type)
-import Data.Proxy (Proxy (Proxy))
+import Data.Proxy (Proxy)
 import Data.Type.Equality (type (~))
 
 {- Monoid: definition -}
@@ -83,38 +87,6 @@ instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
 
 instance (Category d, Category c) => Category (c ^ d) where
   identity f = EXP \i -> identity (Act f i)
-
-{- Functor: identity -}
-
-data Id :: forall k. k --> k
-
-type instance Act Id x = x
-
-instance (Category k) => Functor (Id :: k --> k) where
-  map _ f = f
-
-{- Functor: composition as an operation -}
-
-data (•) :: (a --> b) -> (x --> a) -> (x --> b)
-
-type instance Act (f • g) x = Act f (Act g x)
-
-instance (Functor f, Functor g) => Functor (f • g) where
-  map _ = map f ∘ map g
-
-{- Category: Cat -}
-
-data Cat :: forall k. CATEGORY (CATEGORY k) where
-  CAT :: (Functor (f :: a --> b)) => Proxy f -> Cat a b
-
-type instance c ∈ Cat = Category c
-
-instance Semigroupoid Cat where
-  CAT (Proxy @f) ∘ CAT (Proxy @g) =
-    CAT (Proxy @(f • g))
-
-instance Category Cat where
-  identity _ = CAT (Proxy @Id)
 
 {- Functor: composition as a functor -}
 
