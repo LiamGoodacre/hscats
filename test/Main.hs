@@ -107,7 +107,7 @@ data Δ :: forall (k :: CATEGORY i) -> (k --> (k × k))
 type instance Act (Δ k) x = '(x, x)
 
 instance (Category k) => Functor (Δ k) where
-  map _ f = (f :×: f)
+  map _ f = f :×: f
 
 data (∧) :: (Types × Types) --> Types
 

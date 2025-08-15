@@ -1,6 +1,6 @@
 module Cats
   ( module Cats.Category,
-    module Cats.Category.Op,
+    module Cats.Category.Opposite,
     module Cats.Category.Product,
     module Cats.Category.Exponential,
     module Cats.Functor,
@@ -18,7 +18,7 @@ where
 import Cats.Adjoint
 import Cats.Category
 import Cats.Category.Exponential
-import Cats.Category.Op
+import Cats.Category.Opposite
 import Cats.Category.Product
 import Cats.Functor
 import Cats.Functor.Cat

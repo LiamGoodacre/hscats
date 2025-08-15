@@ -1,4 +1,4 @@
-module Cats.Category.Op where
+module Cats.Category.Opposite where
 
 import Cats.Category
 

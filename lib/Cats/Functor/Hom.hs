@@ -2,7 +2,7 @@ module Cats.Functor.Hom where
 
 import Cats.Category
 import Cats.Category.Exponential
-import Cats.Category.Op
+import Cats.Category.Opposite
 import Cats.Category.Product
 import Cats.Functor
 import Cats.Functor.Curry
