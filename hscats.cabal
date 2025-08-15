@@ -7,15 +7,37 @@ extra-source-files:
     CHANGELOG.md
     README.md
 
-executable hscats
-    main-is: Main.hs
-    other-modules:
+library
+    exposed-modules:
       Defs,
       Do,
       RecursionSchemes
     build-depends:
       , base
-    hs-source-dirs: app
+    hs-source-dirs: lib
+    default-language: GHC2024
+    default-extensions:
+      AllowAmbiguousTypes,
+      BlockArguments,
+      FunctionalDependencies,
+      ImplicitParams,
+      NoImplicitPrelude,
+      QualifiedDo,
+      QuantifiedConstraints,
+      RequiredTypeArguments,
+      TypeAbstractions,
+      TypeFamilies,
+      UndecidableInstances,
+      UndecidableSuperClasses
+    ghc-options: -O2 -Wall
+
+test-suite hscats-test
+    type: exitcode-stdio-1.0
+    main-is: Main.hs
+    build-depends:
+      , base
+      , hscats
+    hs-source-dirs: test
     default-language: GHC2024
     default-extensions:
       AllowAmbiguousTypes,

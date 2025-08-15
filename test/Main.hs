@@ -1,5 +1,3 @@
-{-# LANGUAGE StrictData #-}
-
 module Main where
 
 import Data.Foldable qualified as Foldable

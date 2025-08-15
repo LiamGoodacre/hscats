@@ -1,5 +1,4 @@
 {-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE StrictData #-}
 
 module Do where
 

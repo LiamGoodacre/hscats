@@ -1,5 +1,3 @@
-{-# LANGUAGE StrictData #-}
-
 module Defs where
 
 import Data.Kind (Constraint, Type)

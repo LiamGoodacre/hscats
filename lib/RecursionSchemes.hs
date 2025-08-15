@@ -1,5 +1,3 @@
-{-# LANGUAGE StrictData #-}
-
 module RecursionSchemes where
 
 import Data.Kind (Constraint, Type)
