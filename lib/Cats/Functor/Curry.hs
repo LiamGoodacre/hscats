@@ -5,8 +5,6 @@ import Cats.Category.Exponential
 import Cats.Category.Product
 import Cats.Functor
 
-{- Functor: eval/curry -}
-
 -- Typing '²': `^q 2 S`
 data Curry² :: forall a b c. ((a × b) --> c) -> NamesOf a -> (b --> c)
 
