@@ -50,13 +50,13 @@ type OBJECT k = Proxy k -> Type
 type ObjectName :: OBJECT k -> NamesOf k
 type family ObjectName o
 
-data AnObject :: forall (k :: CATEGORY i) -> NamesOf k -> OBJECT k
+type data AnObject :: forall (k :: CATEGORY i) -> NamesOf k -> OBJECT k
 
 type instance ObjectName (AnObject k n) = n
 
 {- Functor: eval/curry -}
 
-data Eval :: forall d c. ((c ^ d) × d) --> c
+type data Eval :: forall d c. ((c ^ d) × d) --> c
 
 type instance Act Eval fx = Act (Fst fx) (Snd fx)
 
@@ -257,7 +257,7 @@ class
   SymmetricMonoidal p id
     | p -> id
 
-data Twist :: BINARY_OP k -> BINARY_OP k
+type data Twist :: BINARY_OP k -> BINARY_OP k
 
 type instance Act (Twist p) x = Act p '(Snd x, Fst x)
 
@@ -365,7 +365,7 @@ instance
 data DataCoyoneda :: forall k. (k --> Types) -> NamesOf k -> Type where
   MakeDataCoyoneda :: (a ∈ k) => Act f a -> k a b -> DataCoyoneda @k f b
 
-data Coyoneda :: (k --> Types) -> (k --> Types)
+type data Coyoneda :: (k --> Types) -> (k --> Types)
 
 type instance Act (Coyoneda f) x = DataCoyoneda f x
 

@@ -8,7 +8,7 @@ import Cats.Functor
 import Cats.Functor.Curry
 import Cats.Functor.Spin
 
-data Hom :: forall c -> Op c × c --> Types
+type data Hom :: forall c -> Op c × c --> Types
 
 type instance Act (Hom c) o = c (Fst o) (Snd o)
 

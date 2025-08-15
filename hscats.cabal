@@ -63,6 +63,7 @@ test-suite hscats-test
       QuantifiedConstraints,
       RequiredTypeArguments,
       TypeAbstractions,
+      TypeData,
       TypeFamilies,
       UndecidableInstances,
       UndecidableSuperClasses

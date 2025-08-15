@@ -3,7 +3,7 @@ module Cats.Functor.Id where
 import Cats.Category
 import Cats.Functor
 
-data Id :: forall k. k --> k
+type data Id :: forall k. k --> k
 
 type instance Act Id x = x
 

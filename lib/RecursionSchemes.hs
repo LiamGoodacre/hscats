@@ -5,7 +5,7 @@ import Data.Kind (Constraint, Type)
 import Data.Type.Equality (type (~))
 import Prelude qualified
 
-data AsFunctor :: forall k. (NamesOf k -> Type) -> (k --> Types)
+type data AsFunctor :: forall k. (NamesOf k -> Type) -> (k --> Types)
 
 type instance Act (AsFunctor f) x = f x
 
@@ -237,7 +237,7 @@ example2 = appendVec example0 example1
 
 {- polymorphically recursive type -}
 
-data List :: Types --> Types
+type data List :: Types --> Types
 
 type instance Act List t = [t]
 

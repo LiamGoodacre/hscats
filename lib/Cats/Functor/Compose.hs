@@ -5,7 +5,7 @@ import Cats.Category.Exponential
 import Cats.Category.Product
 import Cats.Functor
 
-data (•) :: (a --> b) -> (x --> a) -> (x --> b)
+type data (•) :: (a --> b) -> (x --> a) -> (x --> b)
 
 type instance Act (f • g) x = Act f (Act g x)
 
@@ -28,7 +28,7 @@ beneath fg = EXP \i -> map k (fg $$ i)
 
 -- Functor in the two functors arguments
 -- `(f • g) v` is a functor in `f`, and `g`
-data Composing :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
+type data Composing :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
 
 type instance Act Composing e = Fst e • Snd e
 
@@ -40,7 +40,7 @@ instance
     beneath gi ∘ above fh :: (f • g) ~> (h • i)
 
 -- `(f • g) v` is a functor in `f`, `g`, and `v`
-data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
+type data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
 
 type instance Act Composed e = Act (Act Composing (Fst e)) (Snd e)
 

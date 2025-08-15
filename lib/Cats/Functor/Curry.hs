@@ -6,13 +6,13 @@ import Cats.Category.Product
 import Cats.Functor
 
 -- Typing '²': `^q 2 S`
-data Curry² :: forall a b c. ((a × b) --> c) -> NamesOf a -> (b --> c)
+type data Curry² :: forall a b c. ((a × b) --> c) -> NamesOf a -> (b --> c)
 
 -- Typing '¹': `^q 1 S`
-data Curry¹ :: forall a b c. ((a × b) --> c) -> (a --> (c ^ b))
+type data Curry¹ :: forall a b c. ((a × b) --> c) -> (a --> (c ^ b))
 
 -- Typing '⁰': `^q 0 S`
-data Curry⁰ :: forall a b c. (c ^ (a × b)) --> ((c ^ b) ^ a)
+type data Curry⁰ :: forall a b c. (c ^ (a × b)) --> ((c ^ b) ^ a)
 
 type instance Act (Curry² f x) y = Act f '(x, y)
 

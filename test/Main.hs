@@ -53,7 +53,7 @@ instance (Category c, o ∈ c) => Category (Endo o c) where
 {- Functor: examples -}
 
 -- Prelude.Functor is a specialisation of Functor
-data PreludeFunctor (f :: Type -> Type) :: Types --> Types
+type data PreludeFunctor (f :: Type -> Type) :: Types --> Types
 
 type instance Act (PreludeFunctor f) a = f a
 
@@ -62,7 +62,7 @@ instance (Prelude.Functor f) => Functor (PreludeFunctor f) where
 
 -- Parallel functor product
 
-data (***) :: (a --> s) -> (b --> t) -> ((a × b) --> (s × t))
+type data (***) :: (a --> s) -> (b --> t) -> ((a × b) --> (s × t))
 
 type instance Act (f *** g) o = '(Act f (Fst o), Act g (Snd o))
 
@@ -71,7 +71,7 @@ instance (Functor f, Functor g) => Functor (f *** g) where
 
 -- Pointwise functor product
 
-data (&&&) :: (d --> l) -> (d --> r) -> (d --> (l × r))
+type data (&&&) :: (d --> l) -> (d --> r) -> (d --> (l × r))
 
 type instance Act (f &&& g) o = '(Act f o, Act g o)
 
@@ -82,14 +82,14 @@ instance (Functor f, Functor g) => Functor (f &&& g) where
 
 -- Env s ⊣ Reader s
 
-data Reader :: Type -> (Types --> Types)
+type data Reader :: Type -> (Types --> Types)
 
 type instance Act (Reader x) y = x -> y
 
 instance Functor (Reader x) where
   map _ = (∘)
 
-data Env :: Type -> (Types --> Types)
+type data Env :: Type -> (Types --> Types)
 
 type instance Act (Env x) y = (y, x)
 
@@ -103,7 +103,7 @@ instance Env s ⊣ Reader s where
 -- (• g) ⊣ (/ g)
 -- aka (PostCompose g ⊣ PostRan g)
 
-data PostCompose :: (c --> c') -> (a ^ c') --> (a ^ c)
+type data PostCompose :: (c --> c') -> (a ^ c') --> (a ^ c)
 
 type instance Act (PostCompose g) f = f • g
 
@@ -123,7 +123,7 @@ data Ran h g a where
     Ran h g a
 
 -- NOTE: currently y is always Types
-data (/) :: (x --> y) -> (x --> z) -> (z --> y)
+type data (/) :: (x --> y) -> (x --> z) -> (z --> y)
 
 type instance Act (h / g) o = Ran h g o
 
@@ -132,7 +132,7 @@ instance (Category x, Category z) => Functor ((/) @x @Types @z h g) where
     RAN (Proxy @f) fgh (map f zab fa)
 
 -- NOTE: currently y is always Types
-data PostRan :: (x --> z) -> (y ^ x) --> (y ^ z)
+type data PostRan :: (x --> z) -> (y ^ x) --> (y ^ z)
 
 type instance Act (PostRan g) h = h / g
 
@@ -222,11 +222,11 @@ data Free t a = FREE
       Act m a
   }
 
-data Free0 :: (k --> k) -> (k --> k)
+type data Free0 :: (k --> k) -> (k --> k)
 
-data Free1 :: (k ^ k) --> (k ^ k)
+type data Free1 :: (k ^ k) --> (k ^ k)
 
-data Free2 :: ((k ^ k) × k) --> k
+type data Free2 :: ((k ^ k) × k) --> k
 
 type instance Act (Free0 f) o = Free f o
 
@@ -274,7 +274,7 @@ day ::
   DayD p f g z
 day = DAY_D @x @y @k @p @z @f @g Proxy Proxy
 
-data
+type data
   DayF ::
     ((Types × Types) --> Types) ->
     (Types --> Types) ->
@@ -287,7 +287,7 @@ instance (Functor p) => Functor (DayF p f g) where
   map _ (zw :: k z w) (DAY_D px py (xyz :: k xy z) fx gy) =
     DAY_D px py (zw ∘ xyz :: k xy w) fx gy
 
-data
+type data
   Day ::
     ((Types × Types) --> Types) ->
     (((Types ^ Types) × (Types ^ Types)) --> (Types ^ Types))
@@ -316,7 +316,7 @@ data
     Act g x ->
     ProductD f g x
 
-data ProductF :: (Types --> Types) -> (Types --> Types) -> (Types --> Types)
+type data ProductF :: (Types --> Types) -> (Types --> Types) -> (Types --> Types)
 
 type instance Act (ProductF f g) x = ProductD f g x
 
@@ -414,14 +414,14 @@ join2 = append @Composing
 
 ---
 
-data ArrTo :: forall (k :: CATEGORY i) -> i -> Op k --> Types
+type data ArrTo :: forall (k :: CATEGORY i) -> i -> Op k --> Types
 
 type instance Act (ArrTo k r) a = k a r
 
 instance (Category k, r ∈ k) => Functor (ArrTo k r) where
   map _ (OP ba) = (∘ ba)
 
-data OpArrTo :: forall (k :: CATEGORY i) -> i -> k --> Op Types
+type data OpArrTo :: forall (k :: CATEGORY i) -> i -> k --> Op Types
 
 type instance Act (OpArrTo k r) a = k a r
 

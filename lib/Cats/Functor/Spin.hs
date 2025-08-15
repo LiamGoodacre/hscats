@@ -4,7 +4,7 @@ import Cats.Category
 import Cats.Category.Product
 import Cats.Functor
 
-data Spin :: ((d × c) --> k) -> ((c × d) --> k)
+type data Spin :: ((d × c) --> k) -> ((c × d) --> k)
 
 type instance Act (Spin b) x = Act b '(Snd x, Fst x)
 
