@@ -2,8 +2,6 @@ module Cats.Category.Opposite where
 
 import Cats.Category
 
-{- Category: opposites -}
-
 data Op :: CATEGORY i -> CATEGORY i where
   OP :: {runOP :: k b a} -> Op k a b
 

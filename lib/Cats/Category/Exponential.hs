@@ -3,8 +3,6 @@ module Cats.Category.Exponential where
 import Cats.Category
 import Cats.Functor
 
-{- Category: exponentials -}
-
 data (^) :: forall c d -> CATEGORY (d --> c) where
   EXP ::
     { ($$) ::

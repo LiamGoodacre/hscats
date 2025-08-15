@@ -3,8 +3,6 @@ module Cats.Category.Product where
 import Cats.Category
 import Data.Type.Equality (type (~))
 
-{- Category: products -}
-
 data (×) :: CATEGORY s -> CATEGORY t -> CATEGORY (s, t) where
   (:×:) :: l a b -> r x y -> (l × r) '(a, x) '(b, y)
 
