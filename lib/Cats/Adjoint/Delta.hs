@@ -9,21 +9,21 @@ import Prelude qualified
 
 -- (∨) ⊣ Δ₂ Types ⊣ (∧)
 
-data Δ₂ :: forall (k :: CATEGORY i) -> (k --> (k × k))
+type data Δ₂ :: forall (k :: CATEGORY i) -> (k --> (k × k))
 
 type instance Act (Δ₂ k) x = '(x, x)
 
 instance (Category k) => Functor (Δ₂ k) where
   map _ f = f :×: f
 
-data (∧) :: (Types × Types) --> Types
+type data (∧) :: (Types × Types) --> Types
 
 type instance Act (∧) x = (Fst x, Snd x)
 
 instance Functor (∧) where
   map _ (f :×: g) (a, b) = (f a, g b)
 
-data (∨) :: (Types × Types) --> Types
+type data (∨) :: (Types × Types) --> Types
 
 type instance Act (∨) x = Prelude.Either (Fst x) (Snd x)
 
@@ -40,21 +40,21 @@ instance (∨) ⊣ Δ₂ Types where
 
 -- (∃) ⊣ Δ @Types ⊣ (∀)
 
-data Δ' :: NamesOf k -> x --> k
+type data Δ' :: NamesOf k -> x --> k
 
 type instance Act (Δ' a) b = a
 
 instance (Category k, Category x, a ∈ k) => Functor (Δ' @k @x a) where
   map _ _ = identity _
 
-data Δ :: k --> (k ^ x)
+type data Δ :: k --> (k ^ x)
 
 type instance Act (Δ @k) a = Δ' @k a
 
 instance (Category k, Category x) => Functor (Δ @k @x) where
   map _ ab = EXP \_ -> ab
 
-data Exists :: forall d c. (c ^ d) --> c
+type data Exists :: forall d c. (c ^ d) --> c
 
 data family DataExists (f :: d --> c)
 
@@ -66,7 +66,7 @@ type instance Act (Exists @d @Types) f = DataExists f
 instance (Category d) => Functor (Exists @d @Types) where
   map _ (t :: f ~> g) (DataExistsTypes @i (fi :: Act f i)) = DataExistsTypes @i ((t $$ i) fi)
 
-data Forall :: forall d c. (c ^ d) --> Types
+type data Forall :: forall d c. (c ^ d) --> Types
 
 data family DataForall (f :: d --> c)
 

@@ -3,10 +3,10 @@ module Cats
     module Cats.Category.Opposite,
     module Cats.Category.Product,
     module Cats.Category.Exponential,
+    module Cats.Category.Cat,
     module Cats.Functor,
     module Cats.Functor.Id,
     module Cats.Functor.Compose,
-    module Cats.Functor.Cat,
     module Cats.Functor.Curry,
     module Cats.Functor.Spin,
     module Cats.Functor.Hom,
@@ -19,11 +19,11 @@ where
 import Cats.Adjoint
 import Cats.Adjoint.Delta
 import Cats.Category
+import Cats.Category.Cat
 import Cats.Category.Exponential
 import Cats.Category.Opposite
 import Cats.Category.Product
 import Cats.Functor
-import Cats.Functor.Cat
 import Cats.Functor.Compose
 import Cats.Functor.Curry
 import Cats.Functor.Hom

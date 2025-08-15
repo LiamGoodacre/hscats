@@ -1,4 +1,4 @@
-module Cats.Functor.Cat where
+module Cats.Category.Cat where
 
 import Cats.Category
 import Cats.Functor

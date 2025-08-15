@@ -9,20 +9,20 @@ extra-source-files:
 
 library
     exposed-modules:
-      Cats.Category,
-      Cats.Category.Opposite,
-      Cats.Category.Product,
-      Cats.Category.Exponential,
-      Cats.Functor,
-      Cats.Functor.Id,
-      Cats.Functor.Compose,
-      Cats.Functor.Cat,
-      Cats.Functor.Curry,
-      Cats.Functor.Spin,
-      Cats.Functor.Hom,
+      Cats,
       Cats.Adjoint,
       Cats.Adjoint.Delta,
-      Cats,
+      Cats.Category,
+      Cats.Category.Cat,
+      Cats.Category.Exponential,
+      Cats.Category.Opposite,
+      Cats.Category.Product,
+      Cats.Functor,
+      Cats.Functor.Compose,
+      Cats.Functor.Curry,
+      Cats.Functor.Hom,
+      Cats.Functor.Id,
+      Cats.Functor.Spin,
       Do,
       RecursionSchemes
     build-depends:
@@ -39,6 +39,7 @@ library
       QuantifiedConstraints,
       RequiredTypeArguments,
       TypeAbstractions,
+      TypeData,
       TypeFamilies,
       UndecidableInstances,
       UndecidableSuperClasses
