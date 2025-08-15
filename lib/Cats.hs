@@ -11,11 +11,13 @@ module Cats
     module Cats.Functor.Spin,
     module Cats.Functor.Hom,
     module Cats.Adjoint,
+    module Cats.Adjoint.Δ,
     module Cats,
   )
 where
 
 import Cats.Adjoint
+import Cats.Adjoint.Δ
 import Cats.Category
 import Cats.Category.Exponential
 import Cats.Category.Opposite
@@ -30,6 +32,7 @@ import Cats.Functor.Spin
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
 import Data.Type.Equality (type (~))
+import Prelude qualified
 
 {- Monoid: definition -}
 
@@ -183,6 +186,16 @@ class (Functor op) => Associative (op :: BINARY_OP k) where
       (((a ☼ b) op ☼ c) op)
       ((a ☼ (b ☼ c) op) op)
 
+instance Associative (∧) where
+  lassoc _ _ _ _ = \(a, (b, c)) -> ((a, b), c)
+  rassoc _ _ _ _ = \((a, b), c) -> (a, (b, c))
+
+instance Monoidal (∧) () where
+  idl = \(_, m) -> m
+  coidl = \m -> ((), m)
+  idr = \(m, _) -> m
+  coidr = \m -> (m, ())
+
 instance (Category k) => Associative (Composing :: BINARY_OP (k ^ k)) where
   lassoc _ _ _ _ = EXP \_ -> identity _
   rassoc _ _ _ _ = EXP \_ -> identity _
@@ -315,6 +328,19 @@ append ::
   (MonoidObject p id m) =>
   k ((☼) m m p) m
 append = append_ @k @p @id @m
+
+instance
+  (Prelude.Monoid m) =>
+  MonoidObject (∧) () m
+  where
+  empty_ = \() -> Prelude.mempty
+  append_ = \(l, r) -> Prelude.mappend l r
+
+mempty :: (MonoidObject (∧) () m) => m
+mempty = empty @(∧) ()
+
+(<>) :: (MonoidObject (∧) () m) => m -> m -> m
+l <> r = append @(∧) (l, r)
 
 instance
   (Category k) =>

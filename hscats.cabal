@@ -21,6 +21,7 @@ library
       Cats.Functor.Spin,
       Cats.Functor.Hom,
       Cats.Adjoint,
+      Cats.Adjoint.Δ,
       Cats,
       Do,
       RecursionSchemes

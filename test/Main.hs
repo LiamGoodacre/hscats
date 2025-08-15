@@ -100,37 +100,6 @@ instance Env s ⊣ Reader s where
   leftAdjoint _ _ = Prelude.uncurry
   rightAdjoint _ _ = Prelude.curry
 
--- (∨) ⊣ Δ Types ⊣ (∧)
-
-data Δ :: forall (k :: CATEGORY i) -> (k --> (k × k))
-
-type instance Act (Δ k) x = '(x, x)
-
-instance (Category k) => Functor (Δ k) where
-  map _ f = f :×: f
-
-data (∧) :: (Types × Types) --> Types
-
-type instance Act (∧) x = (Fst x, Snd x)
-
-instance Functor (∧) where
-  map _ (f :×: g) (a, b) = (f a, g b)
-
-data (∨) :: (Types × Types) --> Types
-
-type instance Act (∨) x = Prelude.Either (Fst x) (Snd x)
-
-instance Functor (∨) where
-  map _ (f :×: g) = Prelude.either (Prelude.Left ∘ f) (Prelude.Right ∘ g)
-
-instance Δ Types ⊣ (∧) where
-  leftAdjoint _ _ t = (Prelude.fst ∘ t) :×: (Prelude.snd ∘ t)
-  rightAdjoint _ _ (f :×: g) = \x -> (f x, g x)
-
-instance (∨) ⊣ Δ Types where
-  leftAdjoint _ _ (f :×: g) = f `Prelude.either` g
-  rightAdjoint _ _ t = (t ∘ Prelude.Left) :×: (t ∘ Prelude.Right)
-
 -- (• g) ⊣ (/ g)
 -- aka (PostCompose g ⊣ PostRan g)
 
@@ -190,7 +159,7 @@ type Codensity f = f / f
 
 ---
 
-type Dup = (∧) • Δ Types
+type Dup = (∧) • Δ₂ Types
 
 dupMonad :: Do.MonadDo Dup
 dupMonad = Do.with _
@@ -277,16 +246,6 @@ instance Functor (Free2 @Types) where
       map m a_b (f m a (NT (t_m ∘ s_t)))
 
 ---
-
-instance Associative (∧) where
-  lassoc _ _ _ _ = \(a, (b, c)) -> ((a, b), c)
-  rassoc _ _ _ _ = \((a, b), c) -> (a, (b, c))
-
-instance Monoidal (∧) () where
-  idl = \(_, m) -> m
-  coidl = \m -> ((), m)
-  idr = \(m, _) -> m
-  coidr = \m -> (m, ())
 
 type DayD ::
   forall {i}.
@@ -395,19 +354,6 @@ instance Monoidal (Day (∧)) Id where
   coidr = EXP \_ mx -> DAY_D Proxy Proxy Prelude.fst mx ()
 
 instance
-  (Prelude.Monoid m) =>
-  MonoidObject (∧) () m
-  where
-  empty_ = \() -> Prelude.mempty
-  append_ = \(l, r) -> Prelude.mappend l r
-
-mempty :: (MonoidObject (∧) () m) => m
-mempty = empty @(∧) ()
-
-(<>) :: (MonoidObject (∧) () m) => m -> m -> m
-l <> r = append @(∧) (l, r)
-
-instance
   (Prelude.Applicative m) =>
   MonoidObject (Day (∧)) Id (PreludeFunctor m)
   where
@@ -455,16 +401,16 @@ _egLift0List = lift0 List
 
 instance
   (Prelude.Monad m) =>
-  MonoidObject Compose Id (PreludeFunctor m)
+  MonoidObject Composing Id (PreludeFunctor m)
   where
   empty_ = EXP \_ -> Prelude.pure
   append_ = EXP \_ -> (Prelude.>>= identity _)
 
-join0 :: forall m. (MonoidObject Compose Id m) => Id ~> m
-join0 = empty @Compose
+join0 :: forall m. (MonoidObject Composing Id m) => Id ~> m
+join0 = empty @Composing
 
-join2 :: forall m. (MonoidObject Compose Id m) => (m • m) ~> m
-join2 = append @Compose
+join2 :: forall m. (MonoidObject Composing Id m) => (m • m) ~> m
+join2 = append @Composing
 
 ---
 
