@@ -16,6 +16,7 @@ library
       Cats.Functor,
       Cats.Functor.Curry,
       Cats.Functor.Spin,
+      Cats.Functor.Hom,
       Cats.Adjoint,
       Cats,
       Do,
