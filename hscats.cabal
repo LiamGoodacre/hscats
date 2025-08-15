@@ -12,6 +12,7 @@ library
       Cats.Category,
       Cats.Category.Op,
       Cats.Category.Product,
+      Cats.Category.Exponential,
       Cats.Functor,
       Cats.Adjoint,
       Cats,

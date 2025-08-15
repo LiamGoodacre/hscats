@@ -2,6 +2,7 @@ module Cats
   ( module Cats.Category,
     module Cats.Category.Op,
     module Cats.Category.Product,
+    module Cats.Category.Exponential,
     module Cats.Functor,
     module Cats.Adjoint,
     module Cats,
@@ -10,6 +11,7 @@ where
 
 import Cats.Adjoint
 import Cats.Category
+import Cats.Category.Exponential
 import Cats.Category.Op
 import Cats.Category.Product
 import Cats.Functor
@@ -36,27 +38,6 @@ type family ObjectName o
 data AnObject :: forall (k :: CATEGORY i) -> NamesOf k -> OBJECT k
 
 type instance ObjectName (AnObject k n) = n
-
-{- Category: exponentials -}
-
-data (^) :: forall c d -> CATEGORY (d --> c) where
-  EXP ::
-    { ($$) ::
-        forall (i :: NamesOf d) ->
-        (i ∈ d) =>
-        c (Act f i) (Act g i)
-    } ->
-    (c ^ d) f g
-
-type (~>) (f :: d --> c) g = (c ^ d) f g
-
-type instance o ∈ (c ^ d) = Functor o
-
-instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
-  l ∘ r = EXP \i -> (l $$ i) ∘ (r $$ i)
-
-instance (Category d, Category c) => Category (c ^ d) where
-  identity f = EXP \i -> identity (Act f i)
 
 {- Functor: composition as a functor -}
 
