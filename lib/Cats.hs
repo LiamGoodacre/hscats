@@ -117,18 +117,6 @@ type Comonad w = ComonadBy w (MidComposition w)
 type Invert :: forall c. forall (m :: c --> c) -> (MidComposition m --> MidComposition m)
 type Invert m = Inner m • Outer m
 
-join ::
-  forall (m :: c --> c) a ->
-  (m ~ (g • f), f ⊣ g, a ∈ c) =>
-  c (Act (m • m) a) (Act m a)
-join m a = map (Outer m) (adjointCounit (Invert m) (Act (Inner m) a))
-
-extend ::
-  forall (w :: d --> d) a ->
-  (w ~ (f • g), f ⊣ g, a ∈ d) =>
-  d (Act w a) (Act (w • w) a)
-extend w a = map (Outer w) (adjointUnit (Invert w) (Act (Inner w) a))
-
 flatMap ::
   forall {c} a b {f} {g}.
   forall (m :: c --> c) ->
@@ -357,7 +345,7 @@ instance
   ) =>
   MonoidObject Composing Id m
   where
-  empty_ = EXP \_ -> adjointUnit m _
+  empty_ = EXP \_ -> unit m _
   append_ = EXP \i -> join m i
 
 {- coyoneda -}

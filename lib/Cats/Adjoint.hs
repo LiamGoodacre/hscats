@@ -24,16 +24,30 @@ class (Functor f, Functor g) => (⊣) @d @c f g | f -> g, g -> f where
     (f' ~ f, g' ~ g, a ∈ c, b ∈ d) =>
     d (Act f a) b -> c a (Act g b)
 
-adjointUnit ::
+unit ::
   forall {c} f g.
   forall (m :: c --> c) a ->
   (m ~ (g • f), f ⊣ g, a ∈ c) =>
   c a (Act (g • f) a)
-adjointUnit _ a = rightAdjoint f g (identity (Act f a))
+unit _ a = rightAdjoint f g (identity (Act f a))
 
-adjointCounit ::
+counit ::
   forall {d} g f.
   forall (w :: d --> d) a ->
   (w ~ (f • g), f ⊣ g, a ∈ d) =>
   d (Act (f • g) a) a
-adjointCounit _ a = leftAdjoint g f (identity (Act g a))
+counit _ a = leftAdjoint g f (identity (Act g a))
+
+join ::
+  forall {c} {f} {g}.
+  forall (m :: c --> c) a ->
+  (m ~ (g • f), f ⊣ g, a ∈ c) =>
+  c (Act (m • m) a) (Act m a)
+join _ a = map g (counit (f • g) (Act f a))
+
+extend ::
+  forall {d} {f} {g}.
+  forall (w :: d --> d) a ->
+  (w ~ (f • g), f ⊣ g, a ∈ d) =>
+  d (Act w a) (Act (w • w) a)
+extend _ a = map f (unit (g • f) (Act g a))
