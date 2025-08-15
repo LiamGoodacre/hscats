@@ -4,6 +4,9 @@ module Cats
     module Cats.Category.Product,
     module Cats.Category.Exponential,
     module Cats.Functor,
+    module Cats.Functor.Id,
+    module Cats.Functor.Compose,
+    module Cats.Functor.Cat,
     module Cats.Functor.Curry,
     module Cats.Functor.Spin,
     module Cats.Functor.Hom,
@@ -18,8 +21,11 @@ import Cats.Category.Exponential
 import Cats.Category.Op
 import Cats.Category.Product
 import Cats.Functor
+import Cats.Functor.Cat
+import Cats.Functor.Compose
 import Cats.Functor.Curry
 import Cats.Functor.Hom
+import Cats.Functor.Id
 import Cats.Functor.Spin
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)

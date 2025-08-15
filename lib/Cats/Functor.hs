@@ -2,7 +2,7 @@ module Cats.Functor where
 
 import Cats.Category
 import Data.Kind (Constraint, Type)
-import Data.Proxy (Proxy (Proxy))
+import Data.Proxy (Proxy)
 import Data.Type.Equality (type (~))
 
 -- Type of functors indexed by domain & codomain categories
@@ -43,35 +43,3 @@ class
     forall f' ->
     (f' ~ f, a ∈ d, b ∈ d) =>
     d a b -> c (Act f a) (Act f b)
-
-{- Functor: identity -}
-
-data Id :: forall k. k --> k
-
-type instance Act Id x = x
-
-instance (Category k) => Functor (Id :: k --> k) where
-  map _ f = f
-
-{- Functor: composition as an operation -}
-
-data (•) :: (a --> b) -> (x --> a) -> (x --> b)
-
-type instance Act (f • g) x = Act f (Act g x)
-
-instance (Functor f, Functor g) => Functor (f • g) where
-  map _ = map f ∘ map g
-
-{- Category: Cat -}
-
-data Cat :: forall k. CATEGORY (CATEGORY k) where
-  CAT :: (Functor (f :: a --> b)) => Proxy f -> Cat a b
-
-type instance c ∈ Cat = Category c
-
-instance Semigroupoid Cat where
-  CAT (Proxy @f) ∘ CAT (Proxy @g) =
-    CAT (Proxy @(f • g))
-
-instance Category Cat where
-  identity _ = CAT (Proxy @Id)
