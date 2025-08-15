@@ -232,9 +232,9 @@ type instance Act (Twist p) x = Act p '(Snd x, Fst x)
 instance (Functor p) => Functor (Twist p) where
   map _ (r :×: l) = map p (l :×: r)
 
-type With¹ p = Curry² p
+type With₁ p = Curry₂ p
 
-type With² p = Curry² (Twist p)
+type With₂ p = Curry₂ (Twist p)
 
 type ClosedMonoidal ::
   forall {i}.
@@ -244,7 +244,7 @@ type ClosedMonoidal ::
   i ->
   Constraint
 class
-  ( forall y. (y ∈ k) => With² p y ⊣ With¹ e y,
+  ( forall y. (y ∈ k) => With₂ p y ⊣ With₁ e y,
     Monoidal p id
   ) =>
   ClosedMonoidal p (e :: BINARY_OP k) id
