@@ -9,7 +9,8 @@ extra-source-files:
 
 library
     exposed-modules:
-      Defs,
+      Cats,
+      Cats.Core,
       Do,
       RecursionSchemes
     build-depends:

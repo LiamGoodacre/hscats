@@ -1,10 +1,10 @@
 module Main where
 
+import Cats
 import Data.Foldable qualified as Foldable
 import Data.Kind
 import Data.Proxy
 import Data.Type.Equality (type (~))
-import Defs
 import Do (pure)
 import Do qualified
 import RecursionSchemes
