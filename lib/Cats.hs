@@ -1,6 +1,7 @@
 module Cats
   ( module Cats.Category,
     module Cats.Category.Op,
+    module Cats.Category.Product,
     module Cats.Functor,
     module Cats.Adjoint,
     module Cats,
@@ -10,6 +11,7 @@ where
 import Cats.Adjoint
 import Cats.Category
 import Cats.Category.Op
+import Cats.Category.Product
 import Cats.Functor
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
@@ -34,27 +36,6 @@ type family ObjectName o
 data AnObject :: forall (k :: CATEGORY i) -> NamesOf k -> OBJECT k
 
 type instance ObjectName (AnObject k n) = n
-
-{- Category: products -}
-
-data (×) :: CATEGORY s -> CATEGORY t -> CATEGORY (s, t) where
-  (:×:) :: l a b -> r x y -> (l × r) '(a, x) '(b, y)
-
-type Fst :: (l, r) -> l
-type family Fst p where
-  Fst '(a, b) = a
-
-type Snd :: (l, r) -> r
-type family Snd p where
-  Snd '(a, b) = b
-
-type instance v ∈ (l × r) = (v ~ '(Fst v, Snd v), Fst v ∈ l, Snd v ∈ r)
-
-instance (Semigroupoid l, Semigroupoid r) => Semigroupoid (l × r) where
-  (a :×: b) ∘ (c :×: d) = (a ∘ c) :×: (b ∘ d)
-
-instance (Category l, Category r) => Category (l × r) where
-  identity (a, b) = identity a :×: identity b
 
 {- Category: exponentials -}
 

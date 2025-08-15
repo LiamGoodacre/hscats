@@ -11,6 +11,7 @@ library
     exposed-modules:
       Cats.Category,
       Cats.Category.Op,
+      Cats.Category.Product,
       Cats.Functor,
       Cats.Adjoint,
       Cats,
