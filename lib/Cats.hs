@@ -4,6 +4,7 @@ module Cats
     module Cats.Category.Product,
     module Cats.Category.Exponential,
     module Cats.Functor,
+    module Cats.Functor.Curry,
     module Cats.Adjoint,
     module Cats,
   )
@@ -15,6 +16,7 @@ import Cats.Category.Exponential
 import Cats.Category.Op
 import Cats.Category.Product
 import Cats.Functor
+import Cats.Functor.Curry
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
 import Data.Type.Equality (type (~))
@@ -86,47 +88,13 @@ instance
 
 data Eval :: forall d c. ((c ^ d) × d) --> c
 
--- Typing '²': `^q 2 S`
-data Curry² :: forall a b c. ((a × b) --> c) -> NamesOf a -> (b --> c)
-
--- Typing '¹': `^q 1 S`
-data Curry¹ :: forall a b c. ((a × b) --> c) -> (a --> (c ^ b))
-
--- Typing '⁰': `^q 0 S`
-data Curry⁰ :: forall a b c. (c ^ (a × b)) --> ((c ^ b) ^ a)
-
 type instance Act Eval fx = Act (Fst fx) (Snd fx)
-
-type instance Act (Curry² f x) y = Act f '(x, y)
-
-type instance Act (Curry¹ f) x = Curry² f x
-
-type instance Act Curry⁰ f = Curry¹ f
 
 instance
   (Category d, Category c) =>
   Functor (Eval @d @c)
   where
   map @a @b _ (f :×: x) = map (Fst b) x ∘ (f $$ Snd a)
-
-instance
-  (Category a, Category b, Functor f, x ∈ a) =>
-  Functor (Curry² @a @b f x)
-  where
-  map _ byz = map f (identity x :×: byz)
-
-instance
-  (Category a, Category b, Category c, Functor f) =>
-  Functor (Curry¹ @a @b @c f)
-  where
-  map _ axy = EXP \i ->
-    map f (axy :×: identity i)
-
-instance
-  (Category a, Category b, Category c) =>
-  Functor (Curry⁰ @a @b @c)
-  where
-  map _ (EXP t) = EXP \i -> EXP \j -> t (i, j)
 
 {- Spin -}
 
