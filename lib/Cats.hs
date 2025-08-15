@@ -11,13 +11,13 @@ module Cats
     module Cats.Functor.Spin,
     module Cats.Functor.Hom,
     module Cats.Adjoint,
-    module Cats.Adjoint.Δ,
+    module Cats.Adjoint.Delta,
     module Cats,
   )
 where
 
 import Cats.Adjoint
-import Cats.Adjoint.Δ
+import Cats.Adjoint.Delta
 import Cats.Category
 import Cats.Category.Exponential
 import Cats.Category.Opposite

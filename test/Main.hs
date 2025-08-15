@@ -529,26 +529,18 @@ _egSeqDup =
 
 ---
 
-data ConstF :: NamesOf k -> x --> k
-
-type instance Act (ConstF a) b = a
-
-data Const :: k --> (k ^ x)
-
-type instance Act (Const @k) a = ConstF @k a
-
 class TraversableV2 p id t where
   traverse_ ::
     (MonoidObject p id m) =>
-    (ConstF a ~> m) ->
-    ((t • ConstF a) ~> (m • t))
+    (Δ' a ~> m) ->
+    ((t • Δ' a) ~> (m • t))
 
 instance TraversableV2 (Day (∧)) Id List where
   traverse_ ::
     forall m a.
     (MonoidObject (Day (∧)) Id m) =>
-    (ConstF a ~> m) ->
-    ((List • ConstF a) ~> (m • List))
+    (Δ' a ~> m) ->
+    ((List • Δ' a) ~> (m • List))
   traverse_ (EXP f) =
     EXP \i ->
       Prelude.foldr
