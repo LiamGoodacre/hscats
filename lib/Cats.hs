@@ -51,49 +51,6 @@ data AnObject :: forall (k :: CATEGORY i) -> NamesOf k -> OBJECT k
 
 type instance ObjectName (AnObject k n) = n
 
-{- Functor: composition as a functor -}
-
-above ::
-  forall k f g.
-  (Functor k) =>
-  (f ~> g) ->
-  ((f • k) ~> (g • k))
-above fg = EXP \i -> fg $$ Act k i
-
-beneath ::
-  forall k f g.
-  (Functor k, Functor f, Functor g) =>
-  (f ~> g) ->
-  ((k • f) ~> (k • g))
-beneath fg = EXP \i -> map k (fg $$ i)
-
--- Functor in the two functors arguments
--- `(f • g) v` is a functor in `f`, and `g`
-data Compose :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
-
--- `(f • g) v` is a functor in `f`, `g`, and `v`
-data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
-
-type instance Act Compose e = Fst e • Snd e
-
-type instance Act Composed e = Act (Act Compose (Fst e)) (Snd e)
-
-instance
-  (Category aa, Category bb, Category cc) =>
-  Functor (Compose @aa @bb @cc)
-  where
-  map _ ((fh :: f ~> h) :×: (gi :: g ~> i)) =
-    beneath gi ∘ above fh :: (f • g) ~> (h • i)
-
-instance
-  (Category aa, Category bb, Category cc) =>
-  Functor (Composed @aa @bb @cc)
-  where
-  map _ (fhgi :×: (xy :: cc x y)) =
-    case map (Compose @aa @bb) fhgi of
-      (v :: (f • g) ~> (h • i)) ->
-        map (h • i) xy ∘ (v $$ x)
-
 {- Functor: eval/curry -}
 
 data Eval :: forall d c. ((c ^ d) × d) --> c
@@ -234,7 +191,7 @@ class (Functor op) => Associative (op :: BINARY_OP k) where
       (((a ☼ b) op ☼ c) op)
       ((a ☼ (b ☼ c) op) op)
 
-instance (Category k) => Associative (Compose :: BINARY_OP (k ^ k)) where
+instance (Category k) => Associative (Composing :: BINARY_OP (k ^ k)) where
   lassoc _ _ _ _ = EXP \_ -> identity _
   rassoc _ _ _ _ = EXP \_ -> identity _
 
@@ -369,7 +326,7 @@ append = append_ @k @p @id @m
 
 instance
   (Category k) =>
-  Monoidal Compose (Id :: k --> k)
+  Monoidal Composing (Id :: k --> k)
   where
   idl = EXP \_ -> identity _
   coidl = EXP \_ -> identity _
@@ -380,7 +337,7 @@ instance
   ( Monad m,
     m ~ (f • g)
   ) =>
-  MonoidObject Compose Id m
+  MonoidObject Composing Id m
   where
   empty_ = EXP \_ -> unit m _
   append_ = EXP \i -> join m i
