@@ -2,7 +2,6 @@ module Cats.Category where
 
 import Data.Kind (Constraint, Type)
 import Data.Type.Equality ((:~:) (Refl), type (~))
-import Prelude qualified
 
 -- Type of categories represented by their hom-types indexed by object names
 type CATEGORY :: Type -> Type
@@ -41,7 +40,7 @@ type Types = (->) :: CATEGORY Type
 type instance t ∈ Types = (t ~ t)
 
 instance Semigroupoid Types where
-  (∘) = (Prelude..)
+  (f ∘ g) x = f (g x)
 
 instance Category Types where
-  identity _ = Prelude.id
+  identity _ x = x
