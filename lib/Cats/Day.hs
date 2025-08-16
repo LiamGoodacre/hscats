@@ -4,6 +4,7 @@ module Cats.Day
     bogusLTypes,
     dayToComposeTypes,
     composeToDayTypes,
+    Day₁,
   )
 where
 
@@ -69,3 +70,17 @@ composeToDayTypes = EXP \i ->
   rightToLeft r f \gi ->
     () & leftToRight f r \f_ ->
       bogusLTypes @f @g Unit i f_ gi
+
+type data
+  Day₁ ::
+    ((d × d) --> d) ->
+    ((c ^ d) × (c ^ d)) --> (c ^ d)
+
+type instance Act (Day₁ o) fg = Day o (Fst fg) (Snd fg)
+
+instance
+  (Category d, Category c, Functor o) =>
+  Functor (Day₁ @d @Types o)
+  where
+  map _ (l :×: r) = EXP \_ (DataDayTypes @x @y xyz fx gy) ->
+    DataDayTypes @x @y xyz ((l $$ x) fx) ((r $$ y) gy)
