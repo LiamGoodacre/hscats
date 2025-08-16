@@ -28,7 +28,8 @@ library
       Cats.Id,
       Cats.MonoidObject,
       Cats.Monoidal,
-      Cats.Opposite
+      Cats.Opposite,
+      Cats.Profunctor
     build-depends:
       , base
       , ghc-prim
