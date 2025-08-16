@@ -30,8 +30,7 @@ library
       Cats.Monoidal,
       Cats.Opposite,
       Do,
-      RecursionSchemes
-    other-modules:
+      RecursionSchemes,
       Uncategorised
     build-depends:
       , base

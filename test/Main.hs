@@ -8,6 +8,7 @@ import Data.Type.Equality (type (~))
 import Do (pure)
 import Do qualified
 import RecursionSchemes
+import Uncategorised
 import Prelude (($))
 import Prelude qualified
 

@@ -3,6 +3,7 @@ module RecursionSchemes where
 import Cats
 import Data.Kind (Constraint, Type)
 import Data.Type.Equality (type (~))
+import Uncategorised
 import Prelude qualified
 
 type data AsFunctor :: forall k. (NamesOf k -> Type) -> (k --> Types)

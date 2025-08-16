@@ -5,6 +5,7 @@ module Do where
 import Cats
 import Data.Proxy
 import Data.Type.Equality (type (~))
+import Uncategorised
 
 bindImpl ::
   forall
