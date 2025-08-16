@@ -6,6 +6,7 @@ import Cats.Binary as Exports
 import Cats.Cat as Exports
 import Cats.Category as Exports
 import Cats.Compose as Exports
+import Cats.Constructor as Exports
 import Cats.Curry as Exports
 import Cats.Delta as Exports
 import Cats.Exponential as Exports

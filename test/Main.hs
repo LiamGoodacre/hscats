@@ -347,7 +347,7 @@ instance Monoidal (OldDay (∧)) Id where
 
 instance
   (Prelude.Applicative m) =>
-  MonoidObject (OldDay (∧)) Id (PreludeFunctor m)
+  MonoidObject (OldDay (∧)) Id (Constructor m)
   where
   empty_ = EXP \_p x -> Prelude.pure x
   append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
@@ -393,7 +393,7 @@ _egLift0List = lift0 List
 
 -- instance
 --   (Prelude.Monad m) =>
---   MonoidObject Composing Id (PreludeFunctor m)
+--   MonoidObject Composing Id (Constructor m)
 --   where
 --   empty_ = EXP \_ -> Prelude.pure
 --   append_ = EXP \_ -> (Prelude.>>= identity _)
@@ -506,17 +506,17 @@ instance Traversable (OldDay (∧)) Id Dup where
 
 _egSeqId :: Prelude.Int -> Prelude.String
 _egSeqId =
-  (Id `sequenceA` PreludeFunctor _)
+  (Id `sequenceA` Constructor _)
     Prelude.show
 
 _egSeqList :: Prelude.Int -> [Prelude.String]
 _egSeqList =
-  (List `sequenceA` PreludeFunctor _)
+  (List `sequenceA` Constructor _)
     [Prelude.show, Prelude.show]
 
 _egSeqDup :: Prelude.Int -> (Prelude.String, Prelude.String)
 _egSeqDup =
-  (Dup `sequenceA` PreludeFunctor _)
+  (Dup `sequenceA` Constructor _)
     (Prelude.show, Prelude.show)
 
 ---

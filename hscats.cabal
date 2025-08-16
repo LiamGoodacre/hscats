@@ -16,6 +16,7 @@ library
       Cats.Cat,
       Cats.Category,
       Cats.Compose,
+      Cats.Constructor,
       Cats.Curry,
       Cats.Day,
       Cats.Delta,

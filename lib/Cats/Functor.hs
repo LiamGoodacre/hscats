@@ -4,7 +4,6 @@ import Cats.Category
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
 import Data.Type.Equality (type (~))
-import Prelude qualified
 
 -- Type of functors indexed by domain & codomain categories
 type (-->) :: forall i j. CATEGORY i -> CATEGORY j -> Type
@@ -44,11 +43,3 @@ class
     forall f' ->
     (f' ~ f, a ∈ d, b ∈ d) =>
     d a b -> c (Act f a) (Act f b)
-
--- Prelude.Functor is a specialisation of Functor
-type data PreludeFunctor (f :: Type -> Type) :: Types --> Types
-
-type instance Act (PreludeFunctor f) a = f a
-
-instance (Prelude.Functor f) => Functor (PreludeFunctor f) where
-  map _ = Prelude.fmap

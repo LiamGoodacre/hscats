@@ -12,6 +12,7 @@ import Cats.Adjoint
 import Cats.Associative
 import Cats.Category
 import Cats.Compose
+import Cats.Constructor
 import Cats.Delta
 import Cats.Exponential
 import Cats.Functor
@@ -112,7 +113,7 @@ instance Monoidal (Day₁ (∧)) Id where
 
 instance
   (Prelude.Applicative m) =>
-  MonoidObject (Day₁ @Types @Types (∧)) Id (PreludeFunctor m)
+  MonoidObject (Day₁ @Types @Types (∧)) Id (Constructor m)
   where
   empty_ = EXP \_ -> Prelude.pure
   append_ = EXP \_ (DataDayTypes xyz mx my) -> Prelude.liftA2 (\x y -> xyz (x, y)) mx my
