@@ -1,14 +1,14 @@
 module Uncategorised where
 
 import Cats.Adjoint
-import Cats.Adjoint.Delta
 import Cats.Category
-import Cats.Category.Exponential
-import Cats.Category.Product
+import Cats.Compose
+import Cats.Curry
+import Cats.Delta
+import Cats.Exponential
 import Cats.Functor
-import Cats.Functor.Compose
-import Cats.Functor.Curry
-import Cats.Functor.Id
+import Cats.Id
+import Cats.Product
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
 import Data.Type.Equality (type (~))

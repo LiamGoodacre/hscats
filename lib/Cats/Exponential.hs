@@ -1,4 +1,4 @@
-module Cats.Category.Exponential where
+module Cats.Exponential where
 
 import Cats.Category
 import Cats.Functor

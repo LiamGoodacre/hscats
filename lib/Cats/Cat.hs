@@ -1,9 +1,9 @@
-module Cats.Category.Cat where
+module Cats.Cat where
 
 import Cats.Category
+import Cats.Compose
 import Cats.Functor
-import Cats.Functor.Compose
-import Cats.Functor.Id
+import Cats.Id
 import Data.Proxy (Proxy (Proxy))
 
 data Cat :: forall k. CATEGORY (CATEGORY k) where

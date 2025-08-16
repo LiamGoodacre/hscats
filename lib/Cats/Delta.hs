@@ -1,10 +1,10 @@
-module Cats.Adjoint.Delta where
+module Cats.Delta where
 
 import Cats.Adjoint
 import Cats.Category
-import Cats.Category.Exponential
-import Cats.Category.Product
+import Cats.Exponential
 import Cats.Functor
+import Cats.Product
 import Prelude qualified
 
 -- (∨) ⊣ Δ₂ Types ⊣ (∧)

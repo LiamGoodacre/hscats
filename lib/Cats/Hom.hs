@@ -1,12 +1,12 @@
-module Cats.Functor.Hom where
+module Cats.Hom where
 
 import Cats.Category
-import Cats.Category.Exponential
-import Cats.Category.Opposite
-import Cats.Category.Product
+import Cats.Curry
+import Cats.Exponential
+import Cats.Flip
 import Cats.Functor
-import Cats.Functor.Curry
-import Cats.Functor.Flip
+import Cats.Opposite
+import Cats.Product
 
 type data Hom :: forall c -> Op c × c --> Types
 

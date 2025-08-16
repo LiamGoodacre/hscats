@@ -1,8 +1,8 @@
-module Cats.Functor.Flip where
+module Cats.Flip where
 
 import Cats.Category
-import Cats.Category.Product
 import Cats.Functor
+import Cats.Product
 
 type data Flip :: ((d × c) --> k) -> ((c × d) --> k)
 

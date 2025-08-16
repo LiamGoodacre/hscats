@@ -1,9 +1,9 @@
-module Cats.Functor.Compose where
+module Cats.Compose where
 
 import Cats.Category
-import Cats.Category.Exponential
-import Cats.Category.Product
+import Cats.Exponential
 import Cats.Functor
+import Cats.Product
 
 type data (•) :: (a --> b) -> (x --> a) -> (x --> b)
 

@@ -1,9 +1,9 @@
-module Cats.Functor.Curry where
+module Cats.Curry where
 
 import Cats.Category
-import Cats.Category.Exponential
-import Cats.Category.Product
+import Cats.Exponential
 import Cats.Functor
+import Cats.Product
 
 -- Typing '₂': `^q 2 s`
 type data Curry₂ :: forall a b c. ((a × b) --> c) -> NamesOf a -> (b --> c)

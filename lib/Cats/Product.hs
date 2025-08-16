@@ -1,4 +1,4 @@
-module Cats.Category.Product where
+module Cats.Product where
 
 import Cats.Category
 import Data.Type.Equality (type (~))

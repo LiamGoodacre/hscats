@@ -1,8 +1,8 @@
 module Cats.Adjoint where
 
 import Cats.Category
+import Cats.Compose
 import Cats.Functor
-import Cats.Functor.Compose
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 
