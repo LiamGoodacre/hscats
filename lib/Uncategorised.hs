@@ -10,6 +10,7 @@ import Cats.Delta
 import Cats.Exponential
 import Cats.Functor
 import Cats.Id
+import Cats.Monoidal
 import Cats.Product
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
@@ -122,12 +123,6 @@ instance Category One where
 
 {- Binary functors: associative, monoidal, braided, symmetric, closed -}
 
-instance Monoidal (∧) () where
-  idl = \(_, m) -> m
-  coidl = \m -> ((), m)
-  idr = \(m, _) -> m
-  coidr = \m -> (m, ())
-
 type Braided ::
   forall {i}.
   forall (k :: CATEGORY i).
@@ -142,22 +137,6 @@ type Symmetric ::
   BINARY_OP k ->
   Constraint
 class (Braided p) => Symmetric p
-
-type Monoidal ::
-  forall {i}.
-  forall (k :: CATEGORY i).
-  BINARY_OP k ->
-  i ->
-  Constraint
-class
-  (Associative p) =>
-  Monoidal (p :: BINARY_OP k) id
-    | p -> id
-  where
-  idl :: (m ∈ k) => k ((id ☼ m) p) m
-  coidl :: (m ∈ k) => k m ((id ☼ m) p)
-  idr :: (m ∈ k) => k ((m ☼ id) p) m
-  coidr :: (m ∈ k) => k m ((m ☼ id) p)
 
 type BraidedMonoidal ::
   forall {i}.
@@ -269,15 +248,6 @@ mempty = empty @(∧) ()
 
 (<>) :: (MonoidObject (∧) () m) => m -> m -> m
 l <> r = append @(∧) (l, r)
-
-instance
-  (Category k) =>
-  Monoidal Composing (Id :: k --> k)
-  where
-  idl = EXP \_ -> identity _
-  coidl = EXP \_ -> identity _
-  idr = EXP \_ -> identity _
-  coidr = EXP \_ -> identity _
 
 instance
   ( Monad m,

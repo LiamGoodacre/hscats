@@ -13,6 +13,7 @@ import Cats.Flip as Exports
 import Cats.Functor as Exports
 import Cats.Hom as Exports
 import Cats.Id as Exports
+import Cats.Monoidal as Exports
 import Cats.Opposite as Exports
 import Cats.Product as Exports
 import Uncategorised as Exports
