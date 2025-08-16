@@ -1,6 +1,7 @@
 module Uncategorised where
 
 import Cats.Adjoint
+import Cats.Binary
 import Cats.Category
 import Cats.Compose
 import Cats.Curry
@@ -119,19 +120,6 @@ instance Category One where
   identity () = ONE
 
 {- Binary functors: associative, monoidal, braided, symmetric, closed -}
-
-type BI d c k = (d × c) --> k
-
-type BINARY_OP c = BI c c c
-
-type (☼) ::
-  forall {i}.
-  forall (k :: CATEGORY i).
-  i ->
-  i ->
-  BINARY_OP k ->
-  i
-type (☼) l r p = Act p '(l, r)
 
 type Associative ::
   forall {i}.

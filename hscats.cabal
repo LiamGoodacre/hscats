@@ -11,6 +11,7 @@ library
     exposed-modules:
       Cats,
       Cats.Adjoint,
+      Cats.Binary,
       Cats.Cat,
       Cats.Category,
       Cats.Compose,

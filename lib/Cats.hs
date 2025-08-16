@@ -1,32 +1,17 @@
-module Cats
-  ( module Cats.Category,
-    module Cats.Opposite,
-    module Cats.Product,
-    module Cats.Exponential,
-    module Cats.Cat,
-    module Cats.Functor,
-    module Cats.Id,
-    module Cats.Compose,
-    module Cats.Curry,
-    module Cats.Flip,
-    module Cats.Hom,
-    module Cats.Adjoint,
-    module Cats.Delta,
-    module Uncategorised,
-  )
-where
+module Cats (module Exports) where
 
-import Cats.Adjoint
-import Cats.Cat
-import Cats.Category
-import Cats.Compose
-import Cats.Curry
-import Cats.Delta
-import Cats.Exponential
-import Cats.Flip
-import Cats.Functor
-import Cats.Hom
-import Cats.Id
-import Cats.Opposite
-import Cats.Product
-import Uncategorised
+import Cats.Adjoint as Exports
+import Cats.Binary as Exports
+import Cats.Cat as Exports
+import Cats.Category as Exports
+import Cats.Compose as Exports
+import Cats.Curry as Exports
+import Cats.Delta as Exports
+import Cats.Exponential as Exports
+import Cats.Flip as Exports
+import Cats.Functor as Exports
+import Cats.Hom as Exports
+import Cats.Id as Exports
+import Cats.Opposite as Exports
+import Cats.Product as Exports
+import Uncategorised as Exports
