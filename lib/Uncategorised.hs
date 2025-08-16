@@ -1,6 +1,7 @@
 module Uncategorised where
 
 import Cats.Adjoint
+import Cats.Associative
 import Cats.Binary
 import Cats.Category
 import Cats.Compose
@@ -121,40 +122,11 @@ instance Category One where
 
 {- Binary functors: associative, monoidal, braided, symmetric, closed -}
 
-type Associative ::
-  forall {i}.
-  forall (k :: CATEGORY i).
-  ((k × k) --> k) ->
-  Constraint
-class (Functor op) => Associative (op :: BINARY_OP k) where
-  lassoc ::
-    forall op' a b c ->
-    (op' ~ op) =>
-    (a ∈ k, b ∈ k, c ∈ k) =>
-    k
-      ((a ☼ (b ☼ c) op) op)
-      (((a ☼ b) op ☼ c) op)
-  rassoc ::
-    forall op' a b c ->
-    (op' ~ op) =>
-    (a ∈ k, b ∈ k, c ∈ k) =>
-    k
-      (((a ☼ b) op ☼ c) op)
-      ((a ☼ (b ☼ c) op) op)
-
-instance Associative (∧) where
-  lassoc _ _ _ _ = \(a, (b, c)) -> ((a, b), c)
-  rassoc _ _ _ _ = \((a, b), c) -> (a, (b, c))
-
 instance Monoidal (∧) () where
   idl = \(_, m) -> m
   coidl = \m -> ((), m)
   idr = \(m, _) -> m
   coidr = \m -> (m, ())
-
-instance (Category k) => Associative (Composing :: BINARY_OP (k ^ k)) where
-  lassoc _ _ _ _ = EXP \_ -> identity _
-  rassoc _ _ _ _ = EXP \_ -> identity _
 
 type Braided ::
   forall {i}.
