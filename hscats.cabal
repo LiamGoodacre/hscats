@@ -28,10 +28,7 @@ library
       Cats.Id,
       Cats.MonoidObject,
       Cats.Monoidal,
-      Cats.Opposite,
-      Do,
-      RecursionSchemes,
-      Uncategorised
+      Cats.Opposite
     build-depends:
       , base
       , ghc-prim
@@ -56,6 +53,10 @@ library
 test-suite hscats-test
     type: exitcode-stdio-1.0
     main-is: Main.hs
+    other-modules:
+      Do,
+      RecursionSchemes,
+      Uncategorised
     build-depends:
       , base
       , hscats
