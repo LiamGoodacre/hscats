@@ -9,14 +9,19 @@ module Cats.Day
 where
 
 import Cats.Adjoint
+import Cats.Associative
 import Cats.Category
 import Cats.Compose
 import Cats.Delta
 import Cats.Exponential
 import Cats.Functor
+import Cats.Id
+import Cats.MonoidObject
+import Cats.Monoidal
 import Cats.Product
 import Data.Function ((&))
 import GHC.Tuple (Unit)
+import Prelude qualified
 
 type DataDay ::
   forall d c.
@@ -29,6 +34,7 @@ data family DataDay o f g z
 
 type data
   Day ::
+    forall d c.
     ((d × d) --> d) ->
     (d --> c) ->
     (d --> c) ->
@@ -73,14 +79,40 @@ composeToDayTypes = EXP \i ->
 
 type data
   Day₁ ::
+    forall d c.
     ((d × d) --> d) ->
     ((c ^ d) × (c ^ d)) --> (c ^ d)
 
 type instance Act (Day₁ o) fg = Day o (Fst fg) (Snd fg)
 
 instance
-  (Category d, Category c, Functor o) =>
+  (Category d, Functor o) =>
   Functor (Day₁ @d @Types o)
   where
   map _ (l :×: r) = EXP \_ (DataDayTypes @x @y xyz fx gy) ->
     DataDayTypes @x @y xyz ((l $$ x) fx) ((r $$ y) gy)
+
+instance (Associative o) => Associative (Day₁ @d @Types o) where
+  lassoc _ _ _ _ = EXP \_ (DataDayTypes @x @_ @z xyz fx (DataDayTypes @a @b @_ aby ga hb)) ->
+    DataDayTypes @(Act o '(x, a)) @b @z
+      (xyz ∘ map o (identity x :×: aby) ∘ rassoc o x a b)
+      (DataDayTypes @x @a @(Act o '(x, a)) (identity _) fx ga)
+      hb
+  rassoc _ _ _ _ = EXP \_ (DataDayTypes @_ @y @z xyz (DataDayTypes @a @b @_ abx fa gb) hy) ->
+    DataDayTypes @a @(Act o '(b, y)) @z
+      (xyz ∘ map o (abx :×: identity y) ∘ lassoc o a b y)
+      fa
+      (DataDayTypes @b @y @(Act o '(b, y)) (identity _) gb hy)
+
+instance Monoidal (Day₁ (∧)) Id where
+  idl = EXP \i (DataDayTypes xyz x my :: DataDay (∧) Id m i) -> map m (\y -> xyz (x, y)) my
+  coidl = EXP \_ my -> DataDayTypes (\((), v) -> v) () my
+  idr = EXP \i (DataDayTypes xyz mx y :: DataDay (∧) m Id i) -> map m (\x -> xyz (x, y)) mx
+  coidr = EXP \_ mx -> DataDayTypes (\(v, ()) -> v) mx ()
+
+instance
+  (Prelude.Applicative m) =>
+  MonoidObject (Day₁ @Types @Types (∧)) Id (PreludeFunctor m)
+  where
+  empty_ = EXP \_ -> Prelude.pure
+  append_ = EXP \_ (DataDayTypes xyz mx my) -> Prelude.liftA2 (\x y -> xyz (x, y)) mx my

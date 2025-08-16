@@ -52,14 +52,6 @@ instance (Category c, o ∈ c) => Category (Endo o c) where
 
 {- Functor: examples -}
 
--- Prelude.Functor is a specialisation of Functor
-type data PreludeFunctor (f :: Type -> Type) :: Types --> Types
-
-type instance Act (PreludeFunctor f) a = f a
-
-instance (Prelude.Functor f) => Functor (PreludeFunctor f) where
-  map _ = Prelude.fmap
-
 -- Parallel functor product
 
 type data (***) :: (a --> s) -> (b --> t) -> ((a × b) --> (s × t))
@@ -399,18 +391,18 @@ _egLift0Dup = lift0 Dup
 _egLift0List :: Prelude.Int -> [Prelude.Int]
 _egLift0List = lift0 List
 
-instance
-  (Prelude.Monad m) =>
-  MonoidObject Composing Id (PreludeFunctor m)
-  where
-  empty_ = EXP \_ -> Prelude.pure
-  append_ = EXP \_ -> (Prelude.>>= identity _)
-
-join0 :: forall m. (MonoidObject Composing Id m) => Id ~> m
-join0 = empty @Composing
-
-join2 :: forall m. (MonoidObject Composing Id m) => (m • m) ~> m
-join2 = append @Composing
+-- instance
+--   (Prelude.Monad m) =>
+--   MonoidObject Composing Id (PreludeFunctor m)
+--   where
+--   empty_ = EXP \_ -> Prelude.pure
+--   append_ = EXP \_ -> (Prelude.>>= identity _)
+--
+-- join0 :: forall m. (MonoidObject Composing Id m) => Id ~> m
+-- join0 = empty @Composing
+--
+-- join2 :: forall m. (MonoidObject Composing Id m) => (m • m) ~> m
+-- join2 = append @Composing
 
 ---
 
