@@ -28,6 +28,9 @@ type instance o ∈ Like arr = o ∈ (arr × arr)
 instance (Semigroupoid arr) => Semigroupoid (Like arr) where
   Like f g ∘ Like h i = Like (h ∘ f) (g ∘ i)
 
+instance (Category arr) => Category (Like arr) where
+  identity _ = Like (identity _) (identity _)
+
 type TensoredObjects ::
   forall o (arr :: CATEGORY o).
   ((arr × arr) --> arr) ->
