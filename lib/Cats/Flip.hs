@@ -8,6 +8,8 @@ type data Flip :: ((d × c) --> k) -> ((c × d) --> k)
 
 type instance Act (Flip b) x = Act b '(Snd x, Fst x)
 
+type instance Super Functor (Flip b) = ()
+
 instance
   (Category d, Category c, Functor b) =>
   Functor (Flip (b :: (d × c) --> k))

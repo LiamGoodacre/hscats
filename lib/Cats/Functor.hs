@@ -26,6 +26,12 @@ class (Act f o ∈ CodomainOf f) => Acts f o
 
 instance (Act f o ∈ CodomainOf f) => Acts f o
 
+type Super ::
+  forall d c.
+  ((d --> c) -> Constraint) ->
+  ((d --> c) -> Constraint)
+type family Super @d @c p f
+
 -- What is a functor?
 -- DomainOf must be a category.
 -- CodomainOf must be a category.
@@ -35,7 +41,8 @@ type Functor :: (d --> c) -> Constraint
 class
   ( Category d,
     Category c,
-    forall o. (o ∈ DomainOf f) => Acts f o
+    forall o. (o ∈ DomainOf f) => Acts f o,
+    Super @d @c Functor f
   ) =>
   Functor (f :: d --> c)
   where

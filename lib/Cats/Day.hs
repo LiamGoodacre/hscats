@@ -43,6 +43,8 @@ type data
 
 type instance Act (Day o f g) z = DataDay o f g z
 
+type instance Super Functor (Day o f g) = ()
+
 data instance DataDay @d @Types o f g z where
   DataDayTypes ::
     forall {d} x y z o f g.
@@ -85,6 +87,8 @@ type data
     ((c ^ d) × (c ^ d)) --> (c ^ d)
 
 type instance Act (Day₁ o) fg = Day o (Fst fg) (Snd fg)
+
+type instance Super Functor (Day₁ o) = ()
 
 instance
   (Category d, Functor o) =>
