@@ -15,11 +15,11 @@ import Data.Type.Equality (type (~))
 --
 type (⊣) :: forall d c. (c --> d) -> (d --> c) -> Constraint
 class (Functor f, Functor g) => (⊣) @d @c f g | f -> g, g -> f where
-  leftAdjoint ::
+  rightToLeft ::
     forall g' f' ->
     (f' ~ f, g' ~ g, a ∈ c, b ∈ d) =>
     c a (Act g b) -> d (Act f a) b
-  rightAdjoint ::
+  leftToRight ::
     forall f' g' ->
     (f' ~ f, g' ~ g, a ∈ c, b ∈ d) =>
     d (Act f a) b -> c a (Act g b)
@@ -29,14 +29,14 @@ unit ::
   forall (m :: c --> c) a ->
   (m ~ (g • f), f ⊣ g, a ∈ c) =>
   c a (Act (g • f) a)
-unit _ a = rightAdjoint f g (identity (Act f a))
+unit _ a = leftToRight f g (identity (Act f a))
 
 counit ::
   forall {d} g f.
   forall (w :: d --> d) a ->
   (w ~ (f • g), f ⊣ g, a ∈ d) =>
   d (Act (f • g) a) a
-counit _ a = leftAdjoint g f (identity (Act g a))
+counit _ a = rightToLeft g f (identity (Act g a))
 
 join ::
   forall {c} {f} {g}.

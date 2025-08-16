@@ -31,12 +31,12 @@ instance Functor (∨) where
   map _ (f :×: g) = Prelude.either (Prelude.Left ∘ f) (Prelude.Right ∘ g)
 
 instance Δ₂ Types ⊣ (∧) where
-  leftAdjoint _ _ t = (Prelude.fst ∘ t) :×: (Prelude.snd ∘ t)
-  rightAdjoint _ _ (f :×: g) = \x -> (f x, g x)
+  rightToLeft _ _ t = (Prelude.fst ∘ t) :×: (Prelude.snd ∘ t)
+  leftToRight _ _ (f :×: g) = \x -> (f x, g x)
 
 instance (∨) ⊣ Δ₂ Types where
-  leftAdjoint _ _ (f :×: g) = f `Prelude.either` g
-  rightAdjoint _ _ t = (t ∘ Prelude.Left) :×: (t ∘ Prelude.Right)
+  rightToLeft _ _ (f :×: g) = f `Prelude.either` g
+  leftToRight _ _ t = (t ∘ Prelude.Left) :×: (t ∘ Prelude.Right)
 
 -- (∃) ⊣ Δ @Types ⊣ (∀)
 
@@ -79,5 +79,5 @@ instance (Category d) => Functor (Forall @d @Types) where
   map _ t (DataForallTypes ifi) = DataForallTypes \i -> (t $$ i) (ifi i)
 
 instance Δ @Types ⊣ Forall @Types where
-  leftAdjoint _ _ ab = EXP \i a -> runForallTypes (ab a) i
-  rightAdjoint _ _ ab a = DataForallTypes \i -> (ab $$ i) a
+  rightToLeft _ _ ab = EXP \i a -> runForallTypes (ab a) i
+  leftToRight _ _ ab a = DataForallTypes \i -> (ab $$ i) a

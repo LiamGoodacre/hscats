@@ -97,8 +97,8 @@ instance Functor (Env x) where
   map _ f (l, r) = (f l, r)
 
 instance Env s ⊣ Reader s where
-  leftAdjoint _ _ = Prelude.uncurry
-  rightAdjoint _ _ = Prelude.curry
+  rightToLeft _ _ = Prelude.uncurry
+  leftToRight _ _ = Prelude.curry
 
 -- (• g) ⊣ (/ g)
 -- aka (PostCompose g ⊣ PostRan g)
@@ -145,13 +145,13 @@ instance
       RAN p (ab ∘ fga) fi
 
 instance (Functor g) => PostCompose g ⊣ PostRan @x @z @Types g where
-  leftAdjoint _ _ a_bg =
+  rightToLeft _ _ a_bg =
     EXP \i ag ->
       case (a_bg $$ Act g i) ag of
         RAN _ fg_b fgi ->
           (fg_b $$ i) fgi
 
-  rightAdjoint _ _ ag_b =
+  leftToRight _ _ ag_b =
     EXP \_ -> RAN Proxy ag_b
 
 type Codensity :: (x --> Types) -> (Types --> Types)
@@ -247,7 +247,7 @@ instance Functor (Free2 @Types) where
 
 ---
 
-type DayD ::
+type OldDayD ::
   forall {i}.
   forall (k :: CATEGORY i).
   ((k × k) --> k) ->
@@ -255,8 +255,8 @@ type DayD ::
   (k --> Types) ->
   i ->
   Type
-data DayD p f g z where
-  DAY_D :: Proxy x -> Proxy y -> k (Act p '(x, y)) z -> Act f x -> Act g y -> DayD @k p f g z
+data OldDayD p f g z where
+  DAY_D :: Proxy x -> Proxy y -> k (Act p '(x, y)) z -> Act f x -> Act g y -> OldDayD @k p f g z
 
 day ::
   forall
@@ -271,30 +271,30 @@ day ::
   k (Act p '(x, y)) z ->
   Act f x ->
   Act g y ->
-  DayD p f g z
+  OldDayD p f g z
 day = DAY_D @x @y @k @p @z @f @g Proxy Proxy
 
 type data
-  DayF ::
+  OldDayF ::
     ((Types × Types) --> Types) ->
     (Types --> Types) ->
     (Types --> Types) ->
     (Types --> Types)
 
-type instance Act (DayF p f g) x = DayD p f g x
+type instance Act (OldDayF p f g) x = OldDayD p f g x
 
-instance (Functor p) => Functor (DayF p f g) where
+instance (Functor p) => Functor (OldDayF p f g) where
   map _ (zw :: k z w) (DAY_D px py (xyz :: k xy z) fx gy) =
     DAY_D px py (zw ∘ xyz :: k xy w) fx gy
 
 type data
-  Day ::
+  OldDay ::
     ((Types × Types) --> Types) ->
     (((Types ^ Types) × (Types ^ Types)) --> (Types ^ Types))
 
-type instance Act (Day p) '(f, g) = DayF p f g
+type instance Act (OldDay p) '(f, g) = OldDayF p f g
 
-instance (Functor p) => Functor (Day p) where
+instance (Functor p) => Functor (OldDay p) where
   map _ (EXP l :×: EXP r) =
     EXP \_p (DAY_D (Proxy @px) (Proxy @py) (xyz :: k xy z) fx gy) ->
       DAY_D
@@ -331,7 +331,7 @@ instance
       (map f ab fa)
       (map g ab ga)
 
-instance (Associative p) => Associative (Day p) where
+instance (Associative p) => Associative (OldDay p) where
   lassoc _ _ _ _ = EXP \_ (DAY_D (Proxy @x) Proxy xyz fx (DAY_D (Proxy @a) (Proxy @b) aby ga hb)) ->
     DAY_D
       Proxy
@@ -347,47 +347,47 @@ instance (Associative p) => Associative (Day p) where
       fa
       (DAY_D (Proxy @b) (Proxy @y) (identity _) gb hy)
 
-instance Monoidal (Day (∧)) Id where
-  idl = EXP \_ (DAY_D _ _ xyz x my :: DayD (∧) Id m z) -> map m (\y -> xyz (x, y)) my
+instance Monoidal (OldDay (∧)) Id where
+  idl = EXP \_ (DAY_D _ _ xyz x my :: OldDayD (∧) Id m z) -> map m (\y -> xyz (x, y)) my
   coidl = EXP \_ my -> DAY_D Proxy Proxy Prelude.snd () my
-  idr = EXP \_ (DAY_D _ _ xyz mx y :: DayD (∧) m Id z) -> map m (\x -> xyz (x, y)) mx
+  idr = EXP \_ (DAY_D _ _ xyz mx y :: OldDayD (∧) m Id z) -> map m (\x -> xyz (x, y)) mx
   coidr = EXP \_ mx -> DAY_D Proxy Proxy Prelude.fst mx ()
 
 instance
   (Prelude.Applicative m) =>
-  MonoidObject (Day (∧)) Id (PreludeFunctor m)
+  MonoidObject (OldDay (∧)) Id (PreludeFunctor m)
   where
   empty_ = EXP \_p x -> Prelude.pure x
   append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
-instance MonoidObject (Day (∧)) Id Id where
+instance MonoidObject (OldDay (∧)) Id Id where
   empty_ = EXP \_p x -> x
   append_ = EXP \_p (DAY_D _ _ xyz fx fy) -> xyz (fx, fy)
 
-instance MonoidObject (Day (∧)) Id Dup where
+instance MonoidObject (OldDay (∧)) Id Dup where
   empty_ = EXP \_p x -> (x, x)
   append_ = EXP \_p (DAY_D _ _ xyz (fx0, fx1) (fy0, fy1)) ->
     (xyz (fx0, fy0), xyz (fx1, fy1))
 
-instance MonoidObject (Day (∧)) Id List where
+instance MonoidObject (OldDay (∧)) Id List where
   empty_ = EXP \_p x -> [x]
   append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
-lift0 :: forall a. forall m -> (MonoidObject (Day (∧)) Id m) => a -> Act m a
-lift0 m = empty @(Day (∧)) @m $$ a
+lift0 :: forall a. forall m -> (MonoidObject (OldDay (∧)) Id m) => a -> Act m a
+lift0 m = empty @(OldDay (∧)) @m $$ a
 
 lift2 ::
   forall c a b.
   forall m ->
-  (MonoidObject (Day (∧)) Id m) =>
+  (MonoidObject (OldDay (∧)) Id m) =>
   (a -> b -> c) ->
   Act m a ->
   Act m b ->
   Act m c
 lift2 m abc ma mb =
-  (append @(Day (∧)) @m $$ c)
+  (append @(OldDay (∧)) @m $$ c)
     (day @_ @a @b @c (\(a, b) -> abc a b) ma mb)
 
 _egLift0Id :: Prelude.Int -> Prelude.Int
@@ -429,8 +429,8 @@ instance (Category k, r ∈ k) => Functor (OpArrTo k r) where
   map _ ba = OP (∘ ba)
 
 instance OpArrTo Types r ⊣ ArrTo Types r where
-  leftAdjoint _ _ = OP ∘ Prelude.flip
-  rightAdjoint _ _ = Prelude.flip ∘ runOP
+  rightToLeft _ _ = OP ∘ Prelude.flip
+  leftToRight _ _ = Prelude.flip ∘ runOP
 
 -- Foldable?
 
@@ -465,7 +465,7 @@ instance Foldable (∧) () List where
 -- Types () m
 -- Types (m, m) m
 -- (Types ^ Types) Id m
--- (Types ^ Types) (Day (∧) m m) m
+-- (Types ^ Types) (OldDay (∧) m m) m
 
 -- t m -> m
 -- t • m -> m • t
@@ -484,31 +484,31 @@ class (Monoidal p id) => Traversable p id t | p -> id where
 sequenceA ::
   forall i.
   forall t m ->
-  (Traversable (Day (∧)) Id t, MonoidObject (Day (∧)) Id m) =>
+  (Traversable (OldDay (∧)) Id t, MonoidObject (OldDay (∧)) Id m) =>
   Act (t • m) i -> Act (m • t) i
-sequenceA t m = sequence (Day (∧)) t m $$ i
+sequenceA t m = sequence (OldDay (∧)) t m $$ i
 
-instance Traversable (Day (∧)) Id Id where
+instance Traversable (OldDay (∧)) Id Id where
   sequence ::
     forall p' t' m ->
-    (p' ~ Day (∧), t' ~ Id, MonoidObject (Day (∧)) Id m) =>
+    (p' ~ OldDay (∧), t' ~ Id, MonoidObject (OldDay (∧)) Id m) =>
     (Id • m) ~> (m • Id)
   sequence _ _ m = EXP \i -> identity (Act m i)
 
-instance Traversable (Day (∧)) Id List where
+instance Traversable (OldDay (∧)) Id List where
   sequence ::
     forall p' t' m ->
-    (p' ~ Day (∧), t' ~ List, MonoidObject (Day (∧)) Id m) =>
+    (p' ~ OldDay (∧), t' ~ List, MonoidObject (OldDay (∧)) Id m) =>
     (List • m) ~> (m • List)
   sequence _ _ m = EXP \i ->
     Prelude.foldr
       (lift2 m ((:) @i))
       (lift0 m ([] @i))
 
-instance Traversable (Day (∧)) Id Dup where
+instance Traversable (OldDay (∧)) Id Dup where
   sequence ::
     forall p' t' m ->
-    (p' ~ Day (∧), t' ~ Dup, MonoidObject (Day (∧)) Id m) =>
+    (p' ~ OldDay (∧), t' ~ Dup, MonoidObject (OldDay (∧)) Id m) =>
     (Dup • m) ~> (m • Dup)
   sequence _ _ m = EXP \i (l, r) -> lift2 @(Act Dup i) m (,) l r
 
@@ -535,10 +535,10 @@ class TraversableV2 p id t where
     (Δ' a ~> m) ->
     ((t • Δ' a) ~> (m • t))
 
-instance TraversableV2 (Day (∧)) Id List where
+instance TraversableV2 (OldDay (∧)) Id List where
   traverse_ ::
     forall m a.
-    (MonoidObject (Day (∧)) Id m) =>
+    (MonoidObject (OldDay (∧)) Id m) =>
     (Δ' a ~> m) ->
     ((List • Δ' a) ~> (m • List))
   traverse_ (EXP f) =
