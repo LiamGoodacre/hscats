@@ -5,13 +5,13 @@ import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
 
--- Typing '₂': `^q 2 s`
+-- Typing '₂': ` 2 s`
 type data Curry₂ :: forall a b c. ((a × b) --> c) -> NamesOf a -> (b --> c)
 
--- Typing '₁': `^q 1 s`
+-- Typing '₁': ` 1 s`
 type data Curry₁ :: forall a b c. ((a × b) --> c) -> (a --> (c ^ b))
 
--- Typing '₀': `^q 0 s`
+-- Typing '₀': ` 0 s`
 type data Curry₀ :: forall a b c. (c ^ (a × b)) --> ((c ^ b) ^ a)
 
 type instance Act (Curry₂ f x) y = Act f '(x, y)

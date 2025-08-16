@@ -11,7 +11,7 @@ import Data.Type.Equality (type (~))
 -- Or in our notation:
 --   `∀ a b . c a (Act g b) ⇔ d (Act f a) b`
 --
--- Typing '⊣': `^q u 22A3` or `^v u 22A3`
+-- Typing '⊣': ` u 22a3` or ` u 22a3`
 --
 type (⊣) :: forall d c. (c --> d) -> (d --> c) -> Constraint
 class (Functor f, Functor g) => (⊣) @d @c f g | f -> g, g -> f where
