@@ -38,7 +38,7 @@ instance (∨) ⊣ Δ₂ Types where
   rightToLeft _ _ (f :×: g) = f `Prelude.either` g
   leftToRight _ _ t = (t ∘ Prelude.Left) :×: (t ∘ Prelude.Right)
 
--- (∃) ⊣ Δ @Types ⊣ (∀)
+-- ∃ ⊣ Δ @Types ⊣ ∀
 
 type data Δ' :: NamesOf k -> x --> k
 
@@ -78,6 +78,10 @@ data instance DataForall (f :: d --> Types) where
 instance (Category d) => Functor (Forall @d @Types) where
   map _ t (DataForallTypes ifi) = DataForallTypes \i -> (t $$ i) (ifi i)
 
+instance Exists @Types ⊣ Δ @Types where
+  rightToLeft _ _ a_deltab (DataExistsTypes @a fa) = (a_deltab $$ a) fa
+  leftToRight _ _ existsa_b = EXP \i ai -> existsa_b (DataExistsTypes @i ai)
+
 instance Δ @Types ⊣ Forall @Types where
-  rightToLeft _ _ ab = EXP \i a -> runForallTypes (ab a) i
-  leftToRight _ _ ab a = DataForallTypes \i -> (ab $$ i) a
+  rightToLeft _ _ a_forallb = EXP \i a -> runForallTypes (a_forallb a) i
+  leftToRight _ _ deltaa_b a = DataForallTypes \i -> (deltaa_b $$ i) a
