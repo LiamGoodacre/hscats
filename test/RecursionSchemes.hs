@@ -10,8 +10,6 @@ type data AsFunctor :: forall k. (NamesOf k -> Type) -> (k --> Types)
 
 type instance Act (AsFunctor f) x = f x
 
-type instance Super Functor (AsFunctor f) = ()
-
 {- fixed point functors -}
 
 type Base :: forall c. OBJECT c -> (c --> c)
@@ -243,8 +241,6 @@ example2 = appendVec example0 example1
 type data List :: Types --> Types
 
 type instance Act List t = [t]
-
-type instance Super Functor List = ()
 
 instance Functor List where
   map _ = Prelude.fmap

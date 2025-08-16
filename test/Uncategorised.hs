@@ -40,8 +40,6 @@ type data Eval :: forall d c. ((c ^ d) × d) --> c
 
 type instance Act Eval fx = Act (Fst fx) (Snd fx)
 
-type instance Super Functor Eval = ()
-
 instance
   (Category d, Category c) =>
   Functor (Eval @d @c)
@@ -167,8 +165,6 @@ type data Twist :: BINARY_OP k -> BINARY_OP k
 
 type instance Act (Twist p) x = Act p '(Snd x, Fst x)
 
-type instance Super Functor (Twist p) = ()
-
 instance (Functor p) => Functor (Twist p) where
   map _ (r :×: l) = map p (l :×: r)
 
@@ -216,8 +212,6 @@ data DataCoyoneda :: forall k. (k --> Types) -> NamesOf k -> Type where
 type data Coyoneda :: (k --> Types) -> (k --> Types)
 
 type instance Act (Coyoneda f) x = DataCoyoneda f x
-
-type instance Super Functor (Coyoneda f) = ()
 
 instance (Category k) => Functor (Coyoneda @k f) where
   map _ ab (MakeDataCoyoneda fx xa) = MakeDataCoyoneda fx (ab ∘ xa)

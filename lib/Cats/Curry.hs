@@ -10,8 +10,6 @@ type data Curry₂ :: forall a b c. ((a × b) --> c) -> NamesOf a -> (b --> c)
 
 type instance Act (Curry₂ f x) y = Act f '(x, y)
 
-type instance Super Functor (Curry₂ f x) = ()
-
 instance
   (Category a, Category b, Functor f, x ∈ a) =>
   Functor (Curry₂ @a @b f x)
@@ -22,8 +20,6 @@ instance
 type data Curry₁ :: forall a b c. ((a × b) --> c) -> (a --> (c ^ b))
 
 type instance Act (Curry₁ f) x = Curry₂ f x
-
-type instance Super Functor (Curry₁ f) = ()
 
 instance
   (Category a, Category b, Category c, Functor f) =>
@@ -36,8 +32,6 @@ instance
 type data Curry₀ :: forall a b c. (c ^ (a × b)) --> ((c ^ b) ^ a)
 
 type instance Act Curry₀ f = Curry₁ f
-
-type instance Super Functor Curry₀ = ()
 
 instance
   (Category a, Category b, Category c) =>

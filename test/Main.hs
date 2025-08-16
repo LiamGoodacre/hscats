@@ -59,8 +59,6 @@ type data (***) :: (a --> s) -> (b --> t) -> ((a × b) --> (s × t))
 
 type instance Act (f *** g) o = '(Act f (Fst o), Act g (Snd o))
 
-type instance Super Functor (f *** g) = ()
-
 instance (Functor f, Functor g) => Functor (f *** g) where
   map _ (l :×: r) = map f l :×: map g r
 
@@ -69,8 +67,6 @@ instance (Functor f, Functor g) => Functor (f *** g) where
 type data (&&&) :: (d --> l) -> (d --> r) -> (d --> (l × r))
 
 type instance Act (f &&& g) o = '(Act f o, Act g o)
-
-type instance Super Functor (f &&& g) = ()
 
 instance (Functor f, Functor g) => Functor (f &&& g) where
   map _ t = map f t :×: map g t
@@ -83,16 +79,12 @@ type data Reader :: Type -> (Types --> Types)
 
 type instance Act (Reader x) y = x -> y
 
-type instance Super Functor (Reader x) = ()
-
 instance Functor (Reader x) where
   map _ = (∘)
 
 type data Env :: Type -> (Types --> Types)
 
 type instance Act (Env x) y = (y, x)
-
-type instance Super Functor (Env x) = ()
 
 instance Functor (Env x) where
   map _ f (l, r) = (f l, r)
@@ -107,8 +99,6 @@ instance Env s ⊣ Reader s where
 type data PostCompose :: (c --> c') -> (a ^ c') --> (a ^ c)
 
 type instance Act (PostCompose g) f = f • g
-
-type instance Super Functor (PostCompose g) = ()
 
 instance
   (Category c, Category c', Category a, Functor g) =>
@@ -130,8 +120,6 @@ type data (/) :: (x --> y) -> (x --> z) -> (z --> y)
 
 type instance Act (h / g) o = Ran h g o
 
-type instance Super Functor (h / g) = ()
-
 instance (Category x, Category z) => Functor ((/) @x @Types @z h g) where
   map _ zab (RAN (Proxy @f) fgh fa) =
     RAN (Proxy @f) fgh (map f zab fa)
@@ -140,8 +128,6 @@ instance (Category x, Category z) => Functor ((/) @x @Types @z h g) where
 type data PostRan :: (x --> z) -> (y ^ x) --> (y ^ z)
 
 type instance Act (PostRan g) h = h / g
-
-type instance Super Functor (PostRan g) = ()
 
 instance
   (Category x, Category z, Functor g) =>
@@ -237,15 +223,9 @@ type data Free2 :: ((k ^ k) × k) --> k
 
 type instance Act (Free0 f) o = Free f o
 
-type instance Super Functor (Free0 f) = ()
-
 type instance Act Free1 f = Free0 f
 
-type instance Super Functor Free1 = ()
-
 type instance Act Free2 fx = Free (Fst fx) (Snd fx)
-
-type instance Super Functor Free2 = ()
 
 instance Functor (Free0 @Types t) where
   map _ (a_b :: a -> b) r = FREE \m _ t_m -> map m a_b (runFree r m a t_m)
@@ -296,8 +276,6 @@ type data
 
 type instance Act (OldDayF p f g) x = OldDayD p f g x
 
-type instance Super Functor (OldDayF p f g) = ()
-
 instance (Functor p) => Functor (OldDayF p f g) where
   map _ (zw :: k z w) (DAY_D px py (xyz :: k xy z) fx gy) =
     DAY_D px py (zw ∘ xyz :: k xy w) fx gy
@@ -308,8 +286,6 @@ type data
     (((Types ^ Types) × (Types ^ Types)) --> (Types ^ Types))
 
 type instance Act (OldDay p) '(f, g) = OldDayF p f g
-
-type instance Super Functor (OldDay p) = ()
 
 instance (Functor p) => Functor (OldDay p) where
   map _ (EXP l :×: EXP r) =
@@ -336,8 +312,6 @@ data
 type data ProductF :: (Types --> Types) -> (Types --> Types) -> (Types --> Types)
 
 type instance Act (ProductF f g) x = ProductD f g x
-
-type instance Super Functor (ProductF f g) = ()
 
 instance
   ( Functor f,
@@ -437,16 +411,12 @@ type data ArrTo :: forall (k :: CATEGORY i) -> i -> Op k --> Types
 
 type instance Act (ArrTo k r) a = k a r
 
-type instance Super Functor (ArrTo k r) = ()
-
 instance (Category k, r ∈ k) => Functor (ArrTo k r) where
   map _ (OP ba) = (∘ ba)
 
 type data OpArrTo :: forall (k :: CATEGORY i) -> i -> k --> Op Types
 
 type instance Act (OpArrTo k r) a = k a r
-
-type instance Super Functor (OpArrTo k r) = ()
 
 instance (Category k, r ∈ k) => Functor (OpArrTo k r) where
   map _ ba = OP (∘ ba)

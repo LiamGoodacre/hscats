@@ -12,8 +12,6 @@ type data Hom :: forall c -> Op c × c --> Types
 
 type instance Act (Hom c) o = c (Fst o) (Snd o)
 
-type instance Super Functor (Hom c) = ()
-
 instance (Category c) => Functor (Hom c) where
   map _ (OP f :×: g) t = g ∘ t ∘ f
 

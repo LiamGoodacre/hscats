@@ -9,8 +9,6 @@ type data (•) :: (a --> b) -> (x --> a) -> (x --> b)
 
 type instance Act (f • g) x = Act f (Act g x)
 
-type instance Super Functor (f • g) = ()
-
 instance (Functor f, Functor g) => Functor (f • g) where
   map _ = map f ∘ map g
 
@@ -34,8 +32,6 @@ type data Composing :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
 
 type instance Act Composing e = Fst e • Snd e
 
-type instance Super Functor (Composing @a @b @x) = ()
-
 instance
   (Category aa, Category bb, Category cc) =>
   Functor (Composing @aa @bb @cc)
@@ -47,8 +43,6 @@ instance
 type data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
 
 type instance Act Composed e = Act (Act Composing (Fst e)) (Snd e)
-
-type instance Super Functor (Composed @a @b @c) = ()
 
 instance
   (Category aa, Category bb, Category cc) =>
