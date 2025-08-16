@@ -1,8 +1,8 @@
 module Cats.Binary where
 
 import Cats.Category
+import Cats.CrossProduct
 import Cats.Functor
-import Cats.Product
 
 type BINARY_OP c = (c × c) --> c
 

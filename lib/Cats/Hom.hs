@@ -1,12 +1,12 @@
 module Cats.Hom where
 
 import Cats.Category
+import Cats.CrossProduct
 import Cats.Curry
 import Cats.Exponential
 import Cats.Flip
 import Cats.Functor
 import Cats.Opposite
-import Cats.Product
 
 type data Hom :: forall c -> Op c × c --> Types
 

@@ -2,9 +2,9 @@ module Cats.Delta where
 
 import Cats.Adjoint
 import Cats.Category
+import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
-import Cats.Product
 import Prelude qualified
 
 -- (∨) ⊣ Δ₂ Types ⊣ (∧)

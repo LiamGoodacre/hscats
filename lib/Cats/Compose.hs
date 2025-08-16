@@ -1,9 +1,9 @@
 module Cats.Compose where
 
 import Cats.Category
+import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
-import Cats.Product
 
 type data (•) :: (a --> b) -> (x --> a) -> (x --> b)
 

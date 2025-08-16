@@ -7,6 +7,7 @@ import Cats.Cat as Exports
 import Cats.Category as Exports
 import Cats.Compose as Exports
 import Cats.Constructor as Exports
+import Cats.CrossProduct as Exports
 import Cats.Curry as Exports
 import Cats.Delta as Exports
 import Cats.Exponential as Exports
@@ -17,5 +18,4 @@ import Cats.Id as Exports
 import Cats.MonoidObject as Exports
 import Cats.Monoidal as Exports
 import Cats.Opposite as Exports
-import Cats.Product as Exports
 import Uncategorised as Exports

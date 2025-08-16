@@ -17,6 +17,7 @@ library
       Cats.Category,
       Cats.Compose,
       Cats.Constructor,
+      Cats.CrossProduct,
       Cats.Curry,
       Cats.Day,
       Cats.Delta,
@@ -28,7 +29,6 @@ library
       Cats.MonoidObject,
       Cats.Monoidal,
       Cats.Opposite,
-      Cats.Product,
       Do,
       RecursionSchemes
     other-modules:

@@ -5,11 +5,11 @@ import Cats.Associative
 import Cats.Binary
 import Cats.Category
 import Cats.Compose
+import Cats.CrossProduct
 import Cats.Curry
 import Cats.Exponential
 import Cats.Functor
 import Cats.Monoidal
-import Cats.Product
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
 import Data.Type.Equality (type (~))

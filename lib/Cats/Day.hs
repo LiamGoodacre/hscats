@@ -13,13 +13,13 @@ import Cats.Associative
 import Cats.Category
 import Cats.Compose
 import Cats.Constructor
+import Cats.CrossProduct
 import Cats.Delta
 import Cats.Exponential
 import Cats.Functor
 import Cats.Id
 import Cats.MonoidObject
 import Cats.Monoidal
-import Cats.Product
 import Data.Function ((&))
 import GHC.Tuple (Unit)
 import Prelude qualified

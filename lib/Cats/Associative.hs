@@ -3,10 +3,10 @@ module Cats.Associative where
 import Cats.Binary
 import Cats.Category
 import Cats.Compose
+import Cats.CrossProduct
 import Cats.Delta
 import Cats.Exponential
 import Cats.Functor
-import Cats.Product
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 
