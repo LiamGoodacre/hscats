@@ -21,7 +21,6 @@ import Cats.Id
 import Cats.MonoidObject
 import Cats.Monoidal
 import Data.Function ((&))
-import GHC.Tuple (Unit)
 import Prelude qualified
 
 type DataDay ::
@@ -76,7 +75,7 @@ composeToDayTypes ::
 composeToDayTypes = EXP \i ->
   rightToLeft r f \gi ->
     () & leftToRight f r \f_ ->
-      bogusLTypes @f @g Unit i f_ gi
+      bogusLTypes @f @g (type ()) i f_ gi
 
 type data
   Day₁ ::

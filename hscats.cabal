@@ -32,7 +32,6 @@ library
       Cats.Profunctor
     build-depends:
       , base
-      , ghc-prim
     hs-source-dirs: lib
     default-language: GHC2024
     default-extensions:
