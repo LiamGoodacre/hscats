@@ -70,7 +70,7 @@ bogusLTypes x _ f_ gi = DataDayTypes (\(_ :: x, v) -> v) f_ gi
 
 composeToDayTypes ::
   forall f g r.
-  (f ⊣ r, Functor g) =>
+  (f ⊣ r) =>
   (f • g) ~> Day @Types @Types (∧) f g
 composeToDayTypes = EXP \i ->
   rightToLeft r f \gi ->
