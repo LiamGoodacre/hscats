@@ -21,7 +21,9 @@ import Cats.Functor
 import Cats.Id
 import Cats.MonoidObject
 import Cats.Monoidal
+import Control.Applicative qualified as Prelude
 import Data.Function ((&))
+import Data.Void qualified as Prelude
 import Prelude qualified
 
 type DataDay ::
@@ -116,3 +118,21 @@ instance
   where
   empty_ = EXP \_ -> Prelude.pure
   append_ = EXP \_ (DataDayTypes xyz mx my) -> Prelude.liftA2 (\x y -> xyz (x, y)) mx my
+
+type Blank = Δ' ()
+
+type instance MonoidalEmpty (Day₁ (∨)) = Blank
+
+instance Monoidal (Day₁ @Types @Types (∨)) where
+  idl = EXP \_ (DataDayTypes doxyz () gy :: DataDay (∨) f g z) -> map g (doxyz ∘ Prelude.Right) gy
+  coidl = EXP \i (mi :: Act m i) -> DataDayTypes @_ @_ @_ @_ @Blank @m (Prelude.either Prelude.absurd (identity _)) () mi
+  idr = EXP \_ (DataDayTypes doxyz fx () :: DataDay (∨) f g z) -> map f (doxyz ∘ Prelude.Left) fx
+  coidr = EXP \i (mi :: Act m i) -> DataDayTypes @_ @_ @_ @_ @m @Blank (Prelude.either (identity _) Prelude.absurd) mi ()
+
+instance
+  (Prelude.Alternative m) =>
+  MonoidObject (Day₁ @Types @Types (∨)) (Constructor m)
+  where
+  empty_ = EXP \_ () -> Prelude.empty
+  append_ = EXP \_ (DataDayTypes doxyz mx my :: DataDay (∨) f g z) ->
+    map f (doxyz ∘ Prelude.Left) mx Prelude.<|> map g (doxyz ∘ Prelude.Right) my
