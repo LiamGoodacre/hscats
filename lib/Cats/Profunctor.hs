@@ -3,6 +3,7 @@ module Cats.Profunctor where
 import Cats.Category
 import Cats.CrossProduct
 import Cats.Functor
+import Cats.Hom
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 
@@ -79,3 +80,53 @@ instance
   where
   reversed (Window k) = Mirror k
   reversed (Mirror k) = Window k
+
+type IsoLike = Glass RTL (Like Types)
+
+type OsiLike = Glass LTR (Like Types)
+
+type ViewLike = Glass RTL (Viewer Types)
+
+type ReviewLike = Glass LTR (Viewer Types)
+
+type instance o ∈ IsoLike = o ∈ Like Types
+
+instance Semigroupoid IsoLike where
+  Window abst ∘ Window xyab = Window (abst ∘ xyab)
+
+instance Category IsoLike where
+  identity _ = Window (identity _)
+
+type instance o ∈ OsiLike = o ∈ Like Types
+
+instance Semigroupoid OsiLike where
+  Mirror xyab ∘ Mirror abst = Mirror (abst ∘ xyab)
+
+instance Category OsiLike where
+  identity _ = Mirror (identity _)
+
+type instance o ∈ ViewLike = o ∈ Viewer Types
+
+instance Semigroupoid ViewLike where
+  Window xyab ∘ Window abst = Window (xyab ∘ abst)
+
+instance Category ViewLike where
+  identity _ = Window (identity _)
+
+type instance o ∈ ReviewLike = o ∈ Viewer Types
+
+instance Semigroupoid ReviewLike where
+  Mirror abst ∘ Mirror xyab = Mirror (xyab ∘ abst)
+
+instance Category ReviewLike where
+  identity _ = Mirror (identity _)
+
+type data InOptic :: forall d -> (c --> Types) -> d --> Types
+
+type instance Act (InOptic d c) o = Act c o
+
+instance Functor (InOptic IsoLike (Hom (->))) where
+  map _ (Window (Like sa bt)) ar = bt ∘ ar ∘ sa
+
+instance Functor (InOptic IsoLike (Cosliced ViewLike xy)) where
+  map _ (Window (Like sa _bt)) (Window ar) = Window (Viewer sa ∘ ar)
