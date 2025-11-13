@@ -16,9 +16,17 @@ instance (Category c) => Functor (Hom c) where
   map _ (OP f :×: g) t = g ∘ t ∘ f
 
 -- Typing '⁰': ` 0 S`
-type Hom⁰ :: forall (c :: CATEGORY o) -> c --> (Types ^ Op c)
-type Hom⁰ c = Curry₁ (Flip (Hom c))
+type Slice :: forall (c :: CATEGORY o) -> c --> (Types ^ Op c)
+type Slice c = Curry₁ (Flip (Hom c))
+
+-- Typing '¹': ` 1 S`
+type Sliced :: forall (c :: CATEGORY o) -> NamesOf c -> Op c --> Types
+type Sliced c = Curry₂ (Flip (Hom c))
 
 -- Typing '₀': ` 0 s`
-type Hom₀ :: forall (c :: CATEGORY o) -> Op c --> (Types ^ c)
-type Hom₀ c = Curry₁ (Hom c)
+type Coslice :: forall (c :: CATEGORY o) -> Op c --> (Types ^ c)
+type Coslice c = Curry₁ (Hom c)
+
+-- Typing '₁': ` 1 s`
+type Cosliced :: forall (c :: CATEGORY o) -> NamesOf (Op c) -> c --> Types
+type Cosliced c = Curry₂ (Hom c)
