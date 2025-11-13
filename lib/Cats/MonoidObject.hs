@@ -50,13 +50,6 @@ mempty = empty @(∧) ()
 l <> r = append @(∧) (l, r)
 
 -- instance
---   (Prelude.Applicative m) =>
---   MonoidObject (Day (∧)) Id m
---   where
---   empty_ = EXP \_ -> undefined
---   append_ = EXP \_ -> undefined
-
--- instance
 --   ( Monad m,
 --     m ~ (f • g)
 --   ) =>
