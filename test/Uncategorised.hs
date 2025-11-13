@@ -139,27 +139,23 @@ type BraidedMonoidal ::
   forall {i}.
   forall (k :: CATEGORY i).
   BINARY_OP k ->
-  i ->
   Constraint
 class
-  ( Monoidal p id,
+  ( Monoidal p,
     Braided p
   ) =>
-  BraidedMonoidal p id
-    | p -> id
+  BraidedMonoidal p
 
 type SymmetricMonoidal ::
   forall {i}.
   forall (k :: CATEGORY i).
   BINARY_OP k ->
-  i ->
   Constraint
 class
-  ( Monoidal p id,
+  ( Monoidal p,
     Symmetric p
   ) =>
-  SymmetricMonoidal p id
-    | p -> id
+  SymmetricMonoidal p
 
 type data Twist :: BINARY_OP k -> BINARY_OP k
 
@@ -177,30 +173,28 @@ type ClosedMonoidal ::
   forall (k :: CATEGORY i).
   BINARY_OP k ->
   BINARY_OP k ->
-  i ->
   Constraint
 class
   ( forall y. (y ∈ k) => With₂ p y ⊣ With₁ e y,
-    Monoidal p id
+    Monoidal p
   ) =>
-  ClosedMonoidal p (e :: BINARY_OP k) id
-    | p -> e id,
-      e -> p id
+  ClosedMonoidal p (e :: BINARY_OP k)
+    | p -> e,
+      e -> p
 
 type SymmetricClosedMonoidal ::
   forall {i}.
   forall (k :: CATEGORY i).
   BINARY_OP k ->
   BINARY_OP k ->
-  i ->
   Constraint
 class
-  ( SymmetricMonoidal p id,
-    ClosedMonoidal p e id
+  ( SymmetricMonoidal p,
+    ClosedMonoidal p e
   ) =>
-  SymmetricClosedMonoidal p e id
-    | p -> e id,
-      e -> p id
+  SymmetricClosedMonoidal p e
+    | p -> e,
+      e -> p
 
 {- Tensory objects -}
 

@@ -12,41 +12,39 @@ type MonoidObject ::
   forall (k :: CATEGORY i).
   BINARY_OP k ->
   i ->
-  i ->
   Constraint
 class
-  ( Monoidal p id,
+  ( Monoidal p,
     m ∈ k
   ) =>
-  MonoidObject (p :: BINARY_OP k) id m
-    | p -> id
+  MonoidObject (p :: BINARY_OP k) m
   where
-  empty_ :: k id m
+  empty_ :: k (MonoidalEmpty p) m
   append_ :: k ((m ☼ m) p) m
 
 empty ::
-  forall {i} {k :: CATEGORY i} (p :: BINARY_OP k) {id :: i} (m :: i).
-  (MonoidObject p id m) =>
-  k id m
-empty = empty_ @k @p @id @m
+  forall {i} {k :: CATEGORY i} (p :: BINARY_OP k) (m :: i).
+  (MonoidObject p m) =>
+  k (MonoidalEmpty p) m
+empty = empty_ @k @p @m
 
 append ::
-  forall {i} {k :: CATEGORY i} (p :: BINARY_OP k) {id :: i} (m :: i).
-  (MonoidObject p id m) =>
+  forall {i} {k :: CATEGORY i} (p :: BINARY_OP k) (m :: i).
+  (MonoidObject p m) =>
   k ((☼) m m p) m
-append = append_ @k @p @id @m
+append = append_ @k @p @m
 
 instance
   (Prelude.Monoid m) =>
-  MonoidObject (∧) () m
+  MonoidObject (∧) m
   where
   empty_ = \() -> Prelude.mempty
   append_ = \(l, r) -> Prelude.mappend l r
 
-mempty :: (MonoidObject (∧) () m) => m
+mempty :: (MonoidObject (∧) m) => m
 mempty = empty @(∧) ()
 
-(<>) :: (MonoidObject (∧) () m) => m -> m -> m
+(<>) :: (MonoidObject (∧) m) => m -> m -> m
 l <> r = append @(∧) (l, r)
 
 -- instance

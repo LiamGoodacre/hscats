@@ -340,7 +340,9 @@ instance (Associative p) => Associative (OldDay p) where
       fa
       (DAY_D (Proxy @b) (Proxy @y) (identity _) gb hy)
 
-instance Monoidal (OldDay (∧)) Id where
+type instance MonoidalEmpty (OldDay (∧)) = Id
+
+instance Monoidal (OldDay (∧)) where
   idl = EXP \_ (DAY_D _ _ xyz x my :: OldDayD (∧) Id m z) -> map m (\y -> xyz (x, y)) my
   coidl = EXP \_ my -> DAY_D Proxy Proxy Prelude.snd () my
   idr = EXP \_ (DAY_D _ _ xyz mx y :: OldDayD (∧) m Id z) -> map m (\x -> xyz (x, y)) mx
@@ -348,33 +350,33 @@ instance Monoidal (OldDay (∧)) Id where
 
 instance
   (Prelude.Applicative m) =>
-  MonoidObject (OldDay (∧)) Id (Constructor m)
+  MonoidObject (OldDay (∧)) (Constructor m)
   where
   empty_ = EXP \_p x -> Prelude.pure x
   append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
-instance MonoidObject (OldDay (∧)) Id Id where
+instance MonoidObject (OldDay (∧)) Id where
   empty_ = EXP \_p x -> x
   append_ = EXP \_p (DAY_D _ _ xyz fx fy) -> xyz (fx, fy)
 
-instance MonoidObject (OldDay (∧)) Id Dup where
+instance MonoidObject (OldDay (∧)) Dup where
   empty_ = EXP \_p x -> (x, x)
   append_ = EXP \_p (DAY_D _ _ xyz (fx0, fx1) (fy0, fy1)) ->
     (xyz (fx0, fy0), xyz (fx1, fy1))
 
-instance MonoidObject (OldDay (∧)) Id List where
+instance MonoidObject (OldDay (∧)) List where
   empty_ = EXP \_p x -> [x]
   append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
-lift0 :: forall a. forall m -> (MonoidObject (OldDay (∧)) Id m) => a -> Act m a
+lift0 :: forall a. forall m -> (MonoidObject (OldDay (∧)) m) => a -> Act m a
 lift0 m = empty @(OldDay (∧)) @m $$ a
 
 lift2 ::
   forall c a b.
   forall m ->
-  (MonoidObject (OldDay (∧)) Id m) =>
+  (MonoidObject (OldDay (∧)) m) =>
   (a -> b -> c) ->
   Act m a ->
   Act m b ->
@@ -431,27 +433,25 @@ type Foldable ::
   forall {i}.
   forall (k :: CATEGORY i).
   BINARY_OP k ->
-  i ->
   (k --> k) ->
   Constraint
 class
-  (Monoidal p id) =>
-  Foldable p id (t :: k --> k)
-    | p -> id
+  (Monoidal p) =>
+  Foldable p (t :: k --> k)
   where
   foldMap_ ::
-    (a ∈ k, m ∈ k, MonoidObject p id m) =>
+    (a ∈ k, m ∈ k, MonoidObject p m) =>
     k a m ->
     k (Act t a) m
 
 foldMap ::
-  forall {k} (t :: k --> k) p {id} m a.
-  (Foldable p id t, a ∈ k, m ∈ k, MonoidObject p id m) =>
+  forall {k} (t :: k --> k) p m a.
+  (Foldable p t, a ∈ k, m ∈ k, MonoidObject p m) =>
   k a m ->
   k (Act t a) m
-foldMap = foldMap_ @k @p @id @t @a @m
+foldMap = foldMap_ @k @p @t @a @m
 
-instance Foldable (∧) () List where
+instance Foldable (∧) List where
   foldMap_ _ [] = empty @(∧) ()
   foldMap_ f (h : t) = f h <> foldMap @List @(∧) f t
 
@@ -466,42 +466,41 @@ instance Foldable (∧) () List where
 type Traversable ::
   BINARY_OP (k ^ k) ->
   (k --> k) ->
-  (k --> k) ->
   Constraint
-class (Monoidal p id) => Traversable p id t | p -> id where
+class (Monoidal p) => Traversable p t where
   sequence ::
     forall p' t' m ->
-    (p' ~ p, t' ~ t, MonoidObject p id m) =>
+    (p' ~ p, t' ~ t, MonoidObject p m) =>
     (t • m) ~> (m • t)
 
 sequenceA ::
   forall i.
   forall t m ->
-  (Traversable (OldDay (∧)) Id t, MonoidObject (OldDay (∧)) Id m) =>
+  (Traversable (OldDay (∧)) t, MonoidObject (OldDay (∧)) m) =>
   Act (t • m) i -> Act (m • t) i
 sequenceA t m = sequence (OldDay (∧)) t m $$ i
 
-instance Traversable (OldDay (∧)) Id Id where
+instance Traversable (OldDay (∧)) Id where
   sequence ::
     forall p' t' m ->
-    (p' ~ OldDay (∧), t' ~ Id, MonoidObject (OldDay (∧)) Id m) =>
+    (p' ~ OldDay (∧), t' ~ Id, MonoidObject (OldDay (∧)) m) =>
     (Id • m) ~> (m • Id)
   sequence _ _ m = EXP \i -> identity (Act m i)
 
-instance Traversable (OldDay (∧)) Id List where
+instance Traversable (OldDay (∧)) List where
   sequence ::
     forall p' t' m ->
-    (p' ~ OldDay (∧), t' ~ List, MonoidObject (OldDay (∧)) Id m) =>
+    (p' ~ OldDay (∧), t' ~ List, MonoidObject (OldDay (∧)) m) =>
     (List • m) ~> (m • List)
   sequence _ _ m = EXP \i ->
     Prelude.foldr
       (lift2 m ((:) @i))
       (lift0 m ([] @i))
 
-instance Traversable (OldDay (∧)) Id Dup where
+instance Traversable (OldDay (∧)) Dup where
   sequence ::
     forall p' t' m ->
-    (p' ~ OldDay (∧), t' ~ Dup, MonoidObject (OldDay (∧)) Id m) =>
+    (p' ~ OldDay (∧), t' ~ Dup, MonoidObject (OldDay (∧)) m) =>
     (Dup • m) ~> (m • Dup)
   sequence _ _ m = EXP \i (l, r) -> lift2 @(Act Dup i) m (,) l r
 
@@ -522,16 +521,16 @@ _egSeqDup =
 
 ---
 
-class TraversableV2 p id t where
+class TraversableV2 p t where
   traverse_ ::
-    (MonoidObject p id m) =>
+    (MonoidObject p m) =>
     (Δ' a ~> m) ->
     ((t • Δ' a) ~> (m • t))
 
-instance TraversableV2 (OldDay (∧)) Id List where
+instance TraversableV2 (OldDay (∧)) List where
   traverse_ ::
     forall m a.
-    (MonoidObject (OldDay (∧)) Id m) =>
+    (MonoidObject (OldDay (∧)) m) =>
     (Δ' a ~> m) ->
     ((List • Δ' a) ~> (m • List))
   traverse_ (EXP f) =

@@ -102,15 +102,17 @@ instance (Associative o) => Associative (Day₁ @d @Types o) where
       fa
       (DataDayTypes @b @y @(Act o '(b, y)) (identity _) gb hy)
 
-instance Monoidal (Day₁ (∧)) Id where
+type instance MonoidalEmpty (Day₁ (∧)) = Id
+
+instance Monoidal (Day₁ @Types @Types (∧)) where
   idl = EXP \i (DataDayTypes xyz x my :: DataDay (∧) Id m i) -> map m (\y -> xyz (x, y)) my
-  coidl = EXP \_ my -> DataDayTypes (\((), v) -> v) () my
+  coidl = EXP \_ my -> DataDayTypes Prelude.snd () my
   idr = EXP \i (DataDayTypes xyz mx y :: DataDay (∧) m Id i) -> map m (\x -> xyz (x, y)) mx
-  coidr = EXP \_ mx -> DataDayTypes (\(v, ()) -> v) mx ()
+  coidr = EXP \_ mx -> DataDayTypes Prelude.fst mx ()
 
 instance
   (Prelude.Applicative m) =>
-  MonoidObject (Day₁ @Types @Types (∧)) Id (Constructor m)
+  MonoidObject (Day₁ @Types @Types (∧)) (Constructor m)
   where
   empty_ = EXP \_ -> Prelude.pure
   append_ = EXP \_ (DataDayTypes xyz mx my) -> Prelude.liftA2 (\x y -> xyz (x, y)) mx my
