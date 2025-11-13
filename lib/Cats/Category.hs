@@ -18,7 +18,7 @@ type family x ∈ k
 -- Semigroupoids have a means of composing arrows
 type Semigroupoid :: CATEGORY i -> Constraint
 class Semigroupoid k where
-  (∘) :: (a ∈ k, b ∈ k, x ∈ k) => k a b -> k x a -> k x b
+  (∘) :: k a b -> k x a -> k x b
 
 -- Categories are Semigroupoids with an identity arrow
 type Category :: CATEGORY i -> Constraint
