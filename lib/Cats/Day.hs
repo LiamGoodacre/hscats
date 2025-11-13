@@ -10,6 +10,7 @@ where
 
 import Cats.Adjoint
 import Cats.Associative
+import Cats.Binary
 import Cats.Category
 import Cats.Compose
 import Cats.Constructor
@@ -77,11 +78,8 @@ composeToDayTypes = EXP \i ->
     () & leftToRight f r \f_ ->
       bogusLTypes @f @g (type ()) i f_ gi
 
-type data
-  Day₁ ::
-    forall d c.
-    ((d × d) --> d) ->
-    ((c ^ d) × (c ^ d)) --> (c ^ d)
+-- Day as a binary operator on functors
+type data Day₁ :: forall d c. BINARY_OP d -> BINARY_OP (c ^ d)
 
 type instance Act (Day₁ o) fg = Day o (Fst fg) (Snd fg)
 
