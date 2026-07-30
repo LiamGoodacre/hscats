@@ -202,7 +202,7 @@ twicePostincShow = stateMonad Do.do
 egState :: (Prelude.String, Prelude.Integer)
 egState = twicePostincShow 10
 
--- !$> egState
+-- !$> egState -- ("10-11-(22,204)",12)
 
 newtype NT t m = NT (t ~> m)
 
@@ -542,4 +542,4 @@ instance TraversableV2 (OldDay (∧)) List where
 ---
 
 main :: Prelude.IO ()
-main = Prelude.putStrLn ""
+main = Prelude.print egState
