@@ -26,15 +26,6 @@ class (Act f o ∈ CodomainOf f) => Acts f o
 
 instance (Act f o ∈ CodomainOf f) => Acts f o
 
-class TrivialSuper f
-
-instance TrivialSuper f
-
-type Super :: forall d c. (d --> c) -> Constraint
-type family Super @d @c
-
-type instance Super @Types = TrivialSuper
-
 -- What is a functor?
 -- DomainOf must be a category.
 -- CodomainOf must be a category.
