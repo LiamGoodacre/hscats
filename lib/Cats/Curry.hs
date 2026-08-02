@@ -25,7 +25,7 @@ instance
   (Category a, Category b, Category c, Functor f) =>
   Functor (Curry₁ @a @b @c f)
   where
-  map _ axy = EXP \i ->
+  map _ axy = EXP \(type i) ->
     map f (axy :×: identity i)
 
 -- Typing '₀': ` 0 s`
@@ -37,4 +37,4 @@ instance
   (Category a, Category b, Category c) =>
   Functor (Curry₀ @a @b @c)
   where
-  map _ (EXP t) = EXP \i -> EXP \j -> t (i, j)
+  map _ (EXP t) = EXP \(type i) -> EXP \(type j) -> t (i, j)

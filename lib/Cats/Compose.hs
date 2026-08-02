@@ -10,21 +10,21 @@ type data (•) :: (a --> b) -> (x --> a) -> (x --> b)
 type instance Act (f • g) x = Act f (Act g x)
 
 instance (Functor f, Functor g) => Functor (f • g) where
-  map _ = map f ∘ map g
+  map _ = map (type f) ∘ map (type g)
 
 above ::
   forall k f g.
   (Functor k) =>
   (f ~> g) ->
   ((f • k) ~> (g • k))
-above fg = EXP \i -> fg $$ Act k i
+above fg = EXP \(type i) -> fg $$ Act k i
 
 beneath ::
   forall k f g.
   (Functor k, Functor f, Functor g) =>
   (f ~> g) ->
   ((k • f) ~> (k • g))
-beneath fg = EXP \i -> map k (fg $$ i)
+beneath fg = EXP \(type i) -> map k (fg $$ i)
 
 -- Functor in the two functors arguments
 -- `(f • g) v` is a functor in `f`, and `g`
