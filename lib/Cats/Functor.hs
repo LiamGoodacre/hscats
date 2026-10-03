@@ -43,3 +43,13 @@ class
     forall f' ->
     (f' ~ f, a ∈ d, b ∈ d) =>
     d a b -> c (Act f a) (Act f b)
+
+-- Sometimes GHC needs a hint as to how to bring
+-- `Act f i ∈ CodomainOf f` into scope.
+acting ::
+  forall f i ->
+  ( Functor f,
+    i ∈ DomainOf f
+  ) =>
+  ((Act f i ∈ CodomainOf f) => r) -> r
+acting _ _ r = r

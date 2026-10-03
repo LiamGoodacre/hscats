@@ -14,7 +14,7 @@ type Snd :: (l, r) -> r
 type family Snd p where
   Snd '(a, b) = b
 
-type instance v ∈ (l × r) = (v ~ '(Fst v, Snd v), Fst v ∈ l, Snd v ∈ r)
+type instance Obj (l × r) v = (v ~ '(Fst v, Snd v), Fst v ∈ l, Snd v ∈ r)
 
 instance (Semigroupoid l, Semigroupoid r) => Semigroupoid (l × r) where
   (a :×: b) ∘ (c :×: d) = (a ∘ c) :×: (b ∘ d)

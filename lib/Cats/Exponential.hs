@@ -14,7 +14,7 @@ data (^) :: forall c d -> CATEGORY (d --> c) where
 
 type (~>) (f :: d --> c) g = (c ^ d) f g
 
-type instance o ∈ (c ^ d) = Functor o
+type instance Obj (c ^ d) o = Functor o
 
 instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
   l ∘ r = EXP \(type i) -> (l $$ i) ∘ (r $$ i)

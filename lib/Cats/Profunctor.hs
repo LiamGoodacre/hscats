@@ -11,7 +11,7 @@ import Data.Type.Equality (type (~))
 newtype Viewer :: CATEGORY o -> CATEGORY (o, o) where
   Viewer :: {runViewer :: arr (Fst st) (Fst ab)} -> Viewer arr ab st
 
-type instance o ∈ Viewer arr = o ∈ (arr × arr)
+type instance Obj (Viewer arr) o = o ∈ (arr × arr)
 
 instance (Semigroupoid arr) => Semigroupoid (Viewer arr) where
   Viewer f ∘ Viewer g = Viewer (g ∘ f)
@@ -25,7 +25,7 @@ data Like :: CATEGORY o -> CATEGORY (o, o) where
     !(arr (Snd ab) (Snd st)) ->
     Like arr ab st
 
-type instance o ∈ Like arr = o ∈ (arr × arr)
+type instance Obj (Like arr) o = o ∈ (arr × arr)
 
 instance (Semigroupoid arr) => Semigroupoid (Like arr) where
   Like f g ∘ Like h i = Like (h ∘ f) (g ∘ i)
@@ -55,7 +55,7 @@ data
     !(arr (TensoredObjects tensor e ab) st) ->
     Tensored tensor arr ab st
 
-type instance o ∈ Tensored tensor arr = o ∈ arr
+type instance Obj (Tensored tensor arr) o = o ∈ arr
 
 type data Direction = RTL | LTR
 
@@ -68,7 +68,21 @@ data Glass :: Direction -> CATEGORY (o, o) -> CATEGORY (o, o) where
   Window :: !(proarr '(a, b) '(s, t)) -> Glass RTL proarr '(a, b) '(s, t)
   Mirror :: !(proarr '(t, s) '(b, a)) -> Glass LTR proarr '(a, b) '(s, t)
 
-type instance e ∈ Glass d k = e ∈ k
+type instance Obj (Glass RTL k) e = (e ~ '(Fst e, Snd e), e ∈ k)
+
+type instance Obj (Glass LTR k) e = (e ~ '(Fst e, Snd e), '(Snd e, Fst e) ∈ k)
+
+instance (Semigroupoid k) => Semigroupoid (Glass RTL k) where
+  Window abst ∘ Window xyab = Window (abst ∘ xyab)
+
+instance (Semigroupoid k) => Semigroupoid (Glass LTR k) where
+  Mirror abst ∘ Mirror xyab = Mirror (xyab ∘ abst)
+
+instance (Category k) => Category (Glass RTL k) where
+  identity _ = Window (identity _)
+
+instance (Category k) => Category (Glass LTR k) where
+  identity _ = Mirror (identity _)
 
 type Reversible :: CATEGORY (o, o) -> CATEGORY (o, o) -> Constraint
 class Reversible input output | input -> output, output -> input where
@@ -91,38 +105,6 @@ type OsiLike = Glass LTR (Like Types)
 type ViewLike = Glass RTL (Viewer Types)
 
 type ReviewLike = Glass LTR (Viewer Types)
-
-type instance o ∈ IsoLike = o ∈ Like Types
-
-instance Semigroupoid IsoLike where
-  Window abst ∘ Window xyab = Window (abst ∘ xyab)
-
-instance Category IsoLike where
-  identity _ = Window (identity _)
-
-type instance o ∈ OsiLike = o ∈ Like Types
-
-instance Semigroupoid OsiLike where
-  Mirror xyab ∘ Mirror abst = Mirror (abst ∘ xyab)
-
-instance Category OsiLike where
-  identity _ = Mirror (identity _)
-
-type instance o ∈ ViewLike = o ∈ Viewer Types
-
-instance Semigroupoid ViewLike where
-  Window xyab ∘ Window abst = Window (xyab ∘ abst)
-
-instance Category ViewLike where
-  identity _ = Window (identity _)
-
-type instance o ∈ ReviewLike = o ∈ Viewer Types
-
-instance Semigroupoid ReviewLike where
-  Mirror abst ∘ Mirror xyab = Mirror (xyab ∘ abst)
-
-instance Category ReviewLike where
-  identity _ = Mirror (identity _)
 
 type data InOptic :: forall d -> (c --> Types) -> d --> Types
 

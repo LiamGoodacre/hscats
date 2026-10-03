@@ -47,5 +47,7 @@ instance Associative (∨) where
     Prelude.Right c -> Prelude.Right (Prelude.Right c)
 
 instance (Category k) => Associative (Composing :: BINARY_OP (k ^ k)) where
-  lassoc _ _ _ _ = EXP \_ -> identity _
-  rassoc _ _ _ _ = EXP \_ -> identity _
+  lassoc _ (type f) (type g) (type h) =
+    EXP \(type i) -> identity (f • (g • h)) $$ i
+  rassoc _ (type f) (type g) (type h) =
+    EXP \(type i) -> identity ((f • g) • h) $$ i

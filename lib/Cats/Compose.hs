@@ -24,7 +24,9 @@ beneath ::
   (Functor k, Functor f, Functor g) =>
   (f ~> g) ->
   ((k • f) ~> (k • g))
-beneath fg = EXP \(type i) -> map k (fg $$ i)
+beneath fg = EXP \(type i) ->
+  with @(Acts f i, Acts g i) do
+    map (type k) (fg $$ i)
 
 -- Functor in the two functors arguments
 -- `(f • g) v` is a functor in `f`, and `g`
@@ -37,7 +39,8 @@ instance
   Functor (Composing @aa @bb @cc)
   where
   map _ ((fh :: f ~> h) :×: (gi :: g ~> i)) =
-    beneath gi ∘ above fh :: (f • g) ~> (h • i)
+    with @(h ∈ (bb ^ aa), g ∈ (aa ^ cc), i ∈ (aa ^ cc)) do
+      beneath gi ∘ above fh :: (f • g) ~> (h • i)
 
 -- `(f • g) v` is a functor in `f`, `g`, and `v`
 type data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
@@ -48,7 +51,8 @@ instance
   (Category aa, Category bb, Category cc) =>
   Functor (Composed @aa @bb @cc)
   where
-  map _ (fhgi :×: (xy :: cc x y)) =
-    case map (Composing @aa @bb @cc) fhgi of
-      (v :: (f • g) ~> (h • i)) ->
-        map (h • i) xy ∘ (v $$ x)
+  map _ ((fhgi :: p fg hi) :×: (xy :: cc x y)) =
+    with @(hi ∈ p) do
+      case map (Composing @aa @bb @cc) fhgi of
+        (v :: (f • g) ~> (h • i)) ->
+          map (h • i) xy ∘ (v $$ x)

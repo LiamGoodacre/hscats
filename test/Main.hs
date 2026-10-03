@@ -17,7 +17,7 @@ import Prelude qualified
 data PreludeMonoid :: Type -> CATEGORY () where
   PreludeMonoid :: {getPreludeMonoid :: m} -> PreludeMonoid m '() '()
 
-type instance x ∈ PreludeMonoid m = (x ~ '())
+type instance Obj (PreludeMonoid m) x = (x ~ '())
 
 instance (Prelude.Semigroup m) => Semigroupoid (PreludeMonoid m) where
   PreludeMonoid l ∘ PreludeMonoid r = PreludeMonoid (l Prelude.<> r)
@@ -43,7 +43,7 @@ boring_monoid_category_example = ()
 data Endo :: i -> CATEGORY i -> CATEGORY () where
   ENDO :: c o o -> Endo o c '() '()
 
-type instance x ∈ Endo o c = (x ~ '())
+type instance Obj (Endo o c) x = (x ~ '())
 
 instance (Semigroupoid c, o ∈ c) => Semigroupoid (Endo o c) where
   ENDO l ∘ ENDO r = ENDO (l ∘ r)
@@ -139,7 +139,7 @@ instance
 
 instance (Functor g) => PostCompose g ⊣ PostRan @x @z @Types g where
   rightToLeft _ _ a_bg =
-    EXP \i ag ->
+    EXP \(type i) ag ->
       case (a_bg $$ Act g i) ag of
         RAN _ fg_b fgi ->
           (fg_b $$ i) fgi
@@ -231,7 +231,7 @@ instance Functor (Free0 @Types t) where
   map _ (a_b :: a -> b) r = FREE \m _ t_m -> map m a_b (runFree r m a t_m)
 
 instance Functor (Free1 @Types) where
-  map _ a_b = EXP \_ (FREE f) -> FREE \m a (NT t_m) -> f m a (NT (t_m ∘ a_b))
+  map _ a_b = EXP \_ (FREE f) -> FREE \m (type a) (NT t_m) -> f m a (NT (t_m ∘ a_b))
 
 instance Functor (Free2 @Types) where
   map _ (s_t :×: (a_b :: Types a b)) = \(FREE f) ->
@@ -326,19 +326,21 @@ instance
 
 instance (Associative p) => Associative (OldDay p) where
   lassoc _ _ _ _ = EXP \_ (DAY_D (Proxy @x) Proxy xyz fx (DAY_D (Proxy @a) (Proxy @b) aby ga hb)) ->
-    DAY_D
-      Proxy
-      (Proxy @b)
-      (xyz ∘ map p (identity x :×: aby) ∘ rassoc p x a b)
-      (DAY_D (Proxy @x) (Proxy @a) (identity _) fx ga)
-      hb
+    with @(Acts p '(a, b), Acts p '(x, a)) do
+      DAY_D
+        Proxy
+        (Proxy @b)
+        (xyz ∘ map p (identity x :×: aby) ∘ rassoc p x a b)
+        (DAY_D (Proxy @x) (Proxy @a) (identity _) fx ga)
+        hb
   rassoc _ _ _ _ = EXP \_ (DAY_D Proxy (Proxy @y) xyz (DAY_D (Proxy @a) (Proxy @b) abx fa gb) hy) ->
-    DAY_D
-      (Proxy @a)
-      Proxy
-      (xyz ∘ map p (abx :×: identity y) ∘ lassoc p a b y)
-      fa
-      (DAY_D (Proxy @b) (Proxy @y) (identity _) gb hy)
+    with @(Acts p '(a, b), Acts p '(b, y)) do
+      DAY_D
+        (Proxy @a)
+        Proxy
+        (xyz ∘ map p (abx :×: identity y) ∘ lassoc p a b y)
+        fa
+        (DAY_D (Proxy @b) (Proxy @y) (identity _) gb hy)
 
 type instance MonoidalEmpty (OldDay (∧)) = Id
 
@@ -371,7 +373,8 @@ instance MonoidObject (OldDay (∧)) List where
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
 lift0 :: forall a. forall m -> (MonoidObject (OldDay (∧)) m) => a -> Act m a
-lift0 m = empty @(OldDay (∧)) @m $$ a
+lift0 m = member (type Types) (type a) do
+  empty @(OldDay (∧)) @m $$ a
 
 lift2 ::
   forall c a b.
@@ -381,7 +384,7 @@ lift2 ::
   Act m a ->
   Act m b ->
   Act m c
-lift2 m abc ma mb =
+lift2 m abc ma mb = member (type Types) (type c) do
   (append @(OldDay (∧)) @m $$ c)
     (day @_ @a @b @c (\(a, b) -> abc a b) ma mb)
 
@@ -478,14 +481,15 @@ sequenceA ::
   forall t m ->
   (Traversable (OldDay (∧)) t, MonoidObject (OldDay (∧)) m) =>
   Act (t • m) i -> Act (m • t) i
-sequenceA t m = sequence (OldDay (∧)) t m $$ i
+sequenceA t m = member (type Types) (type i) do
+  sequence (OldDay (∧)) t m $$ i
 
 instance Traversable (OldDay (∧)) Id where
   sequence ::
     forall p' t' m ->
     (p' ~ OldDay (∧), t' ~ Id, MonoidObject (OldDay (∧)) m) =>
     (Id • m) ~> (m • Id)
-  sequence _ _ m = EXP \i -> identity (Act m i)
+  sequence _ _ m = EXP \(type i) -> identity m $$ i
 
 instance Traversable (OldDay (∧)) List where
   sequence ::
@@ -541,5 +545,74 @@ instance TraversableV2 (OldDay (∧)) List where
 
 ---
 
+assertEqual ::
+  (Prelude.Eq a, Prelude.Show a) =>
+  Prelude.String -> a -> a -> Prelude.IO ()
+assertEqual label expected actual
+  | expected Prelude.== actual = Prelude.pure ()
+  | Prelude.otherwise =
+      Prelude.ioError $
+        Prelude.userError $
+          label
+            Prelude.++ ": expected "
+            Prelude.++ Prelude.show expected
+            Prelude.++ ", got "
+            Prelude.++ Prelude.show actual
+
+checks :: [Prelude.IO ()]
+checks =
+  [ assertEqual "Dup do" (22, 204) egDuped,
+    assertEqual "State do" ("10-11-(22,204)", 12) egState,
+    assertEqual "State postincrement" (5, 6) (postinc 5),
+    assertEqual "lift0 Id" 7 (_egLift0Id 7),
+    assertEqual "lift0 Dup" (7, 7) (_egLift0Dup 7),
+    assertEqual "lift0 List" [7] (_egLift0List 7),
+    assertEqual @[Prelude.Int]
+      "lift2 List"
+      [11, 21, 12, 22]
+      (lift2 List (Prelude.+) [1, 2] [10, 20]),
+    assertEqual @(Prelude.Int, Prelude.Int)
+      "lift2 Dup"
+      (11, 22)
+      (lift2 Dup (Prelude.+) (1, 2) (10, 20)),
+    assertEqual "sequence Id" "7" (_egSeqId 7),
+    assertEqual "sequence List" ["7", "7"] (_egSeqList 7),
+    assertEqual "sequence Dup" ("7", "7") (_egSeqDup 7),
+    assertEqual @[[Prelude.Int]]
+      "sequence empty List"
+      [[]]
+      (sequenceA List List []),
+    assertEqual @[[Prelude.Int]]
+      "sequence List combinations"
+      [[1, 10], [1, 20], [2, 10], [2, 20]]
+      (sequenceA List List [[1, 2], [10, 20]]),
+    assertEqual
+      "foldMap empty List"
+      ""
+      (foldMap @List @(∧) Prelude.show ([] :: [Prelude.Int])),
+    assertEqual "foldMap List" "123" (foldMap @List @(∧) Prelude.show _abc),
+    assertEqual "list refix" [1, 2, 3] _abc,
+    assertEqual
+      "Fix round trip"
+      _abc
+      (refix @(FixOf (AsFunctor (ListF Prelude.Int))) @(AnObject Types [Prelude.Int]) _def),
+    assertEqual
+      "cata List"
+      6
+      ( cata @(AnObject Types [Prelude.Int]) @Prelude.Int
+          (\case Nil -> 0; Cons x total -> x Prelude.+ total)
+          _abc
+      ),
+    assertEqual
+      "ana List"
+      [3, 2, 1]
+      ( ana @(AnObject Types [Prelude.Int]) @Prelude.Int
+          (\case 0 -> Nil; n -> Cons n (n Prelude.- 1))
+          3
+      )
+  ]
+
 main :: Prelude.IO ()
-main = Prelude.print egState
+main =
+  Prelude.sequence_ checks
+    Prelude.>> Prelude.putStrLn (Prelude.show (Prelude.length checks) Prelude.++ " example checks passed.")

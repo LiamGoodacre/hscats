@@ -76,7 +76,7 @@ data instance DataForall (f :: d --> Types) where
   DataForallTypes :: forall {d} (f :: d --> Types). {runForallTypes :: forall i -> (i ∈ d) => Act f i} -> DataForall f
 
 instance (Category d) => Functor (Forall @d @Types) where
-  map _ t (DataForallTypes ifi) = DataForallTypes \i -> (t $$ i) (ifi i)
+  map _ t (DataForallTypes ifi) = DataForallTypes \(type i) -> (t $$ i) (ifi i)
 
 instance Exists @Types ⊣ Δ @Types where
   rightToLeft _ _ a_deltab (DataExistsTypes @a fa) = (a_deltab $$ a) fa

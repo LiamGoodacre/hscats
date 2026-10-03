@@ -65,20 +65,22 @@ dayToComposeTypes ::
   forall f g.
   (Functor f, Functor g) =>
   Day (∧) f g ~> (f • g)
-dayToComposeTypes = EXP \_ (DataDayTypes xyz fx gy) ->
-  map f (\x -> map g (\y -> xyz (x, y)) gy) fx
+dayToComposeTypes = EXP \(type i) (DataDayTypes xyz fx gy) ->
+  with @(Acts g i) do
+    map f (\x -> map g (\y -> xyz (x, y)) gy) fx
 
 bogusLTypes :: forall x y -> Act f x -> Act g y -> Act (Day @Types @Types (∧) f g) y
 bogusLTypes x _ f_ gi = DataDayTypes (\(_ :: x, v) -> v) f_ gi
 
 composeToDayTypes ::
   forall f g r.
-  (f ⊣ r) =>
+  (f ⊣ r, Functor g) =>
   (f • g) ~> Day @Types @Types (∧) f g
-composeToDayTypes = EXP \i ->
-  rightToLeft r f \gi ->
-    () & leftToRight f r \f_ ->
-      bogusLTypes @f @g (type ()) i f_ gi
+composeToDayTypes = EXP \(type i) ->
+  acting (type g) (type i) do
+    rightToLeft r f \gi ->
+      () & leftToRight f r \f_ ->
+        bogusLTypes @f @g (type ()) i f_ gi
 
 -- Day as a binary operator on functors
 type data Day₁ :: forall d c. BINARY_OP d -> BINARY_OP (c ^ d)

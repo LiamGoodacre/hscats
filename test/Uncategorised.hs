@@ -44,7 +44,9 @@ instance
   (Category d, Category c) =>
   Functor (Eval @d @c)
   where
-  map @a @b _ (f :×: x) = map (Fst b) x ∘ (f $$ Snd a)
+  map @a @b _ (f :×: x) =
+    with @(Fst b ∈ (c ^ d)) do
+      map (Fst b) x ∘ (f $$ Snd a)
 
 {- Monad & Comonad -}
 
@@ -110,7 +112,7 @@ flatMap m amb = join m b ∘ map m amb
 data One :: CATEGORY () where
   ONE :: One '() '()
 
-type instance t ∈ One = (t ~ '())
+type instance Obj One t = (t ~ '())
 
 instance Semigroupoid One where
   ONE ∘ ONE = ONE
@@ -223,7 +225,7 @@ type family CanonicalN n where
   CanonicalN 'Z = 'Z
   CanonicalN ('S k) = 'S (CanonicalN k)
 
-type instance x ∈ (≤) = x ~ CanonicalN x
+type instance Obj (≤) x = x ~ CanonicalN x
 
 instance Semigroupoid (≤) where
   E ∘ r = r

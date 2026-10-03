@@ -12,8 +12,13 @@ type NamesOf :: forall i. CATEGORY i -> Type
 type NamesOf @i c = i
 
 -- Categories must specify what it means to be an object in that category
-type (∈) :: forall i. i -> CATEGORY i -> Constraint
-type family x ∈ k
+type family Obj (k :: CATEGORY i) (x :: i) :: Constraint
+
+-- Class arguments retain the object and category for inference; the superclass
+-- exposes the category-specific object constraint.
+class (Obj k x) => (x :: i) ∈ (k :: CATEGORY i)
+
+instance (Obj k x) => x ∈ k
 
 -- Semigroupoids have a means of composing arrows
 type Semigroupoid :: CATEGORY i -> Constraint
@@ -26,7 +31,7 @@ class (Semigroupoid k) => Category k where
   identity :: forall o -> (o ∈ k) => k o o
 
 -- "Equality" forms a category
-type instance (t :: k) ∈ (:~:) = (t ~ t)
+type instance Obj (:~:) t = (t ~ t)
 
 instance Semigroupoid (:~:) where
   Refl ∘ Refl = Refl
@@ -37,10 +42,19 @@ instance Category (:~:) where
 -- "Type" forms a category
 type Types = (->) :: CATEGORY Type
 
-type instance t ∈ Types = (t ~ t)
+type instance Obj Types t = (t ~ t)
 
 instance Semigroupoid Types where
   (f ∘ g) x = f (g x)
 
 instance Category Types where
   identity _ x = x
+
+with :: (c) => ((c) => r) -> r
+with r = r
+
+member ::
+  forall (k :: CATEGORY i) (o :: i) ->
+  (Obj k o) =>
+  ((o ∈ k) => r) -> r
+member _ _ result = result

@@ -29,25 +29,25 @@ unit ::
   forall (m :: c --> c) a ->
   (m ~ (g • f), f ⊣ g, a ∈ c) =>
   c a (Act (g • f) a)
-unit _ a = leftToRight f g (identity (Act f a))
+unit _ (type a) = leftToRight f g (identity (Act f a))
 
 counit ::
   forall {d} g f.
   forall (w :: d --> d) a ->
   (w ~ (f • g), f ⊣ g, a ∈ d) =>
   d (Act (f • g) a) a
-counit _ a = rightToLeft g f (identity (Act g a))
+counit _ (type a) = rightToLeft g f (identity (Act g a))
 
 join ::
   forall {c} {f} {g}.
   forall (m :: c --> c) a ->
   (m ~ (g • f), f ⊣ g, a ∈ c) =>
   c (Act (m • m) a) (Act m a)
-join _ a = map g (counit (f • g) (Act f a))
+join _ (type a) = map g (counit (f • g) (Act f a))
 
 extend ::
   forall {d} {f} {g}.
   forall (w :: d --> d) a ->
   (w ~ (f • g), f ⊣ g, a ∈ d) =>
   d (Act w a) (Act (w • w) a)
-extend _ a = map f (unit (g • f) (Act g a))
+extend _ (type a) = map f (unit (g • f) (Act g a))
