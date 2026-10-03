@@ -354,27 +354,27 @@ instance
   (Prelude.Applicative m) =>
   MonoidObject (OldDay (∧)) (Constructor m)
   where
-  empty_ = EXP \_p x -> Prelude.pure x
-  append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
+  empty _ _ = EXP \_p x -> Prelude.pure x
+  append _ _ = EXP \_p (DAY_D _ _ xyz fx fy) ->
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
 instance MonoidObject (OldDay (∧)) Id where
-  empty_ = EXP \_p x -> x
-  append_ = EXP \_p (DAY_D _ _ xyz fx fy) -> xyz (fx, fy)
+  empty _ _ = EXP \_p x -> x
+  append _ _ = EXP \_p (DAY_D _ _ xyz fx fy) -> xyz (fx, fy)
 
 instance MonoidObject (OldDay (∧)) Dup where
-  empty_ = EXP \_p x -> (x, x)
-  append_ = EXP \_p (DAY_D _ _ xyz (fx0, fx1) (fy0, fy1)) ->
+  empty _ _ = EXP \_p x -> (x, x)
+  append _ _ = EXP \_p (DAY_D _ _ xyz (fx0, fx1) (fy0, fy1)) ->
     (xyz (fx0, fy0), xyz (fx1, fy1))
 
 instance MonoidObject (OldDay (∧)) List where
-  empty_ = EXP \_p x -> [x]
-  append_ = EXP \_p (DAY_D _ _ xyz fx fy) ->
+  empty _ _ = EXP \_p x -> [x]
+  append _ _ = EXP \_p (DAY_D _ _ xyz fx fy) ->
     Prelude.liftA2 (\x y -> xyz (x, y)) fx fy
 
 lift0 :: forall a. forall m -> (MonoidObject (OldDay (∧)) m) => a -> Act m a
 lift0 m = member (type Types) (type a) do
-  empty @(OldDay (∧)) @m $$ a
+  empty (type (OldDay (∧))) (type m) $$ a
 
 lift2 ::
   forall c a b.
@@ -385,7 +385,7 @@ lift2 ::
   Act m b ->
   Act m c
 lift2 m abc ma mb = member (type Types) (type c) do
-  (append @(OldDay (∧)) @m $$ c)
+  (append (type (OldDay (∧))) (type m) $$ c)
     (day @_ @a @b @c (\(a, b) -> abc a b) ma mb)
 
 _egLift0Id :: Prelude.Int -> Prelude.Int
@@ -401,8 +401,8 @@ _egLift0List = lift0 List
 --   (Prelude.Monad m) =>
 --   MonoidObject Composing Id (Constructor m)
 --   where
---   empty_ = EXP \_ -> Prelude.pure
---   append_ = EXP \_ -> (Prelude.>>= identity _)
+--   empty = EXP \_ -> Prelude.pure
+--   append _ _ = EXP \_ -> (Prelude.>>= identity _)
 --
 -- join0 :: forall m. (MonoidObject Composing Id m) => Id ~> m
 -- join0 = empty @Composing
@@ -455,7 +455,7 @@ foldMap ::
 foldMap = foldMap_ @k @p @t @a @m
 
 instance Foldable (∧) List where
-  foldMap_ _ [] = empty @(∧) ()
+  foldMap_ _ [] = empty (type (∧)) (type _) ()
   foldMap_ f (h : t) = f h <> foldMap @List @(∧) f t
 
 -- Types () m

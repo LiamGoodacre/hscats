@@ -118,8 +118,8 @@ instance
   (Prelude.Applicative m) =>
   MonoidObject (Day₁ @Types @Types (∧)) (Constructor m)
   where
-  empty_ = EXP \_ -> Prelude.pure
-  append_ = EXP \_ (DataDayTypes xyz mx my) -> Prelude.liftA2 (\x y -> xyz (x, y)) mx my
+  empty _ _ = EXP \_ -> Prelude.pure
+  append _ _ = EXP \_ (DataDayTypes xyz mx my) -> Prelude.liftA2 (\x y -> xyz (x, y)) mx my
 
 type Blank = Δ' ()
 
@@ -135,6 +135,6 @@ instance
   (Prelude.Alternative m) =>
   MonoidObject (Day₁ @Types @Types (∨)) (Constructor m)
   where
-  empty_ = EXP \_ () -> Prelude.empty
-  append_ = EXP \_ (DataDayTypes doxyz mx my :: DataDay (∨) f g z) ->
+  empty _ _ = EXP \_ () -> Prelude.empty
+  append _ _ = EXP \_ (DataDayTypes doxyz mx my :: DataDay (∨) f g z) ->
     map f (doxyz ∘ Prelude.Left) mx Prelude.<|> map g (doxyz ∘ Prelude.Right) my
