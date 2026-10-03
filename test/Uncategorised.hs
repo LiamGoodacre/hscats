@@ -50,55 +50,6 @@ instance
 
 {- Monad & Comonad -}
 
-type MidCompositionIx :: forall c. (c --> c) -> Type
-type family MidCompositionIx m where
-  MidCompositionIx (g • f) = NamesOf (DomainOf g)
-
-type MidComposition :: forall c. forall (m :: c --> c) -> CATEGORY (MidCompositionIx m)
-type family MidComposition m where
-  MidComposition (g • f) = DomainOf g
-
-type OuterBy :: (c --> c) -> forall (d :: CATEGORY i) -> (d --> c)
-type family OuterBy m d where
-  OuterBy (g • f) d = g
-
-type InnerBy :: (c --> c) -> forall (d :: CATEGORY i) -> (c --> d)
-type family InnerBy m d where
-  InnerBy (g • f) d = f
-
-type Inner :: forall (m :: c --> c) -> (c --> MidComposition m)
-type Inner m = InnerBy m (MidComposition m)
-
-type Outer :: forall (m :: c --> c) -> (MidComposition m --> c)
-type Outer m = OuterBy m (MidComposition m)
-
-type TheCompositionBy :: (c --> c) -> CATEGORY i -> (c --> c)
-type TheCompositionBy m d = OuterBy m d • InnerBy m d
-
-type TheComposition :: (c --> c) -> (c --> c)
-type TheComposition m = TheCompositionBy m (MidComposition m)
-
-type MonadBy :: (c --> c) -> CATEGORY i -> Constraint
-type MonadBy m d =
-  ( m ~ TheCompositionBy m d,
-    InnerBy m d ⊣ OuterBy m d
-  )
-
-type Monad :: (c --> c) -> Constraint
-type Monad m = MonadBy m (MidComposition m)
-
-type ComonadBy :: (c --> c) -> CATEGORY i -> Constraint
-type ComonadBy w d =
-  ( w ~ TheCompositionBy w d,
-    OuterBy w d ⊣ InnerBy w d
-  )
-
-type Comonad :: (c --> c) -> Constraint
-type Comonad w = ComonadBy w (MidComposition w)
-
-type Invert :: forall c. forall (m :: c --> c) -> (MidComposition m --> MidComposition m)
-type Invert m = Inner m • Outer m
-
 flatMap ::
   forall {c} a b {f} {g}.
   forall (m :: c --> c) ->
