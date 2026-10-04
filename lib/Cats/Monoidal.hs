@@ -8,6 +8,9 @@ import Cats.Delta
 import Cats.Exponential
 import Cats.Id
 import Data.Kind (Constraint)
+import Data.Void (Void)
+import Data.Void qualified as Void
+import Prelude qualified
 
 type MonoidalEmpty :: BINARY_OP k -> NamesOf k
 type family MonoidalEmpty p
@@ -33,6 +36,14 @@ instance Monoidal (∧) where
   coidl = \m -> ((), m)
   idr = \(m, _) -> m
   coidr = \m -> (m, ())
+
+type instance MonoidalEmpty (∨) = Void
+
+instance Monoidal (∨) where
+  idl = Prelude.either Void.absurd Prelude.id
+  coidl = Prelude.Right
+  idr = Prelude.either Prelude.id Void.absurd
+  coidr = Prelude.Left
 
 type instance MonoidalEmpty Composing = Id
 
