@@ -6,6 +6,7 @@ import Cats.Category
 import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
+import Cats.MonoidObject
 import Cats.Monoidal
 import Data.Void (Void)
 import Data.Void qualified as Void
@@ -71,6 +72,19 @@ instance Monoidal (∨) where
   coidl = Prelude.Right
   idr = Prelude.either Prelude.id Void.absurd
   coidr = Prelude.Left
+
+instance
+  (Prelude.Monoid m) =>
+  MonoidObject (∧) m
+  where
+  empty _ _ = \() -> Prelude.mempty
+  append _ _ = \(l, r) -> Prelude.mappend l r
+
+mempty :: (MonoidObject (∧) m) => m
+mempty = empty (type (∧)) (type _) ()
+
+(<>) :: (MonoidObject (∧) m) => m -> m -> m
+l <> r = append (type (∧)) (type _) (l, r)
 
 -- ∃ ⊣ Δ @Types ⊣ ∀
 

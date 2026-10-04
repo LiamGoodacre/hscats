@@ -37,7 +37,7 @@ newtype PureDo m
   = PureDo
       (forall a. a -> Act m a)
 
-type MonadDo m =
+type AdjunctionMonadDo m =
   forall r.
   ( ( ?bind :: BindDo m,
       ?pure :: PureDo m
@@ -54,20 +54,20 @@ pure = let PureDo u = ?pure in u
 
 makeBind ::
   forall (m :: Types --> Types) {f} {g}.
-  (Monad m, m ~ (g • f)) =>
+  (AdjunctionMonad m, m ~ (g • f)) =>
   BindDo m
 makeBind = BindDo (bindImpl @m)
 
 makePure ::
   forall (m :: Types --> Types) {f} {g}.
-  (Monad m, m ~ (g • f)) =>
+  (AdjunctionMonad m, m ~ (g • f)) =>
   PureDo m
 makePure = PureDo (unit m _)
 
 with ::
   forall (m :: Types --> Types) ->
-  (Monad m, m ~ (g • f)) =>
-  MonadDo m
+  (AdjunctionMonad m, m ~ (g • f)) =>
+  AdjunctionMonadDo m
 with m t = do
   let ?bind = makeBind @m
   let ?pure = makePure @m

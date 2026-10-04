@@ -63,6 +63,15 @@ instance
   idr = EXP \_ -> identity _
   coidr = EXP \_ -> identity _
 
+-- instance
+--   ( Monad m,
+--     m ~ (f • g)
+--   ) =>
+--   MonoidObject (Composing :: BINARY_OP (k ^ k)) (m :: k --> k)
+--   where
+--   empty _ _ = EXP \_ -> unit m _
+--   append _ _ = EXP \(type a) -> join m a
+
 -- `(f • g) v` is a functor in `f`, `g`, and `v`
 type data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
 

@@ -12,6 +12,7 @@ import Cats.Curry as Exports
 import Cats.Delta as Exports
 import Cats.Exponential as Exports
 import Cats.Flip as Exports
+import Cats.FromAdjoint as Exports
 import Cats.Functor as Exports
 import Cats.Hom as Exports
 import Cats.Id as Exports

@@ -157,7 +157,7 @@ type Codensity f = f / f
 
 ---
 
-dupMonad :: Do.MonadDo Dup
+dupMonad :: Do.AdjunctionMonadDo Dup
 dupMonad = Do.with _
 
 egDuped :: (Prelude.Integer, Prelude.Integer)
@@ -170,7 +170,7 @@ egDuped = Do.with Dup Do.do
 
 type States s = Reader s • Env s
 
-stateMonad :: Do.MonadDo (States s)
+stateMonad :: Do.AdjunctionMonadDo (States s)
 stateMonad = Do.with _
 
 type State s i = Act (States s) i
@@ -213,7 +213,7 @@ type Free :: (Types --> Types) -> Type -> Type
 data Free t a = FREE
   { runFree ::
       forall m a' ->
-      (MonadBy m Types, a' ~ a) =>
+      (AdjunctionMonadBy m Types, a' ~ a) =>
       NT t m ->
       Act m a
   }

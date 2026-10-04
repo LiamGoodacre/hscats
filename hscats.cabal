@@ -23,6 +23,7 @@ library
       Cats.Delta,
       Cats.Exponential,
       Cats.Flip,
+      Cats.FromAdjoint,
       Cats.Functor,
       Cats.Hom,
       Cats.Id,
