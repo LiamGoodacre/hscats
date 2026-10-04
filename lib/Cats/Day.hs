@@ -45,6 +45,10 @@ type data
 
 type instance Act (Day o f g) z = DataDay o f g z
 
+-- This existential stores representatives of the Day coend. For arbitrary d,
+-- it does not identify representatives related by moving a source morphism
+-- between the combining arrow and a functor argument. In particular, clients
+-- can observe intermediate arrows when d carries more data than functions.
 data instance DataDay @d @Types o f g z where
   DataDayTypes ::
     forall {d} x y z o f g.
@@ -94,17 +98,24 @@ instance
   map _ (l :×: r) = EXP \_ (DataDayTypes @x @y xyz fx gy) ->
     DataDayTypes @x @y xyz ((l $$ x) fx) ((r $$ y) gy)
 
-instance (Associative o) => Associative (Day₁ @d @Types o) where
+-- Over Types, parametricity of the hidden object types gives the usual Day
+-- encoding for lawful functors. Over a general source category, reassociation
+-- can move observable data from an inner arrow to the outer arrow, so the two
+-- operations need not be inverses without the coend identifications. Keep
+-- construction and mapping generic, but restrict this instance to Types.
+instance (Associative o) => Associative (Day₁ @Types @Types o) where
   lassoc _ _ _ _ = EXP \_ (DataDayTypes @x @_ @z xyz fx (DataDayTypes @a @b @_ aby ga hb)) ->
-    DataDayTypes @(Act o '(x, a)) @b @z
-      (xyz ∘ map o (identity x :×: aby) ∘ rassoc o x a b)
-      (DataDayTypes @x @a @(Act o '(x, a)) (identity _) fx ga)
-      hb
+    with @(Acts o '(a, b), Acts o '(x, a)) do
+      DataDayTypes @(Act o '(x, a)) @b @z
+        (xyz ∘ map o (identity x :×: aby) ∘ rassoc o x a b)
+        (DataDayTypes @x @a @(Act o '(x, a)) (identity _) fx ga)
+        hb
   rassoc _ _ _ _ = EXP \_ (DataDayTypes @_ @y @z xyz (DataDayTypes @a @b @_ abx fa gb) hy) ->
-    DataDayTypes @a @(Act o '(b, y)) @z
-      (xyz ∘ map o (abx :×: identity y) ∘ lassoc o a b y)
-      fa
-      (DataDayTypes @b @y @(Act o '(b, y)) (identity _) gb hy)
+    with @(Acts o '(a, b), Acts o '(b, y)) do
+      DataDayTypes @a @(Act o '(b, y)) @z
+        (xyz ∘ map o (abx :×: identity y) ∘ lassoc o a b y)
+        fa
+        (DataDayTypes @b @y @(Act o '(b, y)) (identity _) gb hy)
 
 type instance MonoidalEmpty (Day₁ (∧)) = Id
 

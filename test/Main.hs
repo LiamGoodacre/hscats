@@ -5,6 +5,8 @@ import Data.Foldable qualified as Foldable
 import Data.Kind
 import Data.Proxy
 import Data.Type.Equality (type (~))
+import DayChecks qualified
+import DayUnsupported qualified
 import Do (pure)
 import Do qualified
 import RecursionSchemes
@@ -613,6 +615,8 @@ checks =
       )
   ]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- SpanChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- DayChecks.checks]
+    Prelude.++ [DayUnsupported.check]
 
 main :: Prelude.IO ()
 main =
