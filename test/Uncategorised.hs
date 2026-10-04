@@ -51,12 +51,13 @@ instance
 {- Monad & Comonad -}
 
 flatMap ::
-  forall {c} a b {f} {g}.
-  forall (m :: c --> c) ->
-  (m ~ (g • f), f ⊣ g, a ∈ c, b ∈ c) =>
-  c a (Act m b) ->
-  c (Act m a) (Act m b)
-flatMap m amb = join m b ∘ map m amb
+  forall {c} {d} a b {f :: c --> d} {g :: d --> c}.
+  forall m ->
+  (m ~ '(g, f), f ⊣ g, a ∈ c, b ∈ c) =>
+  c a (Act (g • f) b) ->
+  c (Act (g • f) a) (Act (g • f) b)
+flatMap (type m) amb =
+  join (type m) b ∘ map (type (g • f)) amb
 
 {- Category: 1 -}
 

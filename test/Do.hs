@@ -23,7 +23,7 @@ bindImpl ::
   Act (Act Composing m) b
 bindImpl _ ma t =
   join
-    (type (Act Composing m))
+    (type m)
     b
     ( map
         (type (Act Composing m))

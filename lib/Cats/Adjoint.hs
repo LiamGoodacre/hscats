@@ -1,7 +1,6 @@
 module Cats.Adjoint where
 
 import Cats.Category
-import Cats.Compose
 import Cats.Functor
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
@@ -39,15 +38,15 @@ counit ::
 counit _ (type a) = rightToLeft g f (identity (Act g a))
 
 join ::
-  forall {c} {f} {g}.
-  forall (m :: c --> c) a ->
-  (m ~ (g • f), f ⊣ g, a ∈ c) =>
-  c (Act (m • m) a) (Act m a)
+  forall {c} {d} {f :: c --> d} {g :: d --> c}.
+  forall m a ->
+  (m ~ '(g, f), f ⊣ g, a ∈ c) =>
+  c (Act g (Act f (Act g (Act f a)))) (Act g (Act f a))
 join _ (type a) = map g (counit (type '(f, g)) (Act f a))
 
 extend ::
-  forall {d} {f} {g}.
-  forall (w :: d --> d) a ->
-  (w ~ (f • g), f ⊣ g, a ∈ d) =>
-  d (Act w a) (Act (w • w) a)
+  forall {d} {c} {g :: d --> c} {f :: c --> d}.
+  forall w a ->
+  (w ~ '(f, g), f ⊣ g, a ∈ d) =>
+  d (Act f (Act g a)) (Act f (Act g (Act f (Act g a))))
 extend _ (type a) = map f (unit (type '(g, f)) (Act g a))
