@@ -56,6 +56,7 @@ test-suite hscats-test
     main-is: Main.hs
     other-modules:
       DayChecks,
+      DayInstances,
       DayUnsupported,
       Do,
       RecursionSchemes,
