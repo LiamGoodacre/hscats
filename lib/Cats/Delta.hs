@@ -1,10 +1,14 @@
 module Cats.Delta where
 
 import Cats.Adjoint
+import Cats.Associative
 import Cats.Category
 import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
+import Cats.Monoidal
+import Data.Void (Void)
+import Data.Void qualified as Void
 import Prelude qualified
 
 -- (∨) ⊣ Δ₂ Types ⊣ (∧)
@@ -37,6 +41,36 @@ instance Δ₂ Types ⊣ (∧) where
 instance (∨) ⊣ Δ₂ Types where
   rightToLeft _ _ (f :×: g) = f `Prelude.either` g
   leftToRight _ _ t = (t ∘ Prelude.Left) :×: (t ∘ Prelude.Right)
+
+instance Associative (∧) where
+  lassoc _ _ _ _ = \(a, (b, c)) -> ((a, b), c)
+  rassoc _ _ _ _ = \((a, b), c) -> (a, (b, c))
+
+instance Associative (∨) where
+  lassoc _ _ _ _ = \case
+    Prelude.Left a -> Prelude.Left (Prelude.Left a)
+    Prelude.Right (Prelude.Left b) -> Prelude.Left (Prelude.Right b)
+    Prelude.Right (Prelude.Right c) -> Prelude.Right c
+  rassoc _ _ _ _ = \case
+    Prelude.Left (Prelude.Left a) -> Prelude.Left a
+    Prelude.Left (Prelude.Right b) -> Prelude.Right (Prelude.Left b)
+    Prelude.Right c -> Prelude.Right (Prelude.Right c)
+
+type instance MonoidalEmpty (∧) = ()
+
+instance Monoidal (∧) where
+  idl = \(_, m) -> m
+  coidl = \m -> ((), m)
+  idr = \(m, _) -> m
+  coidr = \m -> (m, ())
+
+type instance MonoidalEmpty (∨) = Void
+
+instance Monoidal (∨) where
+  idl = Prelude.either Void.absurd Prelude.id
+  coidl = Prelude.Right
+  idr = Prelude.either Prelude.id Void.absurd
+  coidr = Prelude.Left
 
 -- ∃ ⊣ Δ @Types ⊣ ∀
 

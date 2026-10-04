@@ -3,14 +3,7 @@ module Cats.Monoidal where
 import Cats.Associative
 import Cats.Binary
 import Cats.Category
-import Cats.Compose
-import Cats.Delta
-import Cats.Exponential
-import Cats.Id
 import Data.Kind (Constraint)
-import Data.Void (Void)
-import Data.Void qualified as Void
-import Prelude qualified
 
 type MonoidalEmpty :: BINARY_OP k -> NamesOf k
 type family MonoidalEmpty p
@@ -28,30 +21,3 @@ class
   coidl :: (m ∈ k) => k m ((MonoidalEmpty p ☼ m) p)
   idr :: (m ∈ k) => k ((m ☼ MonoidalEmpty p) p) m
   coidr :: (m ∈ k) => k m ((m ☼ MonoidalEmpty p) p)
-
-type instance MonoidalEmpty (∧) = ()
-
-instance Monoidal (∧) where
-  idl = \(_, m) -> m
-  coidl = \m -> ((), m)
-  idr = \(m, _) -> m
-  coidr = \m -> (m, ())
-
-type instance MonoidalEmpty (∨) = Void
-
-instance Monoidal (∨) where
-  idl = Prelude.either Void.absurd Prelude.id
-  coidl = Prelude.Right
-  idr = Prelude.either Prelude.id Void.absurd
-  coidr = Prelude.Left
-
-type instance MonoidalEmpty Composing = Id
-
-instance
-  (Category k) =>
-  Monoidal (Composing :: BINARY_OP (k ^ k))
-  where
-  idl = EXP \_ -> identity _
-  coidl = EXP \_ -> identity _
-  idr = EXP \_ -> identity _
-  coidr = EXP \_ -> identity _

@@ -1,9 +1,13 @@
 module Cats.Compose where
 
+import Cats.Associative
+import Cats.Binary
 import Cats.Category
 import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
+import Cats.Id
+import Cats.Monoidal
 
 type data (•) :: (a --> b) -> (x --> a) -> (x --> b)
 
@@ -41,6 +45,23 @@ instance
   map _ ((fh :: f ~> h) :×: (gi :: g ~> i)) =
     with @(h ∈ (bb ^ aa), g ∈ (aa ^ cc), i ∈ (aa ^ cc)) do
       beneath gi ∘ above fh :: (f • g) ~> (h • i)
+
+instance (Category k) => Associative (Composing :: BINARY_OP (k ^ k)) where
+  lassoc _ (type f) (type g) (type h) =
+    EXP \(type i) -> identity (f • (g • h)) $$ i
+  rassoc _ (type f) (type g) (type h) =
+    EXP \(type i) -> identity ((f • g) • h) $$ i
+
+type instance MonoidalEmpty Composing = Id
+
+instance
+  (Category k) =>
+  Monoidal (Composing :: BINARY_OP (k ^ k))
+  where
+  idl = EXP \_ -> identity _
+  coidl = EXP \_ -> identity _
+  idr = EXP \_ -> identity _
+  coidr = EXP \_ -> identity _
 
 -- `(f • g) v` is a functor in `f`, `g`, and `v`
 type data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
