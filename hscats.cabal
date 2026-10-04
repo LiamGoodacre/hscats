@@ -29,6 +29,7 @@ library
       Cats.MonoidObject,
       Cats.Monoidal,
       Cats.Opposite,
+      Cats.Optics,
       Cats.Profunctor,
       Cats.Span
     build-depends:
