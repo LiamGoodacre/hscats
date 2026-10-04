@@ -61,19 +61,19 @@ data family DataExists (f :: d --> c)
 data instance DataExists (f :: d --> Types) where
   DataExistsTypes :: forall {d} i (f :: d --> Types). (i ∈ d) => Act f i -> DataExists f
 
-type instance Act (Exists @d @Types) f = DataExists f
+type instance Act (Exists @d @c) f = DataExists f
 
 instance (Category d) => Functor (Exists @d @Types) where
   map _ (t :: f ~> g) (DataExistsTypes @i (fi :: Act f i)) = DataExistsTypes @i ((t $$ i) fi)
 
-type data Forall :: forall d c. (c ^ d) --> Types
+type data Forall :: forall d c. (c ^ d) --> c
 
 data family DataForall (f :: d --> c)
 
-type instance Act (Forall @d @c) f = DataForall f
-
 data instance DataForall (f :: d --> Types) where
   DataForallTypes :: forall {d} (f :: d --> Types). {runForallTypes :: forall i -> (i ∈ d) => Act f i} -> DataForall f
+
+type instance Act (Forall @d @c) f = DataForall f
 
 instance (Category d) => Functor (Forall @d @Types) where
   map _ t (DataForallTypes ifi) = DataForallTypes \(type i) -> (t $$ i) (ifi i)
