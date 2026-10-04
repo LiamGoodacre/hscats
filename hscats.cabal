@@ -30,6 +30,7 @@ library
       Cats.Monoidal,
       Cats.Opposite,
       Cats.Optics,
+      Cats.Procompose,
       Cats.Profunctor,
       Cats.Span,
       Cats.Yoneda
