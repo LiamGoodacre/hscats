@@ -7,8 +7,9 @@ import Cats.Exponential
 import Cats.Flip
 import Cats.Functor
 import Cats.Opposite
+import Cats.Profunctor
 
-type data Hom :: forall c -> Op c × c --> Types
+type data Hom :: forall c -> PROFUNCTOR c c
 
 type instance Act (Hom c) o = c (Fst o) (Snd o)
 
