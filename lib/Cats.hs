@@ -18,3 +18,4 @@ import Cats.Id as Exports
 import Cats.MonoidObject as Exports
 import Cats.Monoidal as Exports
 import Cats.Opposite as Exports
+import Cats.Span as Exports

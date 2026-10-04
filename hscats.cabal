@@ -29,7 +29,8 @@ library
       Cats.MonoidObject,
       Cats.Monoidal,
       Cats.Opposite,
-      Cats.Profunctor
+      Cats.Profunctor,
+      Cats.Span
     build-depends:
       , base
     hs-source-dirs: lib
@@ -56,6 +57,7 @@ test-suite hscats-test
     other-modules:
       Do,
       RecursionSchemes,
+      SpanChecks,
       Uncategorised
     build-depends:
       , base

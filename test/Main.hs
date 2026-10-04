@@ -8,6 +8,7 @@ import Data.Type.Equality (type (~))
 import Do (pure)
 import Do qualified
 import RecursionSchemes
+import SpanChecks qualified
 import Uncategorised
 import Prelude (($))
 import Prelude qualified
@@ -611,6 +612,7 @@ checks =
           3
       )
   ]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- SpanChecks.checks]
 
 main :: Prelude.IO ()
 main =
