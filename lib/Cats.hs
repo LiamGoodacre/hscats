@@ -19,3 +19,4 @@ import Cats.MonoidObject as Exports
 import Cats.Monoidal as Exports
 import Cats.Opposite as Exports
 import Cats.Span as Exports
+import Cats.Yoneda as Exports
