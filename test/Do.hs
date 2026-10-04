@@ -71,20 +71,20 @@ pure = let PureDo u = ?pure in u
 
 makeBind ::
   forall {d} {f :: Types --> d} {g :: d --> Types} m.
-  (AdjunctionMonad (Act Composing m), m ~ '(g, f)) =>
+  (f ⊣ g, m ~ '(g, f)) =>
   BindDo m
 makeBind = BindDo (bindImpl @m)
 
 makePure ::
   forall {d} {f :: Types --> d} {g :: d --> Types} m.
-  (AdjunctionMonad (Act Composing m), m ~ '(g, f)) =>
+  (f ⊣ g, m ~ '(g, f)) =>
   PureDo m
 makePure = PureDo (unit m _)
 
 with ::
   forall {d} {f :: Types --> d} {g :: d --> Types}.
   forall m ->
-  (AdjunctionMonad (Act Composing m), m ~ '(g, f)) =>
+  (f ⊣ g, m ~ '(g, f)) =>
   AdjunctionMonadDo m
 with m t = do
   let ?bind = makeBind @m
