@@ -7,7 +7,7 @@ import Data.Kind
 import Data.Proxy
 import Data.Type.Equality (type (~))
 import DayChecks qualified
-import DayInstances (Dup)
+import DayInstances (Dup, Duping)
 import DayUnsupported qualified
 import Do (pure)
 import Do qualified
@@ -157,20 +157,22 @@ type Codensity f = f / f
 
 ---
 
-dupMonad :: Do.AdjunctionMonadDo Dup
+dupMonad :: Do.AdjunctionMonadDo Duping
 dupMonad = Do.with _
 
 egDuped :: (Prelude.Integer, Prelude.Integer)
-egDuped = Do.with Dup Do.do
+egDuped = Do.with Duping Do.do
   v <- (10, 100)
   x <- (v Prelude.+ 1, v Prelude.+ 2)
   pure (x Prelude.* 2)
 
 -- !$> egDuped -- (22,204)
 
+type Stating s = '(Reader s, Env s)
+
 type States s = Reader s • Env s
 
-stateMonad :: Do.AdjunctionMonadDo (States s)
+stateMonad :: Do.AdjunctionMonadDo (Stating s)
 stateMonad = Do.with _
 
 type State s i = Act (States s) i

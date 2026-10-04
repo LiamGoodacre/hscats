@@ -25,17 +25,17 @@ class (Functor f, Functor g) => (⊣) @d @c f g | f -> g, g -> f where
     d (Act f a) b -> c a (Act g b)
 
 unit ::
-  forall {c} f g.
-  forall (m :: c --> c) a ->
-  (m ~ (g • f), f ⊣ g, a ∈ c) =>
-  c a (Act (g • f) a)
+  forall {c} {d} (f :: c --> d) (g :: d --> c).
+  forall m a ->
+  (m ~ '(g, f), f ⊣ g, a ∈ c) =>
+  c a (Act g (Act f a))
 unit _ (type a) = leftToRight f g (identity (Act f a))
 
 counit ::
-  forall {d} g f.
-  forall (w :: d --> d) a ->
-  (w ~ (f • g), f ⊣ g, a ∈ d) =>
-  d (Act (f • g) a) a
+  forall {d} {c} (g :: d --> c) (f :: c --> d).
+  forall w a ->
+  (w ~ '(f, g), f ⊣ g, a ∈ d) =>
+  d (Act f (Act g a)) a
 counit _ (type a) = rightToLeft g f (identity (Act g a))
 
 join ::
@@ -43,11 +43,11 @@ join ::
   forall (m :: c --> c) a ->
   (m ~ (g • f), f ⊣ g, a ∈ c) =>
   c (Act (m • m) a) (Act m a)
-join _ (type a) = map g (counit (f • g) (Act f a))
+join _ (type a) = map g (counit (type '(f, g)) (Act f a))
 
 extend ::
   forall {d} {f} {g}.
   forall (w :: d --> d) a ->
   (w ~ (f • g), f ⊣ g, a ∈ d) =>
   d (Act w a) (Act (w • w) a)
-extend _ (type a) = map f (unit (g • f) (Act g a))
+extend _ (type a) = map f (unit (type '(g, f)) (Act g a))

@@ -9,64 +9,82 @@ import Data.Type.Equality (type (~))
 bindImpl ::
   forall
     {d}
-    (m :: Types --> Types)
+    m
     a
     b
     {f :: Types --> d}
     {g :: d --> Types}.
-  ( m ~ (g • f),
+  ( m ~ '(g, f),
     f ⊣ g
   ) =>
   Proxy b ->
-  Act m a ->
-  (a -> Act m b) ->
-  Act m b
+  Act (Act Composing m) a ->
+  (a -> Act (Act Composing m) b) ->
+  Act (Act Composing m) b
 bindImpl _ ma t =
-  join m b (map m t ma :: Act (m • m) b)
+  join
+    (type (Act Composing m))
+    b
+    ( map
+        (type (Act Composing m))
+        t
+        ma ::
+        Act (Act Composing m • Act Composing m) b
+    )
 
 newtype BindDo m
   = BindDo
       ( forall a b.
         Proxy b ->
-        Act m a ->
-        (a -> Act m b) ->
-        Act m b
+        Act (Act Composing m) a ->
+        (a -> Act (Act Composing m) b) ->
+        Act (Act Composing m) b
       )
 
 newtype PureDo m
   = PureDo
-      (forall a. a -> Act m a)
+      (forall a. a -> Act (Act Composing m) a)
 
 type AdjunctionMonadDo m =
   forall r.
   ( ( ?bind :: BindDo m,
       ?pure :: PureDo m
     ) =>
-    Act m r
+    Act (Act Composing m) r
   ) ->
-  Act m r
+  Act (Act Composing m) r
 
-(>>=) :: forall m a b. (?bind :: BindDo m) => Act m a -> (a -> Act m b) -> Act m b
+(>>=) ::
+  forall m a b.
+  (?bind :: BindDo m) =>
+  Act (Act Composing m) a ->
+  (a -> Act (Act Composing m) b) ->
+  Act (Act Composing m) b
 (>>=) = let BindDo f = ?bind in f @a (Proxy @b)
 
-pure :: forall m a. (?pure :: PureDo m) => a -> Act m a
+pure ::
+  forall m a.
+  (?pure :: PureDo m) =>
+  a ->
+  Act (Act Composing m) a
 pure = let PureDo u = ?pure in u
 
 makeBind ::
-  forall (m :: Types --> Types) {f} {g}.
-  (AdjunctionMonad m, m ~ (g • f)) =>
+  forall {d} {f :: Types --> d} {g :: d --> Types} m.
+  (AdjunctionMonad (Act Composing m), m ~ '(g, f)) =>
   BindDo m
 makeBind = BindDo (bindImpl @m)
 
 makePure ::
-  forall (m :: Types --> Types) {f} {g}.
-  (AdjunctionMonad m, m ~ (g • f)) =>
+  forall {d} {f :: Types --> d} {g :: d --> Types} m.
+  (AdjunctionMonad (Act Composing m), m ~ '(g, f)) =>
   PureDo m
 makePure = PureDo (unit m _)
 
 with ::
-  forall (m :: Types --> Types) ->
-  (AdjunctionMonad m, m ~ (g • f)) =>
+  forall {d} {f :: Types --> d} {g :: d --> Types}.
+  forall m ->
+  (AdjunctionMonad (Act Composing m), m ~ '(g, f)) =>
   AdjunctionMonadDo m
 with m t = do
   let ?bind = makeBind @m

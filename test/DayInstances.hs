@@ -2,12 +2,14 @@
 
 -- Instances for the example functors used by the lift and traversal tests.
 -- They are deliberately test-local; the general Day instances come from Cats.Day.
-module DayInstances (Dup) where
+module DayInstances (Duping, Dup) where
 
 import Cats
 import Cats.Day
 import RecursionSchemes (List)
 import Prelude qualified
+
+type Duping = '((∧), Δ₂ Types)
 
 type Dup = (∧) • Δ₂ Types
 
