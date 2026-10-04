@@ -8,6 +8,7 @@ import Cats.Exponential
 import Cats.Functor
 import Cats.Id
 import Cats.Monoidal
+import Data.Kind (Type)
 
 type data (•) :: (a --> b) -> (x --> a) -> (x --> b)
 
@@ -86,3 +87,33 @@ instance
       case map (Composing @aa @bb @cc) fhgi of
         (v :: (f • g) ~> (h • i)) ->
           map (h • i) xy ∘ (v $$ x)
+
+{- Decomposition -}
+
+type MidCompositionIx :: forall c. (c --> c) -> Type
+type family MidCompositionIx m where
+  MidCompositionIx (g • f) = NamesOf (DomainOf g)
+
+type MidComposition :: forall c. forall (m :: c --> c) -> CATEGORY (MidCompositionIx m)
+type family MidComposition m where
+  MidComposition (g • f) = DomainOf g
+
+type OuterBy :: (c --> c) -> forall (d :: CATEGORY i) -> (d --> c)
+type family OuterBy m d where
+  OuterBy (g • f) d = g
+
+type InnerBy :: (c --> c) -> forall (d :: CATEGORY i) -> (c --> d)
+type family InnerBy m d where
+  InnerBy (g • f) d = f
+
+type Inner :: forall (m :: c --> c) -> (c --> MidComposition m)
+type Inner m = InnerBy m (MidComposition m)
+
+type Outer :: forall (m :: c --> c) -> (MidComposition m --> c)
+type Outer m = OuterBy m (MidComposition m)
+
+type TheCompositionBy :: (c --> c) -> CATEGORY i -> (c --> c)
+type TheCompositionBy m d = OuterBy m d • InnerBy m d
+
+type TheComposition :: (c --> c) -> (c --> c)
+type TheComposition m = TheCompositionBy m (MidComposition m)
