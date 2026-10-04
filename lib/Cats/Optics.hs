@@ -5,6 +5,7 @@ import Cats.CrossProduct
 import Cats.Delta
 import Cats.Functor
 import Cats.Hom
+import Cats.Yoneda
 import Data.Kind (Constraint, Type)
 import Data.Type.Equality (type (~))
 

@@ -31,7 +31,8 @@ library
       Cats.Opposite,
       Cats.Optics,
       Cats.Profunctor,
-      Cats.Span
+      Cats.Span,
+      Cats.Yoneda
     build-depends:
       , base
     hs-source-dirs: lib
