@@ -51,7 +51,7 @@ library
       TypeFamilies,
       UndecidableInstances,
       UndecidableSuperClasses
-    ghc-options: -O2 -Wall
+    ghc-options: -O2 -Wall -Werror=orphans
 
 test-suite hscats-test
     type: exitcode-stdio-1.0
