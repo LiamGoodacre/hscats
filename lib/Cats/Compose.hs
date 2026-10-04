@@ -117,3 +117,6 @@ type TheCompositionBy m d = OuterBy m d • InnerBy m d
 
 type TheComposition :: (c --> c) -> (c --> c)
 type TheComposition m = TheCompositionBy m (MidComposition m)
+
+type Decompose :: forall (m :: c --> c) -> (MidComposition m --> c, c --> MidComposition m)
+type Decompose m = '(Outer m, Inner m)
