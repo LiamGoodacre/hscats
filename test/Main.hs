@@ -11,6 +11,7 @@ import DayUnsupported qualified
 import Do (pure)
 import Do qualified
 import OppositeChecks qualified
+import ProcomposeChecks qualified
 import RecursionSchemes
 import SpanChecks qualified
 import Uncategorised
@@ -519,6 +520,7 @@ checks =
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- SpanChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- DayChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- OppositeChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ProcomposeChecks.checks]
     Prelude.++ [DayUnsupported.check]
 
 main :: Prelude.IO ()

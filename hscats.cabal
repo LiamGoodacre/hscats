@@ -64,6 +64,7 @@ test-suite hscats-test
       DayUnsupported,
       Do,
       OppositeChecks,
+      ProcomposeChecks,
       RecursionSchemes,
       SpanChecks,
       Uncategorised

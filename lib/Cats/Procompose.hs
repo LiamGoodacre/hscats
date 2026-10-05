@@ -1,12 +1,16 @@
 module Cats.Procompose where
 
 import Cats.Category
+import Cats.CrossProduct
 import Cats.Functor
+import Cats.Opposite
 import Cats.Profunctor
 import Data.Kind (Type)
 
--- import Data.Type.Equality (type (~))
-
+-- | Two profunctor values joined at an existential intermediate object.
+-- A value of q goes from i to m, followed by a value of p from m to j.
+-- This stores a representative of the composition coend; it does not quotient
+-- representatives by moving intermediate arrows between the two values.
 data
   DataProcompose ::
     PROFUNCTOR a b ->
@@ -16,46 +20,26 @@ data
     Type
   where
   MkProcompose ::
-    forall
-      {s}
-      {t}
-      {u}
-      {a :: CATEGORY s}
-      {b :: CATEGORY t}
-      {x :: CATEGORY u}
-      (m :: NamesOf a)
-      (i :: NamesOf x)
-      (j :: NamesOf b)
-      (p :: PROFUNCTOR a b)
-      (q :: PROFUNCTOR x a).
-    ( m ∈ a,
-      i ∈ x,
-      j ∈ b
+    forall m i j p q.
+    ( '(m, j) ∈ DomainOf p,
+      '(i, m) ∈ DomainOf q
     ) =>
     Act p '(m, j) ->
     Act q '(i, m) ->
     DataProcompose p q i j
 
-data Procompose :: PROFUNCTOR a b -> PROFUNCTOR x a -> PROFUNCTOR x b
+-- | Profunctor composition, with the outer profunctor first.
+type data Procompose :: PROFUNCTOR a b -> PROFUNCTOR x a -> PROFUNCTOR x b
 
 type instance Act (Procompose p q) '(i, j) = DataProcompose p q i j
 
--- instance
---   (Category b, Category x, Profunctor p, Profunctor q) =>
---   Functor (Procompose (p :: PROFUNCTOR a b) (q :: PROFUNCTOR x a) :: PROFUNCTOR x b)
---   where
---   map ::
---     forall (f' :: (Op x × b) --> Types) ->
---     ( f' ~ (Procompose p q),
---       ii ∈ (Op x × b),
---       jj ∈ (Op x × b)
---     ) =>
---     (Op x × b) ii jj ->
---     Types
---       (Act (Procompose p q) ii)
---       (Act (Procompose p q) jj)
---   map _ (OP l :×: r :: (Op x × b) ii jj) (MkProcompose @m pp qq) =
---     acting (type p) (type '(m, Snd ii)) do
---       MkProcompose @m
---         (rmap (type p) r pp)
---         (lmap (type q) l qq)
+instance
+  (Category a, Category b, Category x, Profunctor p, Profunctor q) =>
+  Functor (Procompose (p :: PROFUNCTOR a b) (q :: PROFUNCTOR x a))
+  where
+  map _ (OP l :×: r) (MkProcompose @m pp qq) =
+    -- Keep the intermediate object fixed. Supplying its identity explicitly
+    -- determines the indices even when the component Act families are not injective.
+    MkProcompose @m
+      (map p (OP (identity m) :×: r) pp)
+      (map q (OP l :×: identity m) qq)
