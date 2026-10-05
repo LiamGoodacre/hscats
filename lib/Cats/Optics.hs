@@ -114,7 +114,7 @@ type instance Act (InOptic d c) o = Act c o
 instance Functor (InOptic IsoLike (Hom (->))) where
   map _ (Window (Like sa bt)) ar = bt ∘ ar ∘ sa
 
-instance Functor (InOptic IsoLike (Cosliced ViewLike xy)) where
+instance Functor (InOptic IsoLike (HomFrom ViewLike xy)) where
   map _ (Window (Like sa _bt)) (Window ar) = Window (Viewer sa ∘ ar)
 
 -- Shapes

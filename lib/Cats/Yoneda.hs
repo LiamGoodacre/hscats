@@ -8,18 +8,18 @@ import Cats.Functor
 import Cats.Hom
 import Cats.Opposite
 
--- Typing '⁰': ` 0 S`
-type Slice :: forall (c :: CATEGORY o) -> c --> (Types ^ Op c)
-type Slice c = Curry₁ (Flip (Hom c))
+-- Λo . Λi . c(i, o)
+type YonedaEmbedding :: forall (c :: CATEGORY o) -> c --> (Types ^ Op c)
+type YonedaEmbedding c = Curry₁ (Flip (Hom c))
 
--- Typing '¹': ` 1 S`
-type Sliced :: forall (c :: CATEGORY o) -> NamesOf c -> Op c --> Types
-type Sliced c = Curry₂ (Flip (Hom c))
+-- o ⊢ Λi . c(i, o)
+type HomTo :: forall (c :: CATEGORY o) -> NamesOf c -> Op c --> Types
+type HomTo c = Curry₂ (Flip (Hom c))
 
--- Typing '₀': ` 0 s`
-type Coslice :: forall (c :: CATEGORY o) -> Op c --> (Types ^ c)
-type Coslice c = Curry₁ (Hom c)
+-- Λi . Λo . c(i, o)
+type CoyonedaEmbedding :: forall (c :: CATEGORY o) -> Op c --> (Types ^ c)
+type CoyonedaEmbedding c = Curry₁ (Hom c)
 
--- Typing '₁': ` 1 s`
-type Cosliced :: forall (c :: CATEGORY o) -> NamesOf (Op c) -> c --> Types
-type Cosliced c = Curry₂ (Hom c)
+-- i ⊢ Λo . c(i, o)
+type HomFrom :: forall (c :: CATEGORY o) -> NamesOf (Op c) -> c --> Types
+type HomFrom c = Curry₂ (Hom c)
