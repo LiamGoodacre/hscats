@@ -5,7 +5,6 @@
 module DayInstances (Duping, Dup) where
 
 import Cats
-import Cats.Day
 import RecursionSchemes (List)
 import Prelude qualified
 

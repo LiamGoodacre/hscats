@@ -9,6 +9,7 @@ import Cats.Compose as Exports
 import Cats.Constructor as Exports
 import Cats.CrossProduct as Exports
 import Cats.Curry as Exports
+import Cats.Day as Exports
 import Cats.Delta as Exports
 import Cats.Exponential as Exports
 import Cats.Flip as Exports
@@ -20,5 +21,6 @@ import Cats.MonoidObject as Exports
 import Cats.Monoidal as Exports
 import Cats.Opposite as Exports
 import Cats.Procompose as Exports
+import Cats.Profunctor as Exports
 import Cats.Span as Exports
 import Cats.Yoneda as Exports

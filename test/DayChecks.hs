@@ -1,7 +1,6 @@
 module DayChecks where
 
 import Cats
-import Cats.Day
 import Data.Type.Equality (type (~))
 import Prelude (Bool (..), Int, String)
 import Prelude qualified as P

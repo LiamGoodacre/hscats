@@ -1,7 +1,6 @@
 module Main where
 
 import Cats
-import Cats.Day
 import Data.Foldable qualified as Foldable
 import Data.Kind
 import Data.Proxy
