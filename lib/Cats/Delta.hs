@@ -8,6 +8,7 @@ import Cats.Exponential
 import Cats.Functor
 import Cats.MonoidObject
 import Cats.Monoidal
+import Cats.Opposite
 import Data.Void (Void)
 import Data.Void qualified as Void
 import Prelude qualified
@@ -79,6 +80,11 @@ instance
   where
   empty _ _ = \() -> Prelude.mempty
   append _ _ = \(l, r) -> Prelude.mappend l r
+
+-- Every object of Types has the cartesian comonoid: discard and copy.
+instance MonoidObject (OpTensor (∧)) m where
+  empty _ _ = OP (\_ -> ())
+  append _ _ = OP (\m -> (m, m))
 
 mempty :: (MonoidObject (∧) m) => m
 mempty = empty (type (∧)) (type _) ()

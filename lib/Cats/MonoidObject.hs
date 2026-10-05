@@ -3,6 +3,7 @@ module Cats.MonoidObject where
 import Cats.Binary
 import Cats.Category
 import Cats.Monoidal
+import Cats.Opposite
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 
@@ -26,3 +27,26 @@ class
     forall q n ->
     (p ~ q, m ~ n) =>
     k ((m ☼ m) p) m
+
+-- | A comonoid is a monoid for the opposite tensor. Define its instance as
+-- MonoidObject (OpTensor p) m; the operations below unwrap the reversed arrows.
+-- Comultiplication must be coassociative up to the associator, and applying
+-- the counit to either output must give the identity up to the unitors.
+type ComonoidObject :: BINARY_OP k -> NamesOf k -> Constraint
+type ComonoidObject p m = (Monoidal p, MonoidObject (OpTensor p) m)
+
+-- | The comonoid counit (discard).
+coempty ::
+  forall {k}.
+  forall (p :: BINARY_OP k) m ->
+  (ComonoidObject p m) =>
+  k m (MonoidalEmpty p)
+coempty p m = runOP (empty (OpTensor p) m)
+
+-- | The comonoid comultiplication.
+coappend ::
+  forall {k}.
+  forall (p :: BINARY_OP k) m ->
+  (ComonoidObject p m) =>
+  k m ((m ☼ m) p)
+coappend p m = runOP (append (OpTensor p) m)
