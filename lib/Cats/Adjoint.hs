@@ -44,9 +44,9 @@ join ::
   c (Act g (Act f (Act g (Act f a)))) (Act g (Act f a))
 join _ (type a) = map g (counit (type '(f, g)) (Act f a))
 
-extend ::
+duplicate ::
   forall {d} {c} {g :: d --> c} {f :: c --> d}.
   forall w a ->
   (w ~ '(f, g), f ⊣ g, a ∈ d) =>
   d (Act f (Act g a)) (Act f (Act g (Act f (Act g a))))
-extend _ (type a) = map f (unit (type '(g, f)) (Act g a))
+duplicate _ (type a) = map f (unit (type '(g, f)) (Act g a))
