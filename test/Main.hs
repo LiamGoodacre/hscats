@@ -1,15 +1,21 @@
 module Main where
 
+import AdjunctionChecks qualified
+import ApplicativeChecks qualified
 import Cats
+import CoreLawChecks qualified
 import Data.Foldable qualified as Foldable
 import Data.Kind
 import Data.Proxy
 import Data.Type.Equality (type (~))
 import DayChecks qualified
+import DayConversionChecks qualified
 import DayInstances (Dup, Duping)
 import DayUnsupported qualified
 import Do (pure)
 import Do qualified
+import MonoidalChecks qualified
+import OpticChecks qualified
 import OppositeChecks qualified
 import ProcomposeChecks qualified
 import RecursionSchemes
@@ -517,8 +523,14 @@ checks =
           3
       )
   ]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- AdjunctionChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ApplicativeChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- CoreLawChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- SpanChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- DayChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- DayConversionChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- MonoidalChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- OpticChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- OppositeChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ProcomposeChecks.checks]
     Prelude.++ [DayUnsupported.check]

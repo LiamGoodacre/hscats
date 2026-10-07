@@ -26,11 +26,17 @@ class (Act f o ∈ CodomainOf f) => Acts f o
 
 instance (Act f o ∈ CodomainOf f) => Acts f o
 
--- What is a functor?
--- DomainOf must be a category.
--- CodomainOf must be a category.
--- `f` must be functorial for all possible object names.
--- Also arrows can be mapped.
+-- | A functor acts on objects via 'Act' and on arrows via 'map'. It must
+-- preserve identities and composition between valid objects:
+--
+-- @
+-- map f (identity a) = identity (Act f a)
+-- map f (h ∘ g) = map f h ∘ map f g
+-- @
+--
+-- The superclasses ensure that the domain and codomain are categories and
+-- that valid domain objects map to valid codomain objects. Instance authors
+-- must establish the equations separately.
 type Functor :: (d --> c) -> Constraint
 class
   ( Category d,

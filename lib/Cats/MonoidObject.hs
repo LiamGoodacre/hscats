@@ -7,6 +7,19 @@ import Cats.Opposite
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 
+-- | A monoid for a monoidal tensor. For @u = empty p m@ and
+-- @mu = append p m@, lawful instances satisfy:
+--
+-- @
+-- mu ∘ map p (mu :×: identity m)
+--   = mu ∘ map p (identity m :×: mu) ∘ rassoc p m m m
+-- mu ∘ map p (u :×: identity m) = idl
+-- mu ∘ map p (identity m :×: u) = idr
+-- @
+--
+-- These are equations between arrows in the underlying category. If those
+-- arrows are natural transformations, they must also satisfy naturality.
+-- The superclasses provide monoidal and object evidence, not proofs of laws.
 type MonoidObject ::
   forall {i}.
   forall (k :: CATEGORY i).

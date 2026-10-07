@@ -5,13 +5,27 @@ import Cats.Functor
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 
--- Two functors f and g are adjoint when
---   `∀ a b. (a → g b) ⇔ (f a → b)`
--- Or in our notation:
---   `∀ a b . c a (Act g b) ⇔ d (Act f a) b`
+-- | An adjunction gives a natural bijection between @d (Act f a) b@ and
+-- @c a (Act g b)@. Write @phi = leftToRight f g@ and
+-- @psi = rightToLeft g f@. For arrows between valid objects, instances must
+-- satisfy both inverse laws:
 --
--- Typing '⊣': ` u 22a3` or ` u 22a3`
+-- @
+-- psi (phi h) = h
+-- phi (psi k) = k
+-- @
 --
+-- The bijection must be natural in both endpoints. For @p :: c a' a@ and
+-- @q :: d b b'@:
+--
+-- @
+-- phi (q ∘ h ∘ map f p) = map g q ∘ phi h ∘ p
+-- psi (map g q ∘ k ∘ p) = q ∘ psi k ∘ map f p
+-- @
+--
+-- These laws imply naturality of 'unit' and 'counit', and the triangle
+-- identities documented below. The types and functional dependencies alone
+-- do not establish these equations.
 type (⊣) :: forall d c. (c --> d) -> (d --> c) -> Constraint
 class (Functor f, Functor g) => (⊣) @d @c f g | f -> g, g -> f where
   rightToLeft ::
@@ -23,6 +37,14 @@ class (Functor f, Functor g) => (⊣) @d @c f g | f -> g, g -> f where
     (f' ~ f, g' ~ g, a ∈ c, b ∈ d) =>
     d (Act f a) b -> c a (Act g b)
 
+-- | The unit @eta_a : a -> g (f a)@. For @h :: c a b@, naturality requires
+-- @map g (map f h) ∘ eta_a = eta_b ∘ h@.
+-- Together with @epsilon = counit@, it satisfies the left triangle:
+--
+-- @
+-- counit (type '(f, g)) (Act f a) ∘ map f (unit (type '(g, f)) a)
+--   = identity (Act f a)
+-- @
 unit ::
   forall {c} {d} (f :: c --> d) (g :: d --> c).
   forall m a ->
@@ -30,6 +52,14 @@ unit ::
   c a (Act g (Act f a))
 unit _ (type a) = leftToRight f g (identity (Act f a))
 
+-- | The counit @epsilon_b : f (g b) -> b@. For @h :: d a b@, naturality
+-- requires @h ∘ epsilon_a = epsilon_b ∘ map f (map g h)@.
+-- The right triangle is:
+--
+-- @
+-- map g (counit (type '(f, g)) b) ∘ unit (type '(g, f)) (Act g b)
+--   = identity (Act g b)
+-- @
 counit ::
   forall {d} {c} (g :: d --> c) (f :: c --> d).
   forall w a ->

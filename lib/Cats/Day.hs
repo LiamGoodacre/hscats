@@ -65,6 +65,23 @@ instance
   map _ dab (DataDayTypes @x @y xyz fx gy) =
     DataDayTypes @x @y (dab ∘ xyz) fx gy
 
+-- | Interpret product Day convolution as functor composition. Both functors
+-- must be lawful. This map is natural in the result object and in both
+-- functor arguments: mapping the result or applying natural transformations
+-- before conversion agrees with doing so after conversion.
+--
+-- If @f@ has a lawful right adjoint, 'composeToDayTypes' is its inverse:
+--
+-- @
+-- dayToComposeTypes ∘ composeToDayTypes = identity (f • g)
+-- composeToDayTypes ∘ dayToComposeTypes = identity (Day (∧) f g)
+-- @
+--
+-- The second equation uses extensional Day equality: all lawful eliminations
+-- that respect the coend identifications agree. The round trip can change the
+-- hidden object types and combining arrow; it does not preserve the original
+-- existential representative. As usual, these laws assume total, parametric
+-- code and do not assert equality of strictness behavior on bottoms.
 dayToComposeTypes ::
   forall f g.
   (Functor f, Functor g) =>
@@ -76,6 +93,11 @@ dayToComposeTypes = EXP \(type i) (DataDayTypes xyz fx gy) ->
 bogusLTypes :: forall x y -> Act f x -> Act g y -> Act (Day @Types @Types (∧) f g) y
 bogusLTypes x _ f_ gi = DataDayTypes (\(_ :: x, v) -> v) f_ gi
 
+-- | Convert composition to product Day convolution using the left adjoint
+-- @f@. The adjunction must satisfy its inverse and naturality laws, and @g@
+-- must be a lawful functor. Under those assumptions this is natural in the
+-- result and functor arguments and satisfies the round-trip laws documented
+-- on 'dayToComposeTypes'. There is no inverse claimed for arbitrary @f@.
 composeToDayTypes ::
   forall f g r.
   (f ⊣ r, Functor g) =>

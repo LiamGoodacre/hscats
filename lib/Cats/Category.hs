@@ -20,12 +20,15 @@ class (Obj k x) => (x :: i) ∈ (k :: CATEGORY i)
 
 instance (Obj k x) => x ∈ k
 
--- Semigroupoids have a means of composing arrows
+-- | Composition must be associative: @(h ∘ g) ∘ f = h ∘ (g ∘ f)@.
+-- These equations compare parallel arrows between valid objects.
 type Semigroupoid :: CATEGORY i -> Constraint
 class Semigroupoid k where
   (∘) :: k a b -> k x a -> k x b
 
--- Categories are Semigroupoids with an identity arrow
+-- | A semigroupoid with identities. For @f :: k a b@ between valid objects,
+-- @identity b ∘ f = f@ and @f ∘ identity a = f@. The object constraints
+-- provide evidence needed to construct identities; they do not prove the laws.
 type Category :: CATEGORY i -> Constraint
 class (Semigroupoid k) => Category k where
   identity :: forall o -> (o ∈ k) => k o o

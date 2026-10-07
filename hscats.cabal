@@ -60,10 +60,16 @@ test-suite hscats-test
     type: exitcode-stdio-1.0
     main-is: Main.hs
     other-modules:
+      AdjunctionChecks,
+      ApplicativeChecks,
+      CoreLawChecks,
       DayChecks,
+      DayConversionChecks,
       DayInstances,
       DayUnsupported,
       Do,
+      MonoidalChecks,
+      OpticChecks,
       OppositeChecks,
       ProcomposeChecks,
       RecursionSchemes,

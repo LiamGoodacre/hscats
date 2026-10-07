@@ -33,8 +33,10 @@ beneath fg = EXP \(type i) ->
   with @(Acts f i, Acts g i) do
     map (type k) (fg $$ i)
 
--- Functor in the two functors arguments
--- `(f • g) v` is a functor in `f`, and `g`
+-- | Composition of functors, acting on arrows by horizontal composition.
+-- Its functor laws require natural input transformations. 'EXP' can also
+-- represent component families that violate naturality; those are outside
+-- this contract (see "Cats.Exponential").
 type data Composing :: forall a b x. ((b ^ a) × (a ^ x)) --> (b ^ x)
 
 type instance Act Composing e = Fst e • Snd e
@@ -73,7 +75,8 @@ instance
 --   empty _ _ = EXP \_ -> unit m _
 --   append _ _ = EXP \(type a) -> join m a
 
--- `(f • g) v` is a functor in `f`, `g`, and `v`
+-- | Compose and evaluate, functorial in both functors and their argument.
+-- As with 'Composing', input component families must be natural.
 type data Composed :: forall a b c. (((b ^ a) × (a ^ c)) × c) --> b
 
 type instance Act Composed e = Act (Act Composing (Fst e)) (Snd e)
