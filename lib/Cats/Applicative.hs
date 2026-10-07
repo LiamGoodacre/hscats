@@ -29,9 +29,9 @@ class (Functor f, LiftN (∧) f) => Applicative f
 
 instance (Functor f, LiftN (∧) f) => Applicative f
 
-class (Apply f, Lift2 (∨) f) => Alt f
+class (Functor f, Lift2 (∨) f) => Alt f
 
-instance (Apply f, Lift2 (∨) f) => Alt f
+instance (Functor f, Lift2 (∨) f) => Alt f
 
 class (Applicative f, LiftN (∨) f) => Alternative f
 
