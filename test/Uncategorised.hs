@@ -4,10 +4,8 @@ import Cats.Adjoint
 import Cats.Associative
 import Cats.Binary
 import Cats.Category
-import Cats.Compose
 import Cats.CrossProduct
 import Cats.Curry
-import Cats.Exponential
 import Cats.Functor
 import Cats.Monoidal
 import Data.Kind (Constraint, Type)
@@ -33,31 +31,6 @@ type family ObjectName o
 type data AnObject :: forall (k :: CATEGORY i) -> NamesOf k -> OBJECT k
 
 type instance ObjectName (AnObject k n) = n
-
-{- Functor: eval/curry -}
-
-type data Eval :: forall d c. ((c ^ d) × d) --> c
-
-type instance Act Eval fx = Act (Fst fx) (Snd fx)
-
-instance
-  (Category d, Category c) =>
-  Functor (Eval @d @c)
-  where
-  map @a @b _ (f :×: x) =
-    with @(Fst b ∈ (c ^ d)) do
-      map (Fst b) x ∘ (f $$ Snd a)
-
-{- Monad & Comonad -}
-
-flatMap ::
-  forall {c} {d} a b {f :: c --> d} {g :: d --> c}.
-  forall m ->
-  (m ~ '(g, f), f ⊣ g, a ∈ c, b ∈ c) =>
-  c a (Act (g • f) b) ->
-  c (Act (g • f) a) (Act (g • f) b)
-flatMap (type m) amb =
-  join (type m) b ∘ map (type (g • f)) amb
 
 {- Category: 1 -}
 

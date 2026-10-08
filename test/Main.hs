@@ -3,21 +3,26 @@ module Main where
 import AdjunctionChecks qualified
 import ApplicativeChecks qualified
 import Cats
+import Cats.Do (pure)
+import Cats.Do qualified as Do
 import CoreLawChecks qualified
+import CurryChecks qualified
 import Data.Foldable qualified as Foldable
 import Data.Kind
 import Data.Proxy
 import Data.Type.Equality (type (~))
 import DayChecks qualified
 import DayConversionChecks qualified
-import DayInstances (Dup, Duping)
+import DayInstances (Dup)
 import DayUnsupported qualified
-import Do (pure)
-import Do qualified
+import MonadChecks qualified
 import MonoidalChecks qualified
-import OpticChecks qualified
 import OppositeChecks qualified
+import OpticChecks qualified
 import ProcomposeChecks qualified
+import ProcomposeStructureChecks qualified
+import ProcomposeUnsupported qualified
+import ProductChecks qualified
 import RecursionSchemes
 import SpanChecks qualified
 import Uncategorised
@@ -62,26 +67,6 @@ instance (Semigroupoid c, o ∈ c) => Semigroupoid (Endo o c) where
 
 instance (Category c, o ∈ c) => Category (Endo o c) where
   identity _ = ENDO (identity _)
-
-{- Functor: examples -}
-
--- Parallel functor product
-
-type data (***) :: (a --> s) -> (b --> t) -> ((a × b) --> (s × t))
-
-type instance Act (f *** g) o = '(Act f (Fst o), Act g (Snd o))
-
-instance (Functor f, Functor g) => Functor (f *** g) where
-  map _ (l :×: r) = map f l :×: map g r
-
--- Pointwise functor product
-
-type data (&&&) :: (d --> l) -> (d --> r) -> (d --> (l × r))
-
-type instance Act (f &&& g) o = '(Act f o, Act g o)
-
-instance (Functor f, Functor g) => Functor (f &&& g) where
-  map _ t = map f t :×: map g t
 
 {- Adjunctions: examples -}
 
@@ -164,11 +149,11 @@ type Codensity f = f / f
 
 ---
 
-dupMonad :: Do.AdjunctionMonadDo Duping
-dupMonad = Do.with _
+dupMonad :: Do.MonadDo (ViaAdjunction Dup)
+dupMonad = Do.with (ViaAdjunction Dup)
 
 egDuped :: (Prelude.Integer, Prelude.Integer)
-egDuped = Do.with Duping Do.do
+egDuped = dupMonad Do.do
   v <- (10, 100)
   x <- (v Prelude.+ 1, v Prelude.+ 2)
   pure (x Prelude.* 2)
@@ -179,8 +164,8 @@ type Stating s = '(Reader s, Env s)
 
 type States s = Reader s • Env s
 
-stateMonad :: Do.AdjunctionMonadDo (Stating s)
-stateMonad = Do.with _
+stateMonad :: forall s. Do.MonadDo (ViaAdjunction (States s))
+stateMonad = Do.with (ViaAdjunction (States s))
 
 type State s i = Act (States s) i
 
@@ -308,19 +293,6 @@ _egLift0Dup = lift0 Dup
 
 _egLift0List :: Prelude.Int -> [Prelude.Int]
 _egLift0List = lift0 List
-
--- instance
---   (Prelude.Monad m) =>
---   MonoidObject Composing Id (Constructor m)
---   where
---   empty = EXP \_ -> Prelude.pure
---   append _ _ = EXP \_ -> (Prelude.>>= identity _)
---
--- join0 :: forall m. (MonoidObject Composing Id m) => Id ~> m
--- join0 = empty @Composing
---
--- join2 :: forall m. (MonoidObject Composing Id m) => (m • m) ~> m
--- join2 = append @Composing
 
 ---
 
@@ -526,14 +498,18 @@ checks =
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- AdjunctionChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ApplicativeChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- CoreLawChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- CurryChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ProductChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- SpanChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- DayChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- DayConversionChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- MonoidalChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- MonadChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- OpticChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- OppositeChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ProcomposeChecks.checks]
-    Prelude.++ [DayUnsupported.check]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ProcomposeStructureChecks.checks]
+    Prelude.++ [DayUnsupported.check, ProcomposeUnsupported.check]
 
 main :: Prelude.IO ()
 main =

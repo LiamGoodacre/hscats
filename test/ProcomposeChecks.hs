@@ -147,6 +147,23 @@ mixedChecks =
           expected n = (P.show (5 P.* n P.+ 2), (n P.+ 3) P.^ (2 :: Int) P.- 1)
        in sameOn ints (observeMixed changed) expected
             P.&& sameOn ints (observeMixed separate) expected
+    ),
+    ( "Procompose reassociates across different category kinds",
+      let original = MkProcompose @'True mixed (Source (P.+ 4))
+          changed = (procomposeRassoc @IntoTypes @Bridge @(Hom Source) $$ (type '( 'True, Int))) original
+       in case changed of
+            MkProcompose outer (MkProcompose middle (Source inner)) ->
+              P.all (\n -> (outer n, middle n, inner n) P.== (5 P.* n P.+ 2, n P.* n P.- 1, n P.+ 4)) ints
+    ),
+    ( "Procompose left unit supports different source and target kinds",
+      let input = MkProcompose @Int P.show mixed
+          result = (procomposeIdl @Mixed $$ (type '( 'True, String))) input
+       in sameOn ints (observeMixed result) (\n -> (P.show (5 P.* n P.+ 2), n P.* n P.- 1))
+    ),
+    ( "Procompose right unit supports constrained source objects",
+      let input = MkProcompose @'True mixed (Source (P.+ 4))
+          result = (procomposeIdr @Mixed $$ (type '( 'True, Int))) input
+       in sameOn ints (observeMixed result) (\n -> (5 P.* n P.+ 2, (n P.+ 4) P.^ (2 :: Int) P.- 1))
     )
   ]
 

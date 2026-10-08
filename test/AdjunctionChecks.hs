@@ -1,4 +1,4 @@
-module AdjunctionChecks (checks, Env, Reader) where
+module AdjunctionChecks (checks, Env, Reader, OnlyTrue (..), OnlyUnit (..), ToUnit, ToTrue) where
 
 import Cats
 import Data.Kind (Type)
@@ -7,12 +7,14 @@ import Prelude (Bool (..), Int, String)
 import Prelude qualified as P
 
 type data Env :: Type -> Types --> Types
+
 type instance Act (Env s) a = (a, s)
 
 instance Functor (Env s) where
   map _ h (a, s) = (h a, s)
 
 type data Reader :: Type -> Types --> Types
+
 type instance Act (Reader s) a = s -> a
 
 instance Functor (Reader s) where
@@ -38,7 +40,9 @@ rightRoundTrip k = leftToRight f g (rightToLeft g f k :: d (Act f a) b)
 leftNaturality ::
   forall {c} {d} (f :: c --> d) g a' a b b'.
   (f ⊣ g, a' ∈ c, a ∈ c, b ∈ d, b' ∈ d) =>
-  c a' a -> d b b' -> d (Act f a) b ->
+  c a' a ->
+  d b b' ->
+  d (Act f a) b ->
   (c a' (Act g b'), c a' (Act g b'))
 leftNaturality p q h =
   ( leftToRight f g (q ∘ h ∘ map f p),
@@ -48,7 +52,9 @@ leftNaturality p q h =
 rightNaturality ::
   forall {c} {d} (f :: c --> d) g a' a b b'.
   (f ⊣ g, a' ∈ c, a ∈ c, b ∈ d, b' ∈ d) =>
-  c a' a -> d b b' -> c a (Act g b) ->
+  c a' a ->
+  d b b' ->
+  c a (Act g b) ->
   (d (Act f a') b', d (Act f a') b')
 rightNaturality p q k =
   ( rightToLeft g f (map g q ∘ k ∘ p),
@@ -74,6 +80,7 @@ data OnlyUnit :: CATEGORY () where
   UArrow :: (Int -> Int) -> OnlyUnit '() '()
 
 type instance Obj OnlyTrue a = a ~ 'True
+
 type instance Obj OnlyUnit a = a ~ '()
 
 instance Semigroupoid OnlyTrue where
@@ -89,9 +96,11 @@ instance Category OnlyUnit where
   identity _ = UArrow P.id
 
 type data ToUnit :: OnlyTrue --> OnlyUnit
+
 type instance Act ToUnit a = '()
 
 type data ToTrue :: OnlyUnit --> OnlyTrue
+
 type instance Act ToTrue a = 'True
 
 instance Functor ToUnit where
@@ -171,8 +180,11 @@ checks =
         (UArrow l, TArrow r) -> sameOn ints l P.id P.&& sameOn ints r P.id
     ),
     ( "Product adjunction left transpose naturality",
-      let (l, r) = leftNaturality @(Δ₂ Types) @(∧)
-            P.fromEnum (P.length :×: P.not) ((P.show :: Int -> String) :×: P.even)
+      let (l, r) =
+            leftNaturality @(Δ₂ Types) @(∧)
+              P.fromEnum
+              (P.length :×: P.not)
+              ((P.show :: Int -> String) :×: P.even)
        in sameOn flags l r P.&& sameOn flags l (\b -> (1, b))
     ),
     ( "Coproduct adjunction left transpose naturality",
