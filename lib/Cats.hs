@@ -27,3 +27,18 @@ import Cats.Procompose as Exports
 import Cats.Profunctor as Exports
 import Cats.Span as Exports
 import Cats.Yoneda as Exports
+
+-- How do I type that?
+-- '₀' : ` 0 s`
+-- '₁' : ` 1 s`
+-- '₂' : ` 2 s`
+-- '☼' : ` S U`
+-- '∘' : ` O b`
+-- '•' : ` o o`
+-- '∈' : ` ( -`
+-- '×' : ` / \`
+-- '∧' : ` A N`
+-- '∨' : ` O R`
+-- '⊣' : ` u 22a3` or ` u 22a3`
+-- '∀' : ` F A`
+-- '∃' : ` T E`
