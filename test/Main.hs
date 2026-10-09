@@ -2,6 +2,7 @@ module Main where
 
 import AdjunctionChecks qualified
 import ApplicativeChecks qualified
+import ApplicativeHelpersChecks qualified
 import Cats
 import Cats.Do (pure)
 import Cats.Do qualified as Do
@@ -9,7 +10,6 @@ import CoreLawChecks qualified
 import CurryChecks qualified
 import Data.Foldable qualified as Foldable
 import Data.Kind
-import Data.Proxy
 import Data.Type.Equality (type (~))
 import DayChecks qualified
 import DayConversionChecks qualified
@@ -23,50 +23,11 @@ import ProcomposeChecks qualified
 import ProcomposeStructureChecks qualified
 import ProcomposeUnsupported qualified
 import ProductChecks qualified
+import RecursionObjects
 import RecursionSchemes
 import SpanChecks qualified
-import Uncategorised
 import Prelude (($))
 import Prelude qualified
-
-{- Monoid: examples -}
-
-data PreludeMonoid :: Type -> CATEGORY () where
-  PreludeMonoid :: {getPreludeMonoid :: m} -> PreludeMonoid m '() '()
-
-type instance Obj (PreludeMonoid m) x = (x ~ '())
-
-instance (Prelude.Semigroup m) => Semigroupoid (PreludeMonoid m) where
-  PreludeMonoid l ∘ PreludeMonoid r = PreludeMonoid (l Prelude.<> r)
-
-instance (Prelude.Monoid m) => Category (PreludeMonoid m) where
-  identity _ = PreludeMonoid Prelude.mempty
-
-boring_monoid_category_example :: ()
-boring_monoid_category_example = ()
-  where
-    _monoid_mappend :: (Monoid c o) => c o o -> c o o -> c o o
-    _monoid_mappend = (∘)
-
-    _monoid_mempty :: (Monoid c o) => c o o
-    _monoid_mempty = identity _
-
-    _eg0 :: [Prelude.Integer]
-    _eg0 = getPreludeMonoid _monoid_mempty
-
-    _eg1 :: [Prelude.Integer]
-    _eg1 = getPreludeMonoid $ PreludeMonoid [1] `_monoid_mappend` PreludeMonoid [2, 3]
-
-data Endo :: i -> CATEGORY i -> CATEGORY () where
-  ENDO :: c o o -> Endo o c '() '()
-
-type instance Obj (Endo o c) x = (x ~ '())
-
-instance (Semigroupoid c, o ∈ c) => Semigroupoid (Endo o c) where
-  ENDO l ∘ ENDO r = ENDO (l ∘ r)
-
-instance (Category c, o ∈ c) => Category (Endo o c) where
-  identity _ = ENDO (identity _)
 
 {- Adjunctions: examples -}
 
@@ -90,63 +51,6 @@ instance Env s ⊣ Reader s where
   rightToLeft _ _ = Prelude.uncurry
   leftToRight _ _ = Prelude.curry
 
--- (• g) ⊣ (/ g)
--- aka (PostCompose g ⊣ PostRan g)
-
-type data PostCompose :: (c --> c') -> (a ^ c') --> (a ^ c)
-
-type instance Act (PostCompose g) f = f • g
-
-instance
-  (Category c, Category c', Category a, Functor g) =>
-  Functor (PostCompose @c @c' @a g)
-  where
-  map _ = above
-
-type Ran :: (x --> Types) -> (x --> z) -> NamesOf z -> Type
-data Ran h g a where
-  RAN ::
-    (Functor f) =>
-    Proxy f ->
-    ((f • g) ~> h) ->
-    Act f a ->
-    Ran h g a
-
--- NOTE: currently y is always Types
-type data (/) :: (x --> y) -> (x --> z) -> (z --> y)
-
-type instance Act (h / g) o = Ran h g o
-
-instance (Category x, Category z) => Functor ((/) @x @Types @z h g) where
-  map _ zab (RAN (Proxy @f) fgh fa) =
-    RAN (Proxy @f) fgh (map f zab fa)
-
--- NOTE: currently y is always Types
-type data PostRan :: (x --> z) -> (y ^ x) --> (y ^ z)
-
-type instance Act (PostRan g) h = h / g
-
-instance
-  (Category x, Category z, Functor g) =>
-  Functor (PostRan @x @z @Types g)
-  where
-  map _ ab =
-    EXP \_ (RAN p fga fi) ->
-      RAN p (ab ∘ fga) fi
-
-instance (Functor g) => PostCompose g ⊣ PostRan @x @z @Types g where
-  rightToLeft _ _ a_bg =
-    EXP \(type i) ag ->
-      case (a_bg $$ Act g i) ag of
-        RAN _ fg_b fgi ->
-          (fg_b $$ i) fgi
-
-  leftToRight _ _ ag_b =
-    EXP \_ -> RAN Proxy ag_b
-
-type Codensity :: (x --> Types) -> (Types --> Types)
-type Codensity f = f / f
-
 ---
 
 dupMonad :: Do.MonadDo (ViaAdjunction Dup)
@@ -159,8 +63,6 @@ egDuped = dupMonad Do.do
   pure (x Prelude.* 2)
 
 -- !$> egDuped -- (22,204)
-
-type Stating s = '(Reader s, Env s)
 
 type States s = Reader s • Env s
 
@@ -201,68 +103,7 @@ egState = twicePostincShow 10
 
 -- !$> egState -- ("10-11-(22,204)",12)
 
-newtype NT t m = NT (t ~> m)
-
-type Free :: (Types --> Types) -> Type -> Type
-data Free t a = FREE
-  { runFree ::
-      forall m a' ->
-      (AdjunctionMonadBy m Types, a' ~ a) =>
-      NT t m ->
-      Act m a
-  }
-
-type data Free0 :: (k --> k) -> (k --> k)
-
-type data Free1 :: (k ^ k) --> (k ^ k)
-
-type data Free2 :: ((k ^ k) × k) --> k
-
-type instance Act (Free0 f) o = Free f o
-
-type instance Act Free1 f = Free0 f
-
-type instance Act Free2 fx = Free (Fst fx) (Snd fx)
-
-instance Functor (Free0 @Types t) where
-  map _ (a_b :: a -> b) r = FREE \m _ t_m -> map m a_b (runFree r m a t_m)
-
-instance Functor (Free1 @Types) where
-  map _ a_b = EXP \_ (FREE f) -> FREE \m (type a) (NT t_m) -> f m a (NT (t_m ∘ a_b))
-
-instance Functor (Free2 @Types) where
-  map _ (s_t :×: (a_b :: Types a b)) = \(FREE f) ->
-    FREE \m _ (NT t_m) ->
-      map m a_b (f m a (NT (t_m ∘ s_t)))
-
 ---
-
-data
-  ProductD ::
-    (Types --> Types) ->
-    (Types --> Types) ->
-    Type ->
-    Type
-  where
-  PRODUCT_D ::
-    Act f x ->
-    Act g x ->
-    ProductD f g x
-
-type data ProductF :: (Types --> Types) -> (Types --> Types) -> (Types --> Types)
-
-type instance Act (ProductF f g) x = ProductD f g x
-
-instance
-  ( Functor f,
-    Functor g
-  ) =>
-  Functor (ProductF f g)
-  where
-  map _ ab (PRODUCT_D fa ga) =
-    PRODUCT_D
-      (map f ab fa)
-      (map g ab ga)
 
 lift0 :: forall a. forall (m :: Types --> Types) -> (MonoidObject (Day₁ (∧)) m) => a -> Act m a
 lift0 m = member (type Types) (type a) do
@@ -295,24 +136,6 @@ _egLift0List :: Prelude.Int -> [Prelude.Int]
 _egLift0List = lift0 List
 
 ---
-
-type data ArrTo :: forall (k :: CATEGORY i) -> i -> Op k --> Types
-
-type instance Act (ArrTo k r) a = k a r
-
-instance (Category k, r ∈ k) => Functor (ArrTo k r) where
-  map _ (OP ba) = (∘ ba)
-
-type data OpArrTo :: forall (k :: CATEGORY i) -> i -> k --> Op Types
-
-type instance Act (OpArrTo k r) a = k a r
-
-instance (Category k, r ∈ k) => Functor (OpArrTo k r) where
-  map _ ba = OP (∘ ba)
-
-instance OpArrTo Types r ⊣ ArrTo Types r where
-  rightToLeft _ _ = OP ∘ Prelude.flip
-  leftToRight _ _ = Prelude.flip ∘ runOP
 
 -- Foldable?
 
@@ -409,24 +232,6 @@ _egSeqDup =
 
 ---
 
-class TraversableV2 p t where
-  traverse_ ::
-    (MonoidObject p m) =>
-    (Δ' a ~> m) ->
-    ((t • Δ' a) ~> (m • t))
-
-instance TraversableV2 (Day₁ (∧)) List where
-  traverse_ ::
-    forall m a.
-    (MonoidObject (Day₁ (∧)) m) =>
-    (Δ' a ~> m) ->
-    ((List • Δ' a) ~> (m • List))
-  traverse_ (EXP f) =
-    EXP \i ->
-      Prelude.foldr
-        (lift2 @[i] m (:) ∘ f i)
-        (lift0 m ([] @i))
-
 ---
 
 assertEqual ::
@@ -497,6 +302,7 @@ checks =
   ]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- AdjunctionChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ApplicativeChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ApplicativeHelpersChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- CoreLawChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- CurryChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ProductChecks.checks]

@@ -6,6 +6,7 @@ maintainer:         goodacre.liam@gmail.com
 extra-source-files:
     CHANGELOG.md
     README.md
+    examples/README.md
 
 library
     exposed-modules:
@@ -65,6 +66,7 @@ test-suite hscats-test
     other-modules:
       AdjunctionChecks,
       ApplicativeChecks,
+      ApplicativeHelpersChecks,
       CoreLawChecks,
       CurryChecks,
       DayChecks,
@@ -79,13 +81,43 @@ test-suite hscats-test
       ProcomposeStructureChecks,
       ProcomposeUnsupported,
       ProductChecks,
+      RecursionObjects,
       RecursionSchemes,
-      SpanChecks,
-      Uncategorised
+      SpanChecks
     build-depends:
       , base
       , hscats
     hs-source-dirs: test
+    default-language: GHC2024
+    default-extensions:
+      AllowAmbiguousTypes,
+      BlockArguments,
+      FunctionalDependencies,
+      ImplicitParams,
+      NoImplicitPrelude,
+      QualifiedDo,
+      QuantifiedConstraints,
+      RequiredTypeArguments,
+      TypeAbstractions,
+      TypeData,
+      TypeFamilies,
+      UndecidableInstances,
+      UndecidableSuperClasses
+    ghc-options: -O2 -Wall
+
+test-suite hscats-examples
+    type: exitcode-stdio-1.0
+    main-is: Main.hs
+    other-modules:
+      CategoryExamples,
+      FreeExamples,
+      KanExamples,
+      MonoidalSketches,
+      RepresentableExamples
+    build-depends:
+      , base
+      , hscats
+    hs-source-dirs: examples
     default-language: GHC2024
     default-extensions:
       AllowAmbiguousTypes,

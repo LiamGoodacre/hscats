@@ -1,4 +1,4 @@
-module ApplicativeChecks (checks) where
+module ApplicativeChecks (checks, ChoiceOnly) where
 
 import Cats
 import Cats.Applicative qualified as A
