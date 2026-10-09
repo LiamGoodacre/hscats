@@ -1,7 +1,6 @@
 module Cats.Day
   ( DataDay (..),
     Day,
-    bogusLTypes,
     dayToComposeTypes,
     composeToDayTypes,
     Day₁,
@@ -90,8 +89,9 @@ dayToComposeTypes = EXP \(type i) (DataDayTypes xyz fx gy) ->
   with @(Acts g i) do
     map f (\x -> map g (\y -> xyz (x, y)) gy) fx
 
-bogusLTypes :: forall x y -> Act f x -> Act g y -> Act (Day @Types @Types (∧) f g) y
-bogusLTypes x _ f_ gi = DataDayTypes (\(_ :: x, v) -> v) f_ gi
+-- Internal constructor retaining both effects while selecting the right value.
+dayKeepRight :: forall x y -> Act f x -> Act g y -> Act (Day @Types @Types (∧) f g) y
+dayKeepRight x _ f_ gi = DataDayTypes (\(_ :: x, v) -> v) f_ gi
 
 -- | Convert composition to product Day convolution using the left adjoint
 -- @f@. The adjunction must satisfy its inverse and naturality laws, and @g@
@@ -106,7 +106,7 @@ composeToDayTypes = EXP \(type i) ->
   acting (type g) (type i) do
     rightToLeft r f \gi ->
       () & leftToRight f r \f_ ->
-        bogusLTypes @f @g (type ()) i f_ gi
+        dayKeepRight @f @g (type ()) i f_ gi
 
 -- Day as a binary operator on functors
 type data Day₁ :: forall d c. BINARY_OP d -> BINARY_OP (c ^ d)

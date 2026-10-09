@@ -4,6 +4,8 @@ import Cats.Category
 import Cats.CrossProduct
 import Cats.Functor
 
+infix 7 ☼
+
 type BINARY_OP c = (c × c) --> c
 
 -- Typing '☼' ` S U`

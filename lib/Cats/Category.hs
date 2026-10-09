@@ -1,20 +1,26 @@
+-- | Categories with an explicit kind of object names and an object predicate.
+-- 'Obj' describes valid names; '(∈)' carries that evidence into operations
+-- such as 'identity'. Arrows are represented by an indexed Haskell type.
 module Cats.Category where
 
 import Data.Kind (Constraint, Type)
 import Data.Type.Equality ((:~:) (Refl), type (~))
 
--- Type of categories represented by their hom-types indexed by object names
+infix 4 ∈
+infixr 9 ∘
+
+-- | A category's arrow type, indexed by source and target object names.
 type CATEGORY :: Type -> Type
 type CATEGORY i = i -> i -> Type
 
--- Lookup the type of a category's object names
+-- | The kind of object names used by a category.
 type NamesOf :: forall i. CATEGORY i -> Type
 type NamesOf @i c = i
 
--- Categories must specify what it means to be an object in that category
+-- | Predicate defining which names denote valid objects in a category.
 type family Obj (k :: CATEGORY i) (x :: i) :: Constraint
 
--- Class arguments retain the object and category for inference; the superclass
+-- | Class arguments retain the object and category for inference; the superclass
 -- exposes the category-specific object constraint.
 class (Obj k x) => (x :: i) ∈ (k :: CATEGORY i)
 
@@ -42,7 +48,7 @@ instance Semigroupoid (:~:) where
 instance Category (:~:) where
   identity _ = Refl
 
--- "Type" forms a category
+-- | Haskell types as objects and functions as arrows.
 type Types = (->) :: CATEGORY Type
 
 type instance Obj Types t = (t ~ t)
@@ -53,9 +59,12 @@ instance Semigroupoid Types where
 instance Category Types where
   identity _ x = x
 
+-- | Bring evidence into a local scope, often after instantiating a quantified
+-- superclass such as @Acts f a@.
 with :: (c) => ((c) => r) -> r
 with r = r
 
+-- | Turn an 'Obj' predicate into the '(∈)' evidence used by the public API.
 member ::
   forall (k :: CATEGORY i) (o :: i) ->
   (Obj k o) =>

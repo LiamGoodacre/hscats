@@ -5,6 +5,8 @@ import Cats.Functor
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 
+infix 4 ⊣
+
 -- | An adjunction gives a natural bijection between @d (Act f a) b@ and
 -- @c a (Act g b)@. Write @phi = leftToRight f g@ and
 -- @psi = rightToLeft g f@. For arrows between valid objects, instances must

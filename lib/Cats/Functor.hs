@@ -1,3 +1,6 @@
+-- | Functor tags, their object action ('Act'), and their arrow action ('map').
+-- A tag identifies a functor; values live in its object action. For example,
+-- @Constructor []@ is a tag and @Act (Constructor []) Int@ is @[Int]@.
 module Cats.Functor where
 
 import Cats.Category
@@ -5,23 +8,25 @@ import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
 import Data.Type.Equality (type (~))
 
--- Type of functors indexed by domain & codomain categories
+infixr 0 -->
+
+-- | Kind of functor tags from a domain category to a codomain category.
 type (-->) :: forall i j. CATEGORY i -> CATEGORY j -> Type
 type (-->) d c = Proxy d -> Proxy c -> Type
 
--- Project the domain category of a functor
+-- | Domain category of a functor tag.
 type DomainOf :: forall i (d :: CATEGORY i) c. (d --> c) -> CATEGORY i
 type DomainOf (f :: d --> c) = d
 
--- Project the codomain category of a functor
+-- | Codomain category of a functor tag.
 type CodomainOf :: forall j d (c :: CATEGORY j). (d --> c) -> CATEGORY j
 type CodomainOf (f :: d --> c) = c
 
--- Functors act on object names
+-- | Object action of a functor tag, specified by a type-family equation.
 type Act :: (d --> c) -> NamesOf d -> NamesOf c
 type family Act f o
 
--- Type of evidence that `f` acting on `o` is an object in `f`'s codomain
+-- | Evidence that @Act f o@ is an object of the codomain of @f@.
 class (Act f o ∈ CodomainOf f) => Acts f o
 
 instance (Act f o ∈ CodomainOf f) => Acts f o

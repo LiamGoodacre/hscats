@@ -13,6 +13,8 @@ import Data.Void (Void)
 import Data.Void qualified as Void
 import Prelude qualified
 
+infixr 6 <>
+
 -- (∨) ⊣ Δ₂ Types ⊣ (∧)
 
 type data Δ₂ :: forall (k :: CATEGORY i) -> (k --> (k × k))

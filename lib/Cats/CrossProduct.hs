@@ -6,6 +6,8 @@ import Cats.Category
 import Cats.Functor
 import Data.Type.Equality (type (~))
 
+infixr 7 ×, :×:
+
 data (×) :: CATEGORY s -> CATEGORY t -> CATEGORY (s, t) where
   (:×:) :: l a b -> r x y -> (l × r) '(a, x) '(b, y)
 

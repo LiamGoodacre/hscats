@@ -1,3 +1,8 @@
+-- | Public facade for categories, functors, natural transformations, tensors,
+-- profunctors, optics, and spans. Use qualified imports of "Cats.Applicative",
+-- "Cats.Monad", and "Cats.Do" for their overlapping operation names.
+-- 'Monad', 'Comonad', 'flatMap', and 'extend' are also available here;
+-- 'unit', 'counit', 'join', and 'duplicate' here take an adjunction pair.
 module Cats (module Exports) where
 
 import Cats.Adjoint as Exports

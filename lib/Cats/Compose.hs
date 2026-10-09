@@ -10,6 +10,8 @@ import Cats.Id
 import Cats.Monoidal
 import Data.Kind (Type)
 
+infixr 9 •
+
 type data (•) :: (a --> b) -> (x --> a) -> (x --> b)
 
 type instance Act (f • g) x = Act f (Act g x)

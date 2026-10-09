@@ -3,6 +3,10 @@ module Cats.Exponential where
 import Cats.Category
 import Cats.Functor
 
+infixr 8 ^
+infixr 0 ~>
+infixl 0 $$
+
 -- | The functor category, with natural transformations as arrows.
 --
 -- For functors @f@ and @g@, a component family @t :: f ~> g@ must satisfy

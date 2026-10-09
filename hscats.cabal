@@ -73,6 +73,7 @@ test-suite hscats-test
       DayConversionChecks,
       DayInstances,
       DayUnsupported,
+      FixityChecks,
       MonoidalChecks,
       MonadChecks,
       OpticChecks,
@@ -83,7 +84,8 @@ test-suite hscats-test
       ProductChecks,
       RecursionObjects,
       RecursionSchemes,
-      SpanChecks
+      SpanChecks,
+      YonedaChecks
     build-depends:
       , base
       , hscats

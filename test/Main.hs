@@ -15,6 +15,7 @@ import DayChecks qualified
 import DayConversionChecks qualified
 import DayInstances (Dup)
 import DayUnsupported qualified
+import FixityChecks qualified
 import MonadChecks qualified
 import MonoidalChecks qualified
 import OppositeChecks qualified
@@ -26,6 +27,7 @@ import ProductChecks qualified
 import RecursionObjects
 import RecursionSchemes
 import SpanChecks qualified
+import YonedaChecks qualified
 import Prelude (($))
 import Prelude qualified
 
@@ -305,6 +307,8 @@ checks =
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ApplicativeHelpersChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- CoreLawChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- CurryChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- FixityChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- YonedaChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ProductChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- SpanChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- DayChecks.checks]

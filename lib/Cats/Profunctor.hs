@@ -5,6 +5,8 @@ import Cats.CrossProduct
 import Cats.Functor
 import Cats.Opposite
 
+infixr 0 -/->
+
 type PROFUNCTOR d c = (Op d × c) --> Types
 
 type c -/-> d = PROFUNCTOR d c
