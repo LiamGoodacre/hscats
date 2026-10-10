@@ -3,7 +3,7 @@
 -- even when 'Act' does not determine its functor argument:
 --
 -- @
--- {-# LANGUAGE BlockArguments, QualifiedDo, RequiredTypeArguments, TypeAbstractions #-}
+-- {-# LANGUAGE GHC2024, BlockArguments, QualifiedDo, RequiredTypeArguments, TypeAbstractions #-}
 --
 -- import Cats
 -- import Cats.Do qualified as Do

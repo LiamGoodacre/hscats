@@ -3,6 +3,7 @@ module Main where
 import AdjunctionChecks qualified
 import ApplicativeChecks qualified
 import ApplicativeHelpersChecks qualified
+import ApplicativeInteropChecks qualified
 import Cats
 import Cats.Do (pure)
 import Cats.Do qualified as Do
@@ -24,9 +25,12 @@ import ProcomposeChecks qualified
 import ProcomposeStructureChecks qualified
 import ProcomposeUnsupported qualified
 import ProductChecks qualified
+import PullbackChecks qualified
 import RecursionObjects
 import RecursionSchemes
+import SliceChecks qualified
 import SpanChecks qualified
+import SpanMorphismChecks qualified
 import YonedaChecks qualified
 import Prelude (($))
 import Prelude qualified
@@ -305,12 +309,16 @@ checks =
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- AdjunctionChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ApplicativeChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ApplicativeHelpersChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ApplicativeInteropChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- CoreLawChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- CurryChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- FixityChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- YonedaChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- ProductChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- PullbackChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- SpanChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- SliceChecks.checks]
+    Prelude.++ [assertEqual label Prelude.True result | (label, result) <- SpanMorphismChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- DayChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- DayConversionChecks.checks]
     Prelude.++ [assertEqual label Prelude.True result | (label, result) <- MonoidalChecks.checks]

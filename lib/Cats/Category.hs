@@ -7,6 +7,7 @@ import Data.Kind (Constraint, Type)
 import Data.Type.Equality ((:~:) (Refl), type (~))
 
 infix 4 ∈
+
 infixr 9 ∘
 
 -- | A category's arrow type, indexed by source and target object names.

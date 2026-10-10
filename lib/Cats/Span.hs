@@ -1,3 +1,5 @@
+-- | Span and cospan diagrams and their commuting morphisms.
+-- Universal constructions and composition live in "Cats.Pullback".
 module Cats.Span where
 
 import Cats.Adjoint
@@ -12,9 +14,9 @@ import Data.Kind (Type)
 
 -- | A span @a <- x -> b@, with its apex @x@ kept explicit.
 --
--- These are diagrams in @k@. Composing spans as arrows between their endpoints
--- would additionally require pullbacks (and identifying isomorphic apices),
--- so there is no 'Category' instance for spans themselves here.
+-- These are diagrams in @k@. "Cats.Pullback" composes them using chosen
+-- pullbacks. Associativity identifies canonically isomorphic apices, so there
+-- is no 'Category' instance on these raw representatives.
 data Span :: CATEGORY i -> i -> i -> i -> Type where
   Span ::
     { spanLeft :: k x a,
@@ -22,13 +24,111 @@ data Span :: CATEGORY i -> i -> i -> i -> Type where
     } ->
     Span k x a b
 
--- | A cospan @a -> x <- b@, dual to a span. Composition would require pushouts.
+-- | A cospan @a -> x <- b@, dual to a span. Composition uses pushouts.
 data Cospan :: CATEGORY i -> i -> i -> i -> Type where
   Cospan ::
     { cospanLeft :: k a x,
       cospanRight :: k b x
     } ->
     Cospan k x a b
+
+-- | A morphism between two span diagrams, including maps of both feet.
+-- For source @s@, target @t@, and component maps @h@, @l@, @r@, require:
+--
+-- @
+-- spanLeft t ∘ h = l ∘ spanLeft s
+-- spanRight t ∘ h = r ∘ spanRight s
+-- @
+-- The constructor stores the diagrams and components, not proofs of these
+-- equations. As with natural transformations, clients supply lawful values.
+data SpanMorphism k x a b y c d = SpanMorphism
+  { spanSource :: Span k x a b,
+    spanTarget :: Span k y c d,
+    spanApexMap :: k x y,
+    spanLeftMap :: k a c,
+    spanRightMap :: k b d
+  }
+
+-- | The dual commuting squares: @h ∘ cospanLeft s = cospanLeft t ∘ l@
+-- and @h ∘ cospanRight s = cospanRight t ∘ r@. Commutativity is a law
+-- of the supplied value, not established by the constructor.
+data CospanMorphism k x a b y c d = CospanMorphism
+  { cospanSource :: Cospan k x a b,
+    cospanTarget :: Cospan k y c d,
+    cospanApexMap :: k x y,
+    cospanLeftMap :: k a c,
+    cospanRightMap :: k b d
+  }
+
+-- | Identity on a diagram, including both feet.
+identitySpanMorphism ::
+  forall k x a b.
+  (Category k, x ∈ k, a ∈ k, b ∈ k) =>
+  Span k x a b -> SpanMorphism k x a b x a b
+identitySpanMorphism s = SpanMorphism s s (identity x) (identity a) (identity b)
+
+-- | Identity on a cospan diagram.
+identityCospanMorphism ::
+  forall k x a b.
+  (Category k, x ∈ k, a ∈ k, b ∈ k) =>
+  Cospan k x a b -> CospanMorphism k x a b x a b
+identityCospanMorphism s = CospanMorphism s s (identity x) (identity a) (identity b)
+
+-- | Compose componentwise, outer morphism first. The inner target must equal
+-- the outer source as a diagram, not just have the same object names. This
+-- value-level precondition is why this operation is not a 'Category' instance.
+-- For lawful composable inputs it preserves commutativity and obeys identity
+-- and associativity laws, with equality on each component.
+composeSpanMorphisms ::
+  (Semigroupoid k) =>
+  SpanMorphism k y c d z e f -> SpanMorphism k x a b y c d -> SpanMorphism k x a b z e f
+composeSpanMorphisms (SpanMorphism _ t h l r) (SpanMorphism s _ h' l' r') =
+  SpanMorphism s t (h ∘ h') (l ∘ l') (r ∘ r')
+
+-- | Dual of 'composeSpanMorphisms', with the same matching-diagram precondition.
+composeCospanMorphisms ::
+  (Semigroupoid k) =>
+  CospanMorphism k y c d z e f -> CospanMorphism k x a b y c d -> CospanMorphism k x a b z e f
+composeCospanMorphisms (CospanMorphism _ t h l r) (CospanMorphism s _ h' l' r') =
+  CospanMorphism s t (h ∘ h') (l ∘ l') (r ∘ r')
+
+-- | Apply a functor to both diagrams and all three components. A lawful
+-- functor preserves the commuting squares, identities, and composition.
+mapSpanMorphism ::
+  forall {k} {j} x a b y c d.
+  forall (f :: k --> j) ->
+  (Functor f, x ∈ k, a ∈ k, b ∈ k, y ∈ k, c ∈ k, d ∈ k) =>
+  SpanMorphism k x a b y c d ->
+  SpanMorphism j (Act f x) (Act f a) (Act f b) (Act f y) (Act f c) (Act f d)
+mapSpanMorphism f (SpanMorphism s t h l r) =
+  SpanMorphism (mapSpan f s) (mapSpan f t) (map f h) (map f l) (map f r)
+
+-- | Apply a functor to a commuting cospan morphism.
+mapCospanMorphism ::
+  forall {k} {j} x a b y c d.
+  forall (f :: k --> j) ->
+  (Functor f, x ∈ k, a ∈ k, b ∈ k, y ∈ k, c ∈ k, d ∈ k) =>
+  CospanMorphism k x a b y c d ->
+  CospanMorphism j (Act f x) (Act f a) (Act f b) (Act f y) (Act f c) (Act f d)
+mapCospanMorphism f (CospanMorphism s t h l r) =
+  CospanMorphism (mapCospan f s) (mapCospan f t) (map f h) (map f l) (map f r)
+
+-- | Reversing every arrow turns a span morphism into a cospan morphism in
+-- the opposite category, with its source and target diagrams exchanged.
+opSpanMorphism :: SpanMorphism k x a b y c d -> CospanMorphism (Op k) y c d x a b
+opSpanMorphism (SpanMorphism s t h l r) = CospanMorphism (opSpan t) (opSpan s) (OP h) (OP l) (OP r)
+
+-- | Inverse of 'opSpanMorphism'.
+unOpSpanMorphism :: CospanMorphism (Op k) y c d x a b -> SpanMorphism k x a b y c d
+unOpSpanMorphism (CospanMorphism t s (OP h) (OP l) (OP r)) = SpanMorphism (unOpSpan s) (unOpSpan t) h l r
+
+-- | Duality for cospan morphisms, reversing their direction.
+opCospanMorphism :: CospanMorphism k x a b y c d -> SpanMorphism (Op k) y c d x a b
+opCospanMorphism (CospanMorphism s t h l r) = SpanMorphism (opCospan t) (opCospan s) (OP h) (OP l) (OP r)
+
+-- | Inverse of 'opCospanMorphism'.
+unOpCospanMorphism :: SpanMorphism (Op k) y c d x a b -> CospanMorphism k x a b y c d
+unOpCospanMorphism (SpanMorphism t s (OP h) (OP l) (OP r)) = CospanMorphism (unOpCospan s) (unOpCospan t) h l r
 
 swapSpan :: Span k x a b -> Span k x b a
 swapSpan (Span l r) = Span r l

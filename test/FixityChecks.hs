@@ -6,7 +6,9 @@ import Prelude (Bool (..), Int, Maybe, String)
 import Prelude qualified as P
 
 type F = Constructor []
+
 type G = Constructor Maybe
+
 type H = Id @Types
 
 -- Leave the left sides unparenthesized: these witnesses check the parser.

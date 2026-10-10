@@ -7,10 +7,13 @@ import Prelude (Bool (..), Int, String)
 import Prelude qualified as P
 
 type List = Constructor []
+
 type Optional = Constructor P.Maybe
+
 type Pair = Env Bool
 
 type ProductDay = Day (∧) Pair List
+
 type Composition = Pair • List
 
 forward :: ProductDay ~> Composition
@@ -28,7 +31,9 @@ compositions = [(xs, b) | xs <- lists, b <- [False, True]]
 days :: [Act ProductDay Int]
 days =
   [ DataDayTypes (\(x, c) -> x P.* 10 P.+ P.fromEnum c) (n, b) cs
-  | n <- [-2, 3], b <- [False, True], cs <- [[], ['a'], ['b', 'c']]
+  | n <- [-2, 3],
+    b <- [False, True],
+    cs <- [[], ['a'], ['b', 'c']]
   ]
 
 -- Independent eliminations: one retains the environment and result order;
@@ -76,26 +81,34 @@ checks =
     ),
     ( "Day to composition is natural in the result",
       P.all
-        (\d -> map Composition P.show ((forward $$ Int) d)
-          P.== (forward $$ String) (map ProductDay P.show d))
+        ( \d ->
+            map Composition P.show ((forward $$ Int) d)
+              P.== (forward $$ String) (map ProductDay P.show d)
+        )
         days
     ),
     ( "Composition to Day is natural in the result",
       P.all
-        (\c -> observe (map ProductDay P.show ((backward $$ Int) c))
-          P.== observe ((backward $$ String) (map Composition P.show c)))
+        ( \c ->
+            observe (map ProductDay P.show ((backward $$ Int) c))
+              P.== observe ((backward $$ String) (map Composition P.show c))
+        )
         compositions
     ),
     ( "Day to composition is natural in both functor arguments",
       P.all
-        (\d -> ((composeChange ∘ forward) $$ Int) d
-          P.== ((dayToComposeTypes @(Env String) @Optional ∘ dayChange) $$ Int) d)
+        ( \d ->
+            ((composeChange ∘ forward) $$ Int) d
+              P.== ((dayToComposeTypes @(Env String) @Optional ∘ dayChange) $$ Int) d
+        )
         days
     ),
     ( "Composition to Day is natural in both functor arguments",
       P.all
-        (\c -> observeOptional (((dayChange ∘ backward) $$ Int) c)
-          P.== observeOptional (((composeToDayTypes @(Env String) @Optional @(Reader String) ∘ composeChange) $$ Int) c))
+        ( \c ->
+            observeOptional (((dayChange ∘ backward) $$ Int) c)
+              P.== observeOptional (((composeToDayTypes @(Env String) @Optional @(Reader String) ∘ composeChange) $$ Int) c)
+        )
         compositions
     ),
     ( "Day to composition also supports functors without a right adjoint",

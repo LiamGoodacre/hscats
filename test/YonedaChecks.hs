@@ -32,11 +32,9 @@ checks =
        in P.all (\s -> l P.even s P.== r P.even s) ["", "a", "abc"]
     ),
     ( "Representables preserve evidence for constrained non-Type objects",
-      case
-          ( map (type (HomTo OnlyTrue 'True)) (OP (TArrow (P.+ 1))) (TArrow (P.* 3)),
-            map (type (HomFrom OnlyTrue 'True)) (TArrow (P.+ 1)) (TArrow (P.* 3))
-          )
-        of
-          (TArrow l, TArrow r) -> P.all (\n -> l n P.== 3 P.* (n P.+ 1) P.&& r n P.== 3 P.* n P.+ 1) [-3 .. 3]
+      case ( map (type (HomTo OnlyTrue 'True)) (OP (TArrow (P.+ 1))) (TArrow (P.* 3)),
+             map (type (HomFrom OnlyTrue 'True)) (TArrow (P.+ 1)) (TArrow (P.* 3))
+           ) of
+        (TArrow l, TArrow r) -> P.all (\n -> l n P.== 3 P.* (n P.+ 1) P.&& r n P.== 3 P.* n P.+ 1) [-3 .. 3]
     )
   ]

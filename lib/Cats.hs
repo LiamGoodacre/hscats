@@ -30,6 +30,8 @@ import Cats.Opposite as Exports
 import Cats.Optics as Exports
 import Cats.Procompose as Exports
 import Cats.Profunctor as Exports
+import Cats.Pullback as Exports
+import Cats.Slice as Exports
 import Cats.Span as Exports
 import Cats.Yoneda as Exports
 

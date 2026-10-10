@@ -6,7 +6,7 @@
 -- use 'Constructor'; 'List' is retained as an example of a separate functor tag.
 --
 -- @
--- {-# LANGUAGE RequiredTypeArguments, TypeAbstractions #-}
+-- {-# LANGUAGE GHC2024, RequiredTypeArguments, TypeAbstractions #-}
 -- import Cats (Constructor)
 -- import Cats.Applicative qualified as A
 -- import Prelude (Int, Maybe(..), String, (+), show)
@@ -25,6 +25,14 @@
 -- or monoidal evidence. The specializations below require 'Functor' evidence;
 -- 'Alt' supports choice independently of 'Apply', while 'Alternative' requires
 -- both the product and coproduct structures.
+--
+-- To define a client tag, implement 'Lift0' and/or 'Lift2' for the desired
+-- tensor, and 'Functor' for the specializations. The blanket instances derive
+-- 'LiftN', 'Apply', 'Applicative', 'Alt', and 'Alternative'; clients do not
+-- define competing instances for those constraint classes. Generic lifting
+-- operations allow any source and target categories. The product/coproduct
+-- specializations fix the source to 'Types'; the value helpers also fix the
+-- target to 'Types'.
 --
 -- To interpret 'LiftN' as a monoid for Day convolution, additionally require
 -- @Functor f@ and @Monoidal (Day₁ op)@. Write @t = Day₁ op@, @u = lift0@,
@@ -70,7 +78,27 @@
 -- 'MonoidObject' carries the additional object and monoidal evidence but also
 -- relies on instance authors to obey the laws. The explicit adapters below
 -- reuse its operations without introducing blanket lifting instances.
-module Cats.Applicative where
+module Cats.Applicative
+  ( Lift0 (..),
+    Lift2 (..),
+    LiftN,
+    Apply,
+    Applicative,
+    Alt,
+    Alternative,
+    lift0FromMonoidObject,
+    lift2FromMonoidObject,
+    pure,
+    liftA2,
+    apply,
+    keepLeft,
+    keepRight,
+    empty,
+    chooseWith,
+    choose,
+    List,
+  )
+where
 
 import Cats.Binary
 import Cats.Category
@@ -83,17 +111,21 @@ import Cats.MonoidObject (MonoidObject)
 import Cats.MonoidObject qualified as Monoid
 import Cats.Monoidal
 import Control.Applicative qualified as Prelude
+import Data.Kind (Constraint)
 import Prelude qualified
 
 -- | Binary multiplication for the source tensor @op@.
+type Lift2 :: BINARY_OP d -> (d --> c) -> Constraint
 class Lift2 (op :: BINARY_OP d) (f :: d --> c) where
   lift2 :: Day op f f ~> f
 
 -- | A map from the Day unit: @pure@ for products, @empty@ for coproducts.
+type Lift0 :: BINARY_OP d -> (d --> c) -> Constraint
 class Lift0 op (f :: d --> c) where
   lift0 :: (MonoidalEmpty (Day₁ op)) ~> f
 
 -- | Both operations, with laws and structural evidence supplied separately.
+type LiftN :: BINARY_OP d -> (d --> c) -> Constraint
 class (Lift0 op f, Lift2 op f) => LiftN op (f :: d --> c)
 
 instance (Lift0 op f, Lift2 op f) => LiftN op (f :: d --> c)
@@ -118,24 +150,28 @@ lift2FromMonoidObject op f = Monoid.append (Day₁ op) f
 
 -- | Functorial, associative product combination, without requiring a unit.
 -- Use 'liftA2' for ordinary values over 'Types'.
+type Apply :: (Types --> c) -> Constraint
 class (Functor f, Lift2 (∧) f) => Apply f
 
 instance (Functor f, Lift2 (∧) f) => Apply f
 
 -- | 'Apply' with a product unit satisfying the laws in the module header.
 -- The blanket instances derive 'Apply' from this constraint.
+type Applicative :: (Types --> c) -> Constraint
 class (Functor f, LiftN (∧) f) => Applicative f
 
 instance (Functor f, LiftN (∧) f) => Applicative f
 
 -- | Functorial, associative choice, independently of product combination.
 -- Use 'chooseWith' to map both alternatives to a common result type.
+type Alt :: (Types --> c) -> Constraint
 class (Functor f, Lift2 (∨) f) => Alt f
 
 instance (Functor f, Lift2 (∨) f) => Alt f
 
 -- | 'Applicative' together with 'Alt' and a choice unit. The two structures
 -- satisfy their separate monoid laws; no extra interaction laws are assumed.
+type Alternative :: (Types --> c) -> Constraint
 class (Applicative f, LiftN (∨) f) => Alternative f
 
 instance (Applicative f, LiftN (∨) f) => Alternative f
@@ -158,6 +194,34 @@ liftA2 f combine left right =
       member (type Types) c do
         (lift2 @_ @_ @(∧) @f $$ c) (DataDayTypes (Prelude.uncurry combine) left right)
 
+-- | Apply wrapped functions to wrapped arguments. Uses only 'Apply'.
+-- For lists, functions form the outer loop and arguments the inner loop.
+apply ::
+  forall a b.
+  forall (f :: Types --> Types) ->
+  (Apply f) => Act f (a -> b) -> Act f a -> Act f b
+apply f = liftA2 @(a -> b) @a @b f (Prelude.$)
+
+-- | Combine both effects and retain the left result, using only 'Apply'.
+-- Lists repeat each left value once per right value; either empty input gives
+-- an empty result. Optional values require both inputs to be present.
+-- Effect order and strictness are those of the instance's 'liftA2'.
+keepLeft ::
+  forall a b.
+  forall (f :: Types --> Types) ->
+  (Apply f) => Act f a -> Act f b -> Act f a
+keepLeft f = liftA2 @a @b @a f Prelude.const
+
+-- | Combine both effects and retain the right result, using only 'Apply'.
+-- Lists repeat the entire right list for each left value. Optional values
+-- require both inputs to be present. Discarding a result does not remove its
+-- effect; effect order and strictness follow the instance's 'liftA2'.
+keepRight ::
+  forall a b.
+  forall (f :: Types --> Types) ->
+  (Apply f) => Act f a -> Act f b -> Act f b
+keepRight f = liftA2 @a @b @b f (\_ right -> right)
+
 -- | The empty choice, using just the coproduct unit. An 'Alternative'
 -- instance supplies this operation, but its product operations are not needed.
 empty :: forall a. forall (f :: Types --> Types) -> (Lift0 (∨) f) => Act f a
@@ -177,6 +241,15 @@ chooseWith f leftMap rightMap left right =
     member (type Types) b do
       member (type Types) c do
         (lift2 @_ @_ @(∨) @f $$ c) (DataDayTypes (Prelude.either leftMap rightMap) left right)
+
+-- | Combine alternatives with the same result type, using only 'Alt'.
+-- Lists concatenate in input order. Optional values prefer the left input
+-- and inspect the right only if the left is absent.
+choose ::
+  forall a.
+  forall (f :: Types --> Types) ->
+  (Alt f) => Act f a -> Act f a -> Act f a
+choose f = chooseWith @a @a @a f Prelude.id Prelude.id
 
 -- Specific heads let clients keep independent instances for their own tags.
 instance (Prelude.Applicative f) => Lift0 (∧) (Constructor f) where

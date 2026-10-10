@@ -129,7 +129,8 @@ checks =
         [ let day = DataDayTypes (\(x, b) -> if b then x else P.negate x) xs bs
            in P.map P.show ((multiply (∧) $$ Int) day)
                 P.== (multiply (∧) $$ String) (map (Day (∧) A.List A.List) P.show day)
-        | xs <- ints, bs <- bools
+        | xs <- ints,
+          bs <- bools
         ]
     ),
     ( "Alt List naturality",
@@ -137,7 +138,8 @@ checks =
         [ let day = DataDayTypes (P.either (P.* 3) P.fromEnum) xs bs
            in P.map P.show ((multiply (∨) $$ Int) day)
                 P.== (multiply (∨) $$ String) (map (Day (∨) A.List A.List) P.show day)
-        | xs <- ints, bs <- bools
+        | xs <- ints,
+          bs <- bools
         ]
     ),
     ("Applicative List unit naturality", P.all (\x -> P.map P.even (pureList x) P.== pureList (P.even x)) [-3 .. 3 :: Int]),
@@ -146,47 +148,75 @@ checks =
       P.and
         [ productList (\x y -> x P.- y) (map A.List (P.+ 5) xs) (map A.List P.fromEnum bs)
             P.== productList (\x b -> (x P.+ 5) P.- P.fromEnum b) xs bs
-        | xs <- ints, bs <- bools
+        | xs <- ints,
+          bs <- bools
         ]
     ),
     ( "Alt List respects maps of hidden objects",
       P.and
         [ chooseList (P.* 2) (P.+ 7) (map A.List (P.+ 5) xs) (map A.List P.fromEnum bs)
             P.== chooseList (\x -> 2 P.* (x P.+ 5)) (\b -> P.fromEnum b P.+ 7) xs bs
-        | xs <- ints, bs <- bools
+        | xs <- ints,
+          bs <- bools
         ]
     ),
     ( "Apply List associativity",
       P.and
-        [ let day = DataDayTypes (\(n, c) -> 10 P.* n P.+ P.fromEnum c)
-                (DataDayTypes (\(x, b) -> if b then x else P.negate x) xs bs) cs
+        [ let day =
+                DataDayTypes
+                  (\(n, c) -> 10 P.* n P.+ P.fromEnum c)
+                  (DataDayTypes (\(x, b) -> if b then x else P.negate x) xs bs)
+                  cs
            in (associateLeft (∧) $$ Int) day P.== (associateRight (∧) $$ Int) day
-        | xs <- ints, bs <- bools, cs <- chars
+        | xs <- ints,
+          bs <- bools,
+          cs <- chars
         ]
     ),
     ( "Alt List associativity",
       P.and
-        [ let day = DataDayTypes (P.either (P.+ 10) P.fromEnum)
-                (DataDayTypes (P.either (P.* 2) P.fromEnum) xs bs) cs
+        [ let day =
+                DataDayTypes
+                  (P.either (P.+ 10) P.fromEnum)
+                  (DataDayTypes (P.either (P.* 2) P.fromEnum) xs bs)
+                  cs
            in (associateLeft (∨) $$ Int) day P.== (associateRight (∨) $$ Int) day
-        | xs <- ints, bs <- bools, cs <- chars
+        | xs <- ints,
+          bs <- bools,
+          cs <- chars
         ]
     ),
     ( "Applicative List left unit",
-      P.all (\xs -> let day = DataDayTypes (\(n, x) -> n P.+ x) 7 xs
-                    in (unitLeft (∧) $$ Int) day P.== (idl @_ @(Day₁ (∧)) @A.List $$ Int) day) ints
+      P.all
+        ( \xs ->
+            let day = DataDayTypes (\(n, x) -> n P.+ x) 7 xs
+             in (unitLeft (∧) $$ Int) day P.== (idl @_ @(Day₁ (∧)) @A.List $$ Int) day
+        )
+        ints
     ),
     ( "Applicative List right unit",
-      P.all (\xs -> let day = DataDayTypes (\(x, b) -> if b then x else P.negate x) xs False
-                    in (unitRight (∧) $$ Int) day P.== (idr @_ @(Day₁ (∧)) @A.List $$ Int) day) ints
+      P.all
+        ( \xs ->
+            let day = DataDayTypes (\(x, b) -> if b then x else P.negate x) xs False
+             in (unitRight (∧) $$ Int) day P.== (idr @_ @(Day₁ (∧)) @A.List $$ Int) day
+        )
+        ints
     ),
     ( "Alternative List left unit",
-      P.all (\xs -> let day = DataDayTypes (P.either (P.length @[]) (P.* 3)) () xs
-                    in (unitLeft (∨) $$ Int) day P.== (idl @_ @(Day₁ (∨)) @A.List $$ Int) day) ints
+      P.all
+        ( \xs ->
+            let day = DataDayTypes (P.either (P.length @[]) (P.* 3)) () xs
+             in (unitLeft (∨) $$ Int) day P.== (idl @_ @(Day₁ (∨)) @A.List $$ Int) day
+        )
+        ints
     ),
     ( "Alternative List right unit",
-      P.all (\xs -> let day = DataDayTypes (P.either (P.* 3) (P.length @[])) xs ()
-                    in (unitRight (∨) $$ Int) day P.== (idr @_ @(Day₁ (∨)) @A.List $$ Int) day) ints
+      P.all
+        ( \xs ->
+            let day = DataDayTypes (P.either (P.* 3) (P.length @[])) xs ()
+             in (unitRight (∨) $$ Int) day P.== (idr @_ @(Day₁ (∨)) @A.List $$ Int) day
+        )
+        ints
     ),
     ( "Applicative List map agrees with product and unit",
       P.all (\xs -> map A.List P.show xs P.== productList (\x () -> P.show x) xs (pureList ())) ints
@@ -199,10 +229,12 @@ checks =
     ),
     ( "Day monoid product adapter for Constructor",
       (A.lift2FromMonoidObject (∧) (type (Constructor [])) $$ Int)
-        (DataDayTypes (\(x, y) -> 10 P.* x P.+ y) [1, 2] [3, 4]) P.== [13, 14, 23, 24]
+        (DataDayTypes (\(x, y) -> 10 P.* x P.+ y) [1, 2] [3, 4])
+        P.== [13, 14, 23, 24]
     ),
     ( "Day monoid coproduct adapter for Constructor",
       (A.lift2FromMonoidObject (∨) (type (Constructor [])) $$ Int)
-        (DataDayTypes (P.either (P.+ 1) P.fromEnum) [1, 2] [True, False]) P.== [2, 3, 1, 0]
+        (DataDayTypes (P.either (P.+ 1) P.fromEnum) [1, 2] [True, False])
+        P.== [2, 3, 1, 0]
     )
   ]

@@ -12,7 +12,9 @@ type Tensor p a b = Act p '(a, b)
 rightNaturality ::
   forall {k} (p :: BINARY_OP k) a b c a' b' c'.
   (Associative p, a ∈ k, b ∈ k, c ∈ k, a' ∈ k, b' ∈ k, c' ∈ k) =>
-  k a a' -> k b b' -> k c c' ->
+  k a a' ->
+  k b b' ->
+  k c c' ->
   ( k (Tensor p (Tensor p a b) c) (Tensor p a' (Tensor p b' c')),
     k (Tensor p (Tensor p a b) c) (Tensor p a' (Tensor p b' c'))
   )
@@ -24,7 +26,9 @@ rightNaturality f g h =
 leftNaturality ::
   forall {k} (p :: BINARY_OP k) a b c a' b' c'.
   (Associative p, a ∈ k, b ∈ k, c ∈ k, a' ∈ k, b' ∈ k, c' ∈ k) =>
-  k a a' -> k b b' -> k c c' ->
+  k a a' ->
+  k b b' ->
+  k c c' ->
   ( k (Tensor p a (Tensor p b c)) (Tensor p (Tensor p a' b') c'),
     k (Tensor p a (Tensor p b c)) (Tensor p (Tensor p a' b') c')
   )
@@ -68,7 +72,9 @@ sumRight :: [P.Either Int (P.Either Bool Char)]
 sumRight = P.map P.Left ints P.++ [P.Right (P.Left False), P.Right (P.Left True), P.Right (P.Right 'x'), P.Right (P.Right 'y')]
 
 type List = Constructor []
+
 type ProductDay = Day₁ @Types @Types (∧)
+
 type SumDay = Day₁ @Types @Types (∨)
 
 reverseList, firstTwo, dropFirst :: List ~> List

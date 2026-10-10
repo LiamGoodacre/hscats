@@ -12,6 +12,10 @@ type Lists = Constructor []
 
 type Optional = Constructor Maybe
 
+type Writer = Constructor ((,) [String])
+
+type Zipped = Constructor P.ZipList
+
 -- A product operation without a unit. The helper must not demand Applicative.
 type data ApplyOnly :: Types --> Types
 
@@ -40,6 +44,18 @@ combine = A.liftA2 f
 
 choose :: forall (f :: Types --> Types) a b c. (A.Alt f) => (a -> c) -> (b -> c) -> Act f a -> Act f b -> Act f c
 choose = A.chooseWith f
+
+applyAbstract :: forall (f :: Types --> Types) a b. (A.Apply f) => Act f (a -> b) -> Act f a -> Act f b
+applyAbstract = A.apply @a @b f
+
+keepLeftAbstract :: forall (f :: Types --> Types) a b. (A.Apply f) => Act f a -> Act f b -> Act f a
+keepLeftAbstract = A.keepLeft @a @b f
+
+keepRightAbstract :: forall (f :: Types --> Types) a b. (A.Apply f) => Act f a -> Act f b -> Act f b
+keepRightAbstract = A.keepRight @a @b f
+
+chooseAbstract :: forall (f :: Types --> Types) a. (A.Alt f) => Act f a -> Act f a -> Act f a
+chooseAbstract = A.choose @a f
 
 ints :: [Maybe Int]
 ints = [Nothing, Just (-2), Just 7]
@@ -116,5 +132,63 @@ checks =
           b <- ints,
           c <- ints
         ]
+    ),
+    ( "Function application preserves list function order",
+      A.apply Lists [(P.+ 1), (P.* 10)] [2, 3 :: Int] P.== [3, 4, 20, 30]
+    ),
+    ( "Sequencing preserves list multiplicity and order",
+      A.keepLeft Lists [1, 2 :: Int] [True, False] P.== [1, 1, 2, 2]
+        P.&& A.keepRight Lists [1, 2 :: Int] [True, False] P.== [True, False, True, False]
+    ),
+    ( "Sequencing and application preserve empty list effects",
+      A.keepLeft Lists [1 :: Int] ([] :: [Bool]) P.== []
+        P.&& A.keepRight Lists ([] :: [Int]) [True] P.== []
+        P.&& A.apply Lists ([] :: [Int -> Int]) [1] P.== []
+        P.&& A.apply Lists [(P.+ 1)] ([] :: [Int]) P.== []
+    ),
+    ( "Same-type list choice concatenates and permits empty operands",
+      P.and [A.choose Lists xs ys P.== xs P.++ ys | xs <- [[], [1, 2 :: Int]], ys <- [[], [3, 4]]]
+    ),
+    ( "Derived optional helpers agree with Prelude",
+      P.and
+        [ A.keepLeft Optional n b P.== (n P.<* b)
+            P.&& A.keepRight Optional n b P.== (n P.*> b)
+        | n <- ints,
+          b <- bools
+        ]
+        P.&& P.and [A.apply Optional f n P.== (f P.<*> n) | f <- [Nothing, Just P.show], n <- ints]
+        P.&& P.and [A.choose Optional n m P.== (n P.<|> m) | n <- ints, m <- ints]
+    ),
+    ( "Optional choice does not demand an unused fallback",
+      A.choose Optional (Just (7 :: Int)) (P.error "unused fallback") P.== Just 7
+    ),
+    ( "Derived product helpers need no unit",
+      applyAbstract @ApplyOnly ((P.+ 1) :| [(P.* 10)]) (2 :| [3 :: Int]) P.== (3 :| [4, 20, 30])
+        P.&& keepLeftAbstract @ApplyOnly (1 :| [2 :: Int]) (True :| [False]) P.== (1 :| [1, 2, 2])
+        P.&& keepRightAbstract @ApplyOnly (1 :| [2 :: Int]) (True :| [False]) P.== (True :| [False, True, False])
+    ),
+    ( "Same-type choice needs neither product nor unit",
+      chooseAbstract @ChoiceOnly (1 :| [2 :: Int]) (3 :| [4]) P.== (1 :| [2, 3, 4])
+    ),
+    ( "Writer product and application retain noncommutative effect order",
+      A.liftA2 Writer render (["left"], 7) (["right"], True) P.== (["left", "right"], "7")
+        P.&& A.apply Writer (["function"], P.show) (["argument"], 7 :: Int) P.== (["function", "argument"], "7")
+        P.&& A.pure Writer (7 :: Int) P.== ([], 7)
+    ),
+    ( "Writer sequencing retains both logs when discarding either result",
+      A.keepLeft Writer (["left"], 7 :: Int) (["right"], True) P.== (["left", "right"], 7)
+        P.&& A.keepRight Writer (["left"], 7 :: Int) (["right"], True) P.== (["left", "right"], True)
+    ),
+    ( "ZipList combines matching positions and stops at the shorter input",
+      A.liftA2 Zipped render (P.ZipList [1, 2, 3]) (P.ZipList [True, False]) P.== P.ZipList ["1", "no"]
+        P.&& A.apply Zipped (P.ZipList [P.show, \_ -> "second"]) (P.ZipList [7, 8, 9 :: Int]) P.== P.ZipList ["7", "second"]
+        P.&& A.liftA2 Zipped render (P.ZipList []) (P.ZipList [True]) P.== P.ZipList []
+    ),
+    ( "ZipList pure repeats indefinitely (observed through a finite prefix)",
+      P.take 10 (P.getZipList (A.pure Zipped (7 :: Int))) P.== P.replicate 10 7
+    ),
+    ( "ZipList sequencing retains positional length",
+      A.keepLeft Zipped (P.ZipList [1, 2, 3 :: Int]) (P.ZipList [True, False]) P.== P.ZipList [1, 2]
+        P.&& A.keepRight Zipped (P.ZipList [1 :: Int]) (P.ZipList [True, False]) P.== P.ZipList [True]
     )
   ]
