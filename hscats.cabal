@@ -119,10 +119,12 @@ test-suite hscats-examples
     type: exitcode-stdio-1.0
     main-is: Main.hs
     other-modules:
+      ApplicativeClient,
       CategoryExamples,
       FreeExamples,
       KanExamples,
       MonoidalSketches,
+      Quickstart,
       RepresentableExamples
     build-depends:
       , base

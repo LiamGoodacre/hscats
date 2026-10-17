@@ -1,4 +1,4 @@
-# Maintained experiments
+# Maintained examples and experiments
 
 These modules are separate from the public library. The `hscats-examples` test
 target compiles every module and runs the illustrative computations. It is
@@ -11,6 +11,8 @@ cabal repl test:hscats-examples
 
 | Module | Scope and validation |
 | --- | --- |
+| [ApplicativeClient](ApplicativeClient.hs) | Explicit imports and a custom functor tag implementing `Lift0` and `Lift2`. Checks pairing through the derived `Applicative` constraint. |
+| [Quickstart](Quickstart.hs) | Complete runnable introduction to functor tags, natural transformations, Applicative, qualified do-notation, and profunctor composition. Compiled by this target; run it using the command in the [README](../README.md). |
 | `CategoryExamples` | Single-object monoids, endomorphisms, the terminal category, and natural-number inequalities. Preserves the abstract monoid compile examples and checks concrete identities/composition. |
 | `KanExamples` | Existential right Kan extension and codensity tags, currently targeting `Types`. Examples evaluate extensions along `Id`, map values and transformations, and use the adjunction unit/counit. |
 | `FreeExamples` | Church-encoded free-monad experiment restricted to adjunction composites through `Types`. Examples interpret and map an operation using a state effect; this is not a general free-monad API. |
