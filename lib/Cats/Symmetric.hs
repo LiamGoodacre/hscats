@@ -1,6 +1,5 @@
 module Cats.Symmetric where
 
-import Cats.Associative
 import Cats.Binary
 import Cats.Category
 import Data.Kind (Constraint)
@@ -11,10 +10,7 @@ type Symmetric ::
   forall (k :: CATEGORY i).
   BINARY_OP k ->
   Constraint
-class
-  (Associative op) =>
-  Symmetric (op :: BINARY_OP k)
-  where
+class Symmetric (op :: BINARY_OP k) where
   symm ::
     forall op' l r ->
     (op' ~ op) =>
