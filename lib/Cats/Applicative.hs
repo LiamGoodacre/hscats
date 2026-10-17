@@ -295,3 +295,22 @@ instance Lift2 (∨) List where
 -- alternative List
 instance Lift0 (∨) List where
   lift0 _ _ = EXP \_ () -> empty (type (Constructor []))
+
+type data Backwards :: forall d c. (d --> c) -> (d --> c)
+
+type instance Act (Backwards f) x = Act f x
+
+instance (Functor f) => Functor (Backwards f) where
+  map _ = map f
+
+instance
+  ( Symmetric (Day₁ @d @c op),
+    Functor f,
+    Lift2 op f
+  ) =>
+  Lift2 op (Backwards @d @c f)
+  where
+  lift2 = lift2 ∘ symm (type (Day₁ @d @c op)) (type _) (type _)
+
+instance (Functor f, Lift0 op f) => Lift0 op (Backwards @d @c f) where
+  lift0 _ _ = castExp ∘ lift0 (type op) (type f)
