@@ -32,7 +32,7 @@ beneath ::
   (f ~> g) ->
   ((k • f) ~> (k • g))
 beneath fg = EXP \(type i) ->
-  with @(Acts f i, Acts g i) do
+  require @(Acts f i, Acts g i) do
     map (type k) (fg $$ i)
 
 -- | Composition of functors, acting on arrows by horizontal composition.
@@ -48,7 +48,7 @@ instance
   Functor (Composing @aa @bb @cc)
   where
   map _ ((fh :: f ~> h) :×: (gi :: g ~> i)) =
-    with @(h ∈ (bb ^ aa), g ∈ (aa ^ cc), i ∈ (aa ^ cc)) do
+    require @(h ∈ (bb ^ aa), g ∈ (aa ^ cc), i ∈ (aa ^ cc)) do
       beneath gi ∘ above fh :: (f • g) ~> (h • i)
 
 instance (Category k) => Associative (Composing :: BINARY_OP (k ^ k)) where
@@ -79,7 +79,7 @@ instance
   Functor (Composed @aa @bb @cc)
   where
   map _ ((fhgi :: p fg hi) :×: (xy :: cc x y)) =
-    with @(hi ∈ p) do
+    require @(hi ∈ p) do
       case map (Composing @aa @bb @cc) fhgi of
         (v :: (f • g) ~> (h • i)) ->
           map (h • i) xy ∘ (v $$ x)

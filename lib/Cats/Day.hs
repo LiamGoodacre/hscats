@@ -86,7 +86,7 @@ dayToComposeTypes ::
   (Functor f, Functor g) =>
   Day (∧) f g ~> (f • g)
 dayToComposeTypes = EXP \(type i) (DataDayTypes xyz fx gy) ->
-  with @(Acts g i) do
+  require @(Acts g i) do
     map f (\x -> map g (\y -> xyz (x, y)) gy) fx
 
 -- Internal constructor retaining both effects while selecting the right value.
@@ -127,13 +127,13 @@ instance
 -- construction and mapping generic, but restrict this instance to Types.
 instance (Associative o) => Associative (Day₁ @Types @Types o) where
   lassoc _ _ _ _ = EXP \_ (DataDayTypes @x @_ @z xyz fx (DataDayTypes @a @b @_ aby ga hb)) ->
-    with @(Acts o '(a, b), Acts o '(x, a)) do
+    require @(Acts o '(a, b), Acts o '(x, a)) do
       DataDayTypes @(Act o '(x, a)) @b @z
         (xyz ∘ map o (identity x :×: aby) ∘ rassoc o x a b)
         (DataDayTypes @x @a @(Act o '(x, a)) (identity _) fx ga)
         hb
   rassoc _ _ _ _ = EXP \_ (DataDayTypes @_ @y @z xyz (DataDayTypes @a @b @_ abx fa gb) hy) ->
-    with @(Acts o '(a, b), Acts o '(b, y)) do
+    require @(Acts o '(a, b), Acts o '(b, y)) do
       DataDayTypes @a @(Act o '(b, y)) @z
         (xyz ∘ map o (abx :×: identity y) ∘ lassoc o a b y)
         fa

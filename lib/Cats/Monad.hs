@@ -67,7 +67,7 @@ flatMap ::
   forall {k} a b.
   forall (m :: k --> k) ->
   (Monad m, a ∈ k, b ∈ k) => k a (Act m b) -> k (Act m a) (Act m b)
-flatMap m f = with @(Acts m b) do
+flatMap m f = require @(Acts m b) do
   join m b ∘ map m f
 
 -- | Extract a value from a comonad.
@@ -83,5 +83,5 @@ extend ::
   forall {k} a b.
   forall (w :: k --> k) ->
   (Comonad w, a ∈ k, b ∈ k) => k (Act w a) b -> k (Act w a) (Act w b)
-extend w f = with @(Acts w a) do
+extend w f = require @(Acts w a) do
   map w f ∘ duplicate w a

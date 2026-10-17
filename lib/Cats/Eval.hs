@@ -18,5 +18,5 @@ type instance Act Eval fx = Act (Fst fx) (Snd fx)
 
 instance (Category d, Category c) => Functor (Eval @d @c) where
   map @a @b _ (f :×: x) =
-    with @(Fst b ∈ (c ^ d)) do
+    require @(Fst b ∈ (c ^ d)) do
       map (Fst b) x ∘ (f $$ Snd a)

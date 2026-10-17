@@ -64,7 +64,7 @@ type instance Act (Uncurry₁ f) xy = Act (Act f (Fst xy)) (Snd xy)
 
 instance (Category a, Category b, Category c, Functor f) => Functor (Uncurry₁ @a @b @c f) where
   map @xy @zw _ (l :×: r) =
-    with @(Acts f (Fst xy), Acts f (Fst zw)) do
+    require @(Acts f (Fst xy), Acts f (Fst zw)) do
       map (Eval @b @c) (map f l :×: r)
 
 -- | Uncurry functors and natural transformations by evaluating both indices.

@@ -62,8 +62,8 @@ instance Category Types where
 
 -- | Bring evidence into a local scope, often after instantiating a quantified
 -- superclass such as @Acts f a@.
-with :: (c) => ((c) => r) -> r
-with r = r
+require :: (c) => ((c) => r) -> r
+require r = r
 
 -- | Turn an 'Obj' predicate into the '(∈)' evidence used by the public API.
 member ::
