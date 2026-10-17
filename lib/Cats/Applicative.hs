@@ -122,7 +122,7 @@ class Lift2 (op :: BINARY_OP d) (f :: d --> c) where
 -- | A map from the Day unit: @pure@ for products, @empty@ for coproducts.
 type Lift0 :: BINARY_OP d -> (d --> c) -> Constraint
 class Lift0 op (f :: d --> c) where
-  lift0 :: (MonoidalEmpty (Day₁ op)) ~> f
+  lift0 :: forall op' f' -> (op' ~ op, f' ~ f) => (MonoidalEmpty (Day₁ op)) ~> f
 
 -- | Both operations, with laws and structural evidence supplied separately.
 type LiftN :: BINARY_OP d -> (d --> c) -> Constraint
@@ -180,7 +180,7 @@ instance (Applicative f, LiftN (∨) f) => Alternative f
 -- constraint is needed; an 'Applicative' instance supplies this operation.
 pure :: forall a. forall (f :: Types --> Types) -> (Lift0 (∧) f) => a -> Act f a
 pure f = member (type Types) a do
-  lift0 @_ @_ @(∧) @f $$ a
+  run (lift0 (type (∧)) (type f)) a
 
 -- | Combine two values with a binary function. Requires 'Apply', so a unit
 -- instance is unnecessary. For lists, the left input is the outer loop.
@@ -226,7 +226,7 @@ keepRight f = liftA2 @a @b @b f (\_ right -> right)
 -- instance supplies this operation, but its product operations are not needed.
 empty :: forall a. forall (f :: Types --> Types) -> (Lift0 (∨) f) => Act f a
 empty f = member (type Types) a do
-  (lift0 @_ @_ @(∨) @f $$ a) ()
+  run (lift0 (type (∨)) (type f)) a ()
 
 -- | Map two alternatives to a common result and combine them. Requires only
 -- 'Alt'; neither product combination nor an empty choice is needed.
@@ -253,13 +253,13 @@ choose f = chooseWith @a @a @a f Prelude.id Prelude.id
 
 -- Specific heads let clients keep independent instances for their own tags.
 instance (Prelude.Applicative f) => Lift0 (∧) (Constructor f) where
-  lift0 = lift0FromMonoidObject (∧) (type (Constructor f))
+  lift0 _ _ = lift0FromMonoidObject (∧) (type (Constructor f))
 
 instance (Prelude.Applicative f) => Lift2 (∧) (Constructor f) where
   lift2 = lift2FromMonoidObject (∧) (type (Constructor f))
 
 instance (Prelude.Alternative f) => Lift0 (∨) (Constructor f) where
-  lift0 = lift0FromMonoidObject (∨) (type (Constructor f))
+  lift0 _ _ = lift0FromMonoidObject (∨) (type (Constructor f))
 
 instance (Prelude.Alternative f) => Lift2 (∨) (Constructor f) where
   lift2 = lift2FromMonoidObject (∨) (type (Constructor f))
@@ -283,7 +283,7 @@ instance Lift2 (∧) List where
 
 -- applicative List
 instance Lift0 (∧) List where
-  lift0 = EXP \_ -> pure (type (Constructor []))
+  lift0 _ _ = EXP \_ -> pure (type (Constructor []))
 
 -- alt List
 instance Lift2 (∨) List where
@@ -292,4 +292,4 @@ instance Lift2 (∨) List where
 
 -- alternative List
 instance Lift0 (∨) List where
-  lift0 = EXP \_ () -> empty (type (Constructor []))
+  lift0 _ _ = EXP \_ () -> empty (type (Constructor []))

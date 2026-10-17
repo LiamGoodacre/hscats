@@ -20,7 +20,7 @@ instance Functor Optional where
   map _ = P.fmap
 
 instance Lift0 (∧) Optional where
-  lift0 = EXP \_ -> P.Just
+  lift0 _ _ = EXP \_ -> P.Just
 
 instance Lift2 (∧) Optional where
   lift2 = EXP \_ (DataDayTypes k left right) -> P.liftA2 (P.curry k) left right

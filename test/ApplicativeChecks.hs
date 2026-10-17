@@ -45,7 +45,7 @@ instance A.Lift2 (∨) ChoiceOnly where
     P.fmap (k ∘ P.Left) xs P.<> P.fmap (k ∘ P.Right) ys
 
 dayUnit :: forall (op :: BINARY_OP Types) -> (A.Lift0 op A.List) => MonoidalEmpty (Day₁ op) ~> A.List
-dayUnit op = A.lift0 @_ @_ @op @A.List
+dayUnit op = A.lift0 (type op) (type A.List)
 
 multiply :: forall (op :: BINARY_OP Types) -> (A.Lift2 op A.List) => Day op A.List A.List ~> A.List
 multiply _ = A.lift2

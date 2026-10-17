@@ -33,10 +33,10 @@ type data UnitOnly :: Types --> Types
 type instance Act UnitOnly a = Maybe a
 
 instance A.Lift0 (∧) UnitOnly where
-  lift0 = EXP \_ -> Just
+  lift0 _ _ = EXP \_ -> Just
 
 instance A.Lift0 (∨) UnitOnly where
-  lift0 = EXP \_ () -> Nothing
+  lift0 _ _ = EXP \_ () -> Nothing
 
 -- Keep these constraints abstract to check the advertised helper requirements.
 combine :: forall (f :: Types --> Types) a b c. (A.Apply f) => (a -> b -> c) -> Act f a -> Act f b -> Act f c
