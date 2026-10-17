@@ -40,6 +40,7 @@ library
       Cats.Profunctor,
       Cats.Pullback,
       Cats.Slice,
+      Cats.Symmetric,
       Cats.Span,
       Cats.Yoneda
     build-depends:

@@ -20,6 +20,7 @@ import Cats.Functor
 import Cats.Id
 import Cats.MonoidObject
 import Cats.Monoidal
+import Cats.Symmetric
 import Control.Applicative qualified as Prelude
 import Data.Function ((&))
 import Data.Void qualified as Prelude
@@ -138,6 +139,10 @@ instance (Associative o) => Associative (Day₁ @Types @Types o) where
         (xyz ∘ map o (abx :×: identity y) ∘ lassoc o a b y)
         fa
         (DataDayTypes @b @y @(Act o '(b, y)) (identity _) gb hy)
+
+instance (Symmetric op) => Symmetric (Day₁ @Types @Types op) where
+  symm (type _) (type _) (type _) = EXP \(type _) (DataDayTypes @x @y xyz xx yy) ->
+    DataDayTypes @y @x (xyz ∘ symm (type op) (type y) (type x)) yy xx
 
 type instance MonoidalEmpty (Day₁ (∧)) = Id
 

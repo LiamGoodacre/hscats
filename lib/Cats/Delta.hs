@@ -9,6 +9,7 @@ import Cats.Functor
 import Cats.MonoidObject
 import Cats.Monoidal
 import Cats.Opposite
+import Cats.Symmetric
 import Data.Void (Void)
 import Data.Void qualified as Void
 import Prelude qualified
@@ -59,6 +60,14 @@ instance Associative (∨) where
     Prelude.Left (Prelude.Left a) -> Prelude.Left a
     Prelude.Left (Prelude.Right b) -> Prelude.Right (Prelude.Left b)
     Prelude.Right c -> Prelude.Right (Prelude.Right c)
+
+instance Symmetric (∧) where
+  symm _ _ _ = \(l, r) -> (r, l)
+
+instance Symmetric (∨) where
+  symm _ _ _ = \case
+    Prelude.Left v -> Prelude.Right v
+    Prelude.Right v -> Prelude.Left v
 
 type instance MonoidalEmpty (∧) = ()
 

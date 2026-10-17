@@ -110,6 +110,7 @@ import Cats.Functor
 import Cats.MonoidObject (MonoidObject)
 import Cats.MonoidObject qualified as Monoid
 import Cats.Monoidal
+import Cats.Symmetric
 import Control.Applicative qualified as Prelude
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
