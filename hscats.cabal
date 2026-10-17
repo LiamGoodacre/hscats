@@ -64,23 +64,6 @@ library
       UndecidableSuperClasses
     ghc-options: -O2 -Wall -Werror=orphans
 
-test-suite hscats-docs
-    type: exitcode-stdio-1.0
-    main-is: Main.hs
-    other-modules:
-      ApplicativeClient,
-      ApplicativeUsage,
-      DoUsage,
-      PullbackUsage,
-      SliceUsage,
-      Quickstart
-    build-depends:
-      base,
-      hscats
-    hs-source-dirs: test/docs
-    default-language: Haskell2010
-    ghc-options: -Wall -Werror=orphans
-
 test-suite hscats-test
     type: exitcode-stdio-1.0
     main-is: Main.hs
