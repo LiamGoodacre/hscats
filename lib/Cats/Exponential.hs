@@ -2,6 +2,7 @@ module Cats.Exponential where
 
 import Cats.Category
 import Cats.Functor
+import Data.Type.Equality (type (~))
 
 infixr 8 ^
 
@@ -59,3 +60,13 @@ instance (Semigroupoid d, Semigroupoid c) => Semigroupoid (c ^ d) where
 
 instance (Category d, Category c) => Category (c ^ d) where
   identity f = EXP \(type i) -> identity (Act f i)
+
+class (Act f i ~ Act g i) => ActsTheSame f g i
+
+instance (Act f i ~ Act g i) => ActsTheSame f g i
+
+castExp ::
+  forall f g.
+  (Functor g, forall i. ActsTheSame f g i) =>
+  (f ~> g)
+castExp = EXP \(type i) -> identity (type g) $$ (type i)
