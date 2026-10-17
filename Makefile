@@ -6,7 +6,8 @@ ghcid:
 	ghcid -c 'cabal repl all --enable-tests' $(addprefix --restart=,$(CABAL_FILES)) -a
 
 format:
-	find lib test examples -type f -name '*.hs' -exec ormolu -i {} +
+	bash -o pipefail -c \
+		'cabal sdist --list-only --null-sep | rg --null-data "\.hs$$" | xargs -0 -r ormolu -i'
 
 test:
 	cabal test all --test-show-details=direct
