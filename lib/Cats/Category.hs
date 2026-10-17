@@ -3,8 +3,9 @@
 -- such as 'identity'. Arrows are represented by an indexed Haskell type.
 module Cats.Category where
 
-import Data.Kind (Constraint, Type)
+import Data.Kind (Constraint, FUN, Type)
 import Data.Type.Equality ((:~:) (Refl), type (~))
+import GHC.Base (Multiplicity (..))
 
 infix 4 ∈
 
@@ -58,6 +59,17 @@ instance Semigroupoid Types where
   (f ∘ g) x = f (g x)
 
 instance Category Types where
+  identity _ x = x
+
+-- | Haskell types as objects and functions as arrows.
+type LinearTypes = FUN 'One :: CATEGORY Type
+
+type instance Obj LinearTypes t = (t ~ t)
+
+instance Semigroupoid LinearTypes where
+  (f ∘ g) x = f (g x)
+
+instance Category LinearTypes where
   identity _ x = x
 
 -- | Bring evidence into a local scope, often after instantiating a quantified

@@ -51,6 +51,7 @@ library
       BlockArguments,
       FunctionalDependencies,
       ImplicitParams,
+      LinearTypes,
       NoImplicitPrelude,
       QualifiedDo,
       QuantifiedConstraints,
