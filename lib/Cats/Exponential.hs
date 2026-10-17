@@ -38,6 +38,18 @@ data (^) :: forall c d -> CATEGORY (d --> c) where
     } ->
     (c ^ d) f g
 
+run ::
+  forall
+    {j}
+    {i}
+    {c :: CATEGORY j}
+    {d :: CATEGORY i}
+    {f :: d --> c}
+    {g :: d --> c}.
+  (^) c d f g ->
+  forall (i1 :: NamesOf d) -> (i1 ∈ d) => c (Act f i1) (Act g i1)
+run = ($$)
+
 type (~>) (f :: d --> c) g = (c ^ d) f g
 
 type instance Obj (c ^ d) o = Functor o
