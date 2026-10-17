@@ -112,6 +112,7 @@ import Cats.MonoidObject qualified as Monoid
 import Cats.Monoidal
 import Control.Applicative qualified as Prelude
 import Data.Kind (Constraint)
+import Data.Type.Equality (type (~))
 import Prelude qualified
 
 -- | Binary multiplication for the source tensor @op@.
