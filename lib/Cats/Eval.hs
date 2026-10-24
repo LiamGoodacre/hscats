@@ -4,9 +4,11 @@
 module Cats.Eval (Eval) where
 
 import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
+import Cats.Semigroupoid
 
 -- | @Act Eval '(f, x) = Act f x@. On a pair consisting of a natural
 -- transformation @t :: f ~> g@ and an arrow @h :: d x y@, evaluation gives

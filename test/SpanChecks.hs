@@ -1,7 +1,6 @@
 module SpanChecks (checks) where
 
 import Cats
-import Data.Type.Equality ((:~:) (Refl))
 import Prelude (Bool (..), Int, String)
 import Prelude qualified as P
 

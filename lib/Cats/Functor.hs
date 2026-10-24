@@ -4,6 +4,7 @@
 module Cats.Functor where
 
 import Cats.Category
+import Cats.Core
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy)
 import Data.Type.Equality (type (~))

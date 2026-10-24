@@ -2,8 +2,10 @@ module Cats.Cat where
 
 import Cats.Category
 import Cats.Compose
+import Cats.Core
 import Cats.Functor
 import Cats.Id
+import Cats.Semigroupoid
 import Data.Proxy (Proxy (Proxy))
 
 data Cat :: forall k. CATEGORY (CATEGORY k) where

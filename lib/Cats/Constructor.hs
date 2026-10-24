@@ -1,10 +1,10 @@
 module Cats.Constructor where
 
-import Cats.Category
 import Cats.Compose
 import Cats.Exponential
 import Cats.Functor
 import Cats.MonoidObject
+import Cats.Types
 import Data.Kind (Type)
 import Prelude qualified
 

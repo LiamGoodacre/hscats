@@ -2,7 +2,7 @@ module Cats.Monoidal where
 
 import Cats.Associative
 import Cats.Binary
-import Cats.Category
+import Cats.Core
 import Data.Kind (Constraint)
 
 type MonoidalEmpty :: BINARY_OP k -> NamesOf k

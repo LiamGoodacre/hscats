@@ -1,7 +1,7 @@
 module Cats.Associative where
 
 import Cats.Binary
-import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Functor
 import Data.Kind (Constraint)

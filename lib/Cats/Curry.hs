@@ -16,6 +16,7 @@ module Cats.Curry where
 
 import Cats.Adjoint
 import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Eval
 import Cats.Exponential

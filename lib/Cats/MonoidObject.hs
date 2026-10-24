@@ -1,7 +1,7 @@
 module Cats.MonoidObject where
 
 import Cats.Binary
-import Cats.Category
+import Cats.Core
 import Cats.Monoidal
 import Cats.Opposite
 import Data.Kind (Constraint)

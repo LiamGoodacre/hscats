@@ -1,7 +1,6 @@
 module PullbackChecks (checks) where
 
 import Cats
-import Data.Type.Equality ((:~:) (Refl))
 import Data.Void (Void)
 import Prelude (Bool (..), Int, String)
 import Prelude qualified as P

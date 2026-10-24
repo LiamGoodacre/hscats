@@ -17,8 +17,8 @@ module Cats.FromAdjoint
 where
 
 import Cats.Adjoint
-import Cats.Category
 import Cats.Compose
+import Cats.Core
 import Cats.Exponential
 import Cats.Functor
 import Cats.MonoidObject

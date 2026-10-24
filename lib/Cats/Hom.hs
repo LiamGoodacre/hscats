@@ -5,6 +5,7 @@ import Cats.CrossProduct
 import Cats.Functor
 import Cats.Opposite
 import Cats.Profunctor
+import Cats.Semigroupoid
 
 type data Hom :: forall c -> PROFUNCTOR c c
 

@@ -4,7 +4,6 @@ import AdjunctionChecks (Env, OnlyTrue (..), OnlyUnit (..), Reader, ToTrue, ToUn
 import Cats
 import Cats.Do qualified as Do
 import Cats.Monad qualified as M
-import Data.Type.Equality ((:~:) (Refl))
 import Prelude (Bool (..), Int, Maybe (..), String)
 import Prelude qualified as P
 

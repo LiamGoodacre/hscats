@@ -27,10 +27,13 @@
 module Cats.Pullback where
 
 import Cats.Category
+import Cats.Core
 import Cats.Opposite
+import Cats.Semigroupoid
 import Cats.Span
+import Cats.TypeEquality ((:~:) (Refl))
+import Cats.Types
 import Data.Kind (Type)
-import Data.Type.Equality ((:~:) (Refl))
 import Data.Void (Void, absurd)
 import Prelude (Either (..))
 import Prelude qualified as P

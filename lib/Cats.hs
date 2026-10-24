@@ -12,6 +12,7 @@ import Cats.Cat as Exports
 import Cats.Category as Exports
 import Cats.Compose as Exports
 import Cats.Constructor as Exports
+import Cats.Core as Exports
 import Cats.CrossProduct as Exports
 import Cats.Curry as Exports
 import Cats.Day as Exports
@@ -23,6 +24,7 @@ import Cats.FromAdjoint as Exports
 import Cats.Functor as Exports
 import Cats.Hom as Exports
 import Cats.Id as Exports
+import Cats.LinearTypes as Exports
 import Cats.Monad as Exports (Comonad, Monad, extend, flatMap)
 import Cats.MonoidObject as Exports
 import Cats.Monoidal as Exports
@@ -31,8 +33,11 @@ import Cats.Optics as Exports
 import Cats.Procompose as Exports
 import Cats.Profunctor as Exports
 import Cats.Pullback as Exports
+import Cats.Semigroupoid as Exports
 import Cats.Slice as Exports
 import Cats.Span as Exports
+import Cats.TypeEquality as Exports
+import Cats.Types as Exports
 import Cats.Yoneda as Exports
 
 -- How do I type that?

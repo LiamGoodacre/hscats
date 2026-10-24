@@ -13,6 +13,7 @@ import Cats.Binary
 import Cats.Category
 import Cats.Compose
 import Cats.Constructor
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Delta
 import Cats.Exponential
@@ -20,7 +21,9 @@ import Cats.Functor
 import Cats.Id
 import Cats.MonoidObject
 import Cats.Monoidal
+import Cats.Semigroupoid
 import Cats.Symmetric
+import Cats.Types
 import Control.Applicative qualified as Prelude
 import Data.Function ((&))
 import Data.Void qualified as Prelude

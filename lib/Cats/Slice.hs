@@ -34,7 +34,9 @@
 module Cats.Slice where
 
 import Cats.Category
+import Cats.Core
 import Cats.Functor
+import Cats.Semigroupoid
 import Data.Kind (Type)
 import Data.Type.Equality (type (~))
 

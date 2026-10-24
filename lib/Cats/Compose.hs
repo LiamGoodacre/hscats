@@ -3,11 +3,14 @@ module Cats.Compose where
 import Cats.Associative
 import Cats.Binary
 import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
 import Cats.Id
 import Cats.Monoidal
+import Cats.Semigroupoid
+import Cats.Types ()
 import Data.Kind (Type)
 
 infixr 9 •

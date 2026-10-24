@@ -8,13 +8,14 @@
 -- triangles as morphisms. The present aliases are defined by currying 'Hom'.
 module Cats.Yoneda where
 
-import Cats.Category
+import Cats.Core
 import Cats.Curry
 import Cats.Exponential
 import Cats.Flip
 import Cats.Functor
 import Cats.Hom
 import Cats.Opposite
+import Cats.Types
 
 -- | The embedding @c -> (Types ^ Op c)@ taking @a@ to @HomTo c a@.
 -- An arrow @f :: c a b@ induces the natural transformation with component

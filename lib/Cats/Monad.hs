@@ -38,11 +38,12 @@ module Cats.Monad
   )
 where
 
-import Cats.Category
 import Cats.Compose
+import Cats.Core
 import Cats.Exponential
 import Cats.Functor
 import Cats.MonoidObject
+import Cats.Semigroupoid
 import Data.Kind (Constraint)
 
 -- | A monoid in the category of endofunctors under composition.

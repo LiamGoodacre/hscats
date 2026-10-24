@@ -2,7 +2,6 @@ module ProductChecks (checks) where
 
 import AdjunctionChecks (OnlyTrue (..), OnlyUnit (..), ToTrue, ToUnit)
 import Cats
-import Data.Type.Equality ((:~:) (Refl))
 import Prelude (Bool (..), Int, Maybe (..), String)
 import Prelude qualified as P
 

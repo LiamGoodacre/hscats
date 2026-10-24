@@ -1,9 +1,11 @@
 module Cats.Profunctor where
 
 import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Functor
 import Cats.Opposite
+import Cats.Types
 
 infixr 0 -/->
 

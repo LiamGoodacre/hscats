@@ -4,10 +4,12 @@ import Cats.Adjoint
 import Cats.Associative
 import Cats.Binary
 import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
 import Cats.Monoidal
+import Cats.Semigroupoid
 
 data Op :: CATEGORY i -> CATEGORY i where
   OP :: {runOP :: k b a} -> Op k a b

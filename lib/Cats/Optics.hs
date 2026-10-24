@@ -41,10 +41,13 @@
 module Cats.Optics where
 
 import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Delta
 import Cats.Functor
 import Cats.Hom
+import Cats.Semigroupoid
+import Cats.Types
 import Cats.Yoneda
 import Data.Kind (Constraint, Type)
 import Data.Type.Equality (type (~))

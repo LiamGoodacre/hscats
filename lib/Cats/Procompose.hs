@@ -26,6 +26,7 @@ module Cats.Procompose where
 import Cats.Associative
 import Cats.Binary
 import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
@@ -33,6 +34,7 @@ import Cats.Hom
 import Cats.Monoidal
 import Cats.Opposite
 import Cats.Profunctor
+import Cats.Types
 import Data.Kind (Type)
 
 -- | Two profunctor values joined at an existential intermediate object.

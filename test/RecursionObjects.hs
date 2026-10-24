@@ -1,7 +1,7 @@
 -- | Object references used by the active recursion-scheme checks.
 module RecursionObjects (OBJECT, ObjectName, AnObject) where
 
-import Cats.Category
+import Cats.Core
 import Data.Kind (Type)
 import Data.Proxy (Proxy)
 

@@ -20,9 +20,10 @@
 -- operation and are outside this interface.
 module Cats.Do (MonadDo, with, (>>=), (>>), pure, BindDo, PureDo) where
 
-import Cats.Category (Types, member)
+import Cats.Core (member)
 import Cats.Functor
 import Cats.Monad qualified as M
+import Cats.Types (Types)
 import Data.Proxy (Proxy (..))
 
 -- | Binding operations supplied by 'with'. The abstract type can be used in

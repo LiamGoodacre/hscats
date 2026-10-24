@@ -19,6 +19,7 @@ library
       Cats.Category,
       Cats.Compose,
       Cats.Constructor,
+      Cats.Core,
       Cats.CrossProduct,
       Cats.Curry,
       Cats.Day,
@@ -31,6 +32,7 @@ library
       Cats.Functor,
       Cats.Hom,
       Cats.Id,
+      Cats.LinearTypes,
       Cats.Monad,
       Cats.MonoidObject,
       Cats.Monoidal,
@@ -39,9 +41,12 @@ library
       Cats.Procompose,
       Cats.Profunctor,
       Cats.Pullback,
+      Cats.Semigroupoid,
       Cats.Slice,
-      Cats.Symmetric,
       Cats.Span,
+      Cats.Symmetric,
+      Cats.TypeEquality,
+      Cats.Types,
       Cats.Yoneda
     build-depends:
       , base

@@ -1,7 +1,7 @@
 module Cats.Symmetric where
 
 import Cats.Binary
-import Cats.Category
+import Cats.Core
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 

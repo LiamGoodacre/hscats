@@ -3,7 +3,9 @@
 module Cats.CrossProduct where
 
 import Cats.Category
+import Cats.Core
 import Cats.Functor
+import Cats.Semigroupoid
 import Data.Type.Equality (type (~))
 
 infixr 7 ×, :×:

@@ -4,12 +4,15 @@ module Cats.Span where
 
 import Cats.Adjoint
 import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Curry
 import Cats.Delta
 import Cats.Flip
 import Cats.Functor
 import Cats.Opposite
+import Cats.Semigroupoid
+import Cats.Types
 import Data.Kind (Type)
 
 -- | A span @a <- x -> b@, with its apex @x@ kept explicit.

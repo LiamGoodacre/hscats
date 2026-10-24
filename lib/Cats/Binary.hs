@@ -1,6 +1,6 @@
 module Cats.Binary where
 
-import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Functor
 

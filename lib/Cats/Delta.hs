@@ -3,13 +3,16 @@ module Cats.Delta where
 import Cats.Adjoint
 import Cats.Associative
 import Cats.Category
+import Cats.Core
 import Cats.CrossProduct
 import Cats.Exponential
 import Cats.Functor
 import Cats.MonoidObject
 import Cats.Monoidal
 import Cats.Opposite
+import Cats.Semigroupoid
 import Cats.Symmetric
+import Cats.Types
 import Data.Void (Void)
 import Data.Void qualified as Void
 import Prelude qualified
