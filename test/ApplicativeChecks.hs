@@ -23,7 +23,7 @@ applyWithApplicative :: forall (f :: Types --> Types). (A.Applicative f) => Day 
 applyWithApplicative = applyWithApply @f
   where
     applyWithApply :: forall g. (A.Apply g) => Day (∧) g g ~> g
-    applyWithApply = A.lift2
+    applyWithApply = A.lift2 _ _
 
 applyWithAlternative :: forall (f :: Types --> Types). (A.Alternative f) => Day (∧) f f ~> f
 applyWithAlternative = applyWithApplicative @f
@@ -32,7 +32,7 @@ altWithAlternative :: forall (f :: Types --> Types). (A.Alternative f) => Day (�
 altWithAlternative = altWithAlt @f
 
 altWithAlt :: forall (f :: Types --> Types). (A.Alt f) => Day (∨) f f ~> f
-altWithAlt = A.lift2
+altWithAlt = A.lift2 _ _
 
 -- This functor intentionally has choice without a product or a unit instance.
 type data ChoiceOnly :: Types --> Types
@@ -43,14 +43,14 @@ instance Functor ChoiceOnly where
   map _ = P.fmap
 
 instance A.Lift2 (∨) ChoiceOnly where
-  lift2 = EXP \_ (DataDayTypes k xs ys) ->
+  lift2 _ _ = EXP \_ (DataDayTypes k xs ys) ->
     P.fmap (k ∘ P.Left) xs P.<> P.fmap (k ∘ P.Right) ys
 
 dayUnit :: forall (op :: BINARY_OP Types) -> (A.Lift0 op List) => MonoidalEmpty (Day₁ op) ~> List
 dayUnit op = A.lift0 (type op) (type List)
 
 multiply :: forall (op :: BINARY_OP Types) -> (A.Lift2 op List) => Day op List List ~> List
-multiply _ = A.lift2
+multiply _ = A.lift2 _ _
 
 pureList :: forall a. a -> [a]
 pureList = dayUnit (∧) $$ a

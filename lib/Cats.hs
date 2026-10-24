@@ -7,6 +7,7 @@ module Cats (module Exports) where
 
 import Cats.Adjoint as Exports
 import Cats.Associative as Exports
+import Cats.Backwards as Exports
 import Cats.Binary as Exports
 import Cats.Cat as Exports
 import Cats.Category as Exports

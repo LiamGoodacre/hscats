@@ -14,6 +14,7 @@ library
       Cats.Adjoint,
       Cats.Applicative,
       Cats.Associative,
+      Cats.Backwards,
       Cats.Binary,
       Cats.Cat,
       Cats.Category,
@@ -55,6 +56,8 @@ library
     default-extensions:
       AllowAmbiguousTypes,
       BlockArguments,
+      DerivingStrategies,
+      DerivingVia,
       FunctionalDependencies,
       ImplicitParams,
       LinearTypes,
@@ -67,7 +70,7 @@ library
       TypeFamilies,
       UndecidableInstances,
       UndecidableSuperClasses
-    ghc-options: -O2 -Wall -Werror=orphans
+    ghc-options: -O2 -Wall -Werror=orphans -Wmissing-deriving-strategies
 
 test-suite hscats-test
     type: exitcode-stdio-1.0

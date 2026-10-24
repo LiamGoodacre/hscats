@@ -25,7 +25,7 @@ instance Functor ApplyOnly where
   map _ = P.fmap
 
 instance A.Lift2 (∧) ApplyOnly where
-  lift2 = EXP \_ (DataDayTypes k xs ys) -> P.liftA2 (P.curry k) xs ys
+  lift2 _ _ = EXP \_ (DataDayTypes k xs ys) -> P.liftA2 (P.curry k) xs ys
 
 -- Neither Functor nor Lift2 is available: the unit helpers need only Lift0.
 type data UnitOnly :: Types --> Types

@@ -96,6 +96,7 @@ module Cats.Applicative
     blank,
     chooseWith,
     choose,
+    MonoidObjectFromLiftN,
   )
 where
 
@@ -109,9 +110,7 @@ import Cats.MonoidObject (MonoidObject)
 import Cats.MonoidObject qualified as Monoid
 import Cats.Monoidal
 import Cats.Semigroupoid
-import Cats.Symmetric
 import Cats.Types
--- import Control.Applicative qualified as Prelude
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 import Prelude qualified
@@ -119,7 +118,7 @@ import Prelude qualified
 -- | Binary multiplication for the source tensor @op@.
 type Lift2 :: BINARY_OP d -> (d --> c) -> Constraint
 class Lift2 (op :: BINARY_OP d) (f :: d --> c) where
-  lift2 :: Day op f f ~> f
+  lift2 :: forall op' f' -> (op' ~ op, f' ~ f) => Day op f f ~> f
 
 -- | A map from the Day unit: @pure@ for products, @empty@ for coproducts.
 type Lift0 :: BINARY_OP d -> (d --> c) -> Constraint
@@ -131,22 +130,6 @@ type LiftN :: BINARY_OP d -> (d --> c) -> Constraint
 class (Lift0 op f, Lift2 op f) => LiftN op (f :: d --> c)
 
 instance (Lift0 op f, Lift2 op f) => LiftN op (f :: d --> c)
-
--- | Reuse a Day monoid's unit in a client-defined 'Lift0' instance or directly.
--- For example, @lift0FromMonoidObject (∧) (type (Constructor [])) $$ Int@ injects an
--- integer into a singleton list using the instance from "Cats.Day".
-lift0FromMonoidObject ::
-  forall (op :: BINARY_OP d) (f :: d --> c) ->
-  (MonoidObject (Day₁ op) f) =>
-  MonoidalEmpty (Day₁ op) ~> f
-lift0FromMonoidObject op f = Monoid.empty (Day₁ op) f
-
--- | Reuse a Day monoid's multiplication without choosing a 'Lift2' instance.
-lift2FromMonoidObject ::
-  forall (op :: BINARY_OP d) (f :: d --> c) ->
-  (MonoidObject (Day₁ op) f) =>
-  Day op f f ~> f
-lift2FromMonoidObject op f = Monoid.append (Day₁ op) f
 
 -- special cases
 
@@ -194,7 +177,7 @@ liftA2 f combine left right =
   member (type Types) a do
     member (type Types) b do
       member (type Types) c do
-        (lift2 @_ @_ @(∧) @f $$ c) (DataDayTypes (Prelude.uncurry combine) left right)
+        (lift2 (type (∧)) (type f) $$ c) (DataDayTypes (Prelude.uncurry combine) left right)
 
 -- | Apply wrapped functions to wrapped arguments. Uses only 'Apply'.
 -- For lists, functions form the outer loop and arguments the inner loop.
@@ -242,7 +225,7 @@ chooseWith f leftMap rightMap left right =
   member (type Types) a do
     member (type Types) b do
       member (type Types) c do
-        (lift2 @_ @_ @(∨) @f $$ c) (DataDayTypes (Prelude.either leftMap rightMap) left right)
+        (lift2 (type (∨)) (type f) $$ c) (DataDayTypes (Prelude.either leftMap rightMap) left right)
 
 -- | Combine alternatives with the same result type, using only 'Alt'.
 -- Lists concatenate in input order. Optional values prefer the left input
@@ -253,21 +236,41 @@ choose ::
   (Alt f) => Act f a -> Act f a -> Act f a
 choose f = chooseWith @a @a @a f Prelude.id Prelude.id
 
-type data Backwards :: forall d c. (d --> c) -> (d --> c)
+-- | Reuse a Day monoid's unit in a client-defined 'Lift0' instance or directly.
+-- For example, @lift0FromMonoidObject (∧) (type (Constructor [])) $$ Int@ injects an
+-- integer into a singleton list using the instance from "Cats.Day".
+lift0FromMonoidObject ::
+  forall (op :: BINARY_OP d) (f :: d --> c) ->
+  (MonoidObject (Day₁ op) f) =>
+  MonoidalEmpty (Day₁ op) ~> f
+lift0FromMonoidObject op f = Monoid.empty (Day₁ op) f
 
-type instance Act (Backwards f) x = Act f x
+-- | Reuse a Day monoid's multiplication without choosing a 'Lift2' instance.
+lift2FromMonoidObject ::
+  forall (op :: BINARY_OP d) (f :: d --> c) ->
+  (MonoidObject (Day₁ op) f) =>
+  Day op f f ~> f
+lift2FromMonoidObject op f = Monoid.append (Day₁ op) f
 
-instance (Functor f) => Functor (Backwards f) where
+type data
+  MonoidObjectFromLiftN ::
+    BINARY_OP d ->
+    (d --> c) ->
+    (d --> c)
+
+type instance Act (MonoidObjectFromLiftN op f) o = Act f o
+
+instance (Functor f) => Functor (MonoidObjectFromLiftN op f) where
   map _ = map f
 
 instance
-  ( Symmetric (Day₁ @d @c op),
-    Functor f,
-    Lift2 op f
+  ( Functor f,
+    Monoidal (Day₁ @Types @Types op),
+    LiftN op f
   ) =>
-  Lift2 op (Backwards @d @c f)
+  MonoidObject
+    (Day₁ @Types @Types op)
+    (MonoidObjectFromLiftN op f)
   where
-  lift2 = lift2 ∘ symm (type (Day₁ @d @c op)) (type _) (type _)
-
-instance (Functor f, Lift0 op f) => Lift0 op (Backwards @d @c f) where
-  lift0 _ _ = castExp ∘ lift0 (type op) (type f)
+  empty _ _ = castExp ∘ lift0 (type op) (type f)
+  append _ _ = castExp ∘ lift2 (type op) (type f) ∘ castDay

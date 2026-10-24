@@ -4,6 +4,7 @@ module Cats.Day
     dayToComposeTypes,
     composeToDayTypes,
     Day₁,
+    castDay,
   )
 where
 
@@ -120,6 +121,16 @@ instance
   where
   map _ (l :×: r) = EXP \_ (DataDayTypes @x @y xyz fx gy) ->
     DataDayTypes @x @y xyz ((l $$ x) fx) ((r $$ y) gy)
+
+castDay ::
+  forall {j} op (a :: j --> Types) (s :: j --> Types).
+  ( Functor a,
+    Functor s,
+    Functor (Day₁ @j @Types op),
+    forall i. ActsTheSame a s i
+  ) =>
+  Day op a a ~> Day op s s
+castDay = map (Day₁ @j @Types op) (castExp :×: castExp)
 
 -- Over Types, parametricity of the hidden object types gives the usual Day
 -- encoding for lawful functors. Over a general source category, reassociation
