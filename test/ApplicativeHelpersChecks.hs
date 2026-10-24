@@ -8,13 +8,13 @@ import Data.List.NonEmpty (NonEmpty (..))
 import Prelude (Bool (..), Int, Maybe (..), String)
 import Prelude qualified as P
 
-type Lists = Constructor []
+type Lists = TypeConstructor []
 
-type Optional = Constructor Maybe
+type Optional = TypeConstructor Maybe
 
-type Writer = Constructor ((,) [String])
+type Writer = TypeConstructor ((,) [String])
 
-type Zipped = Constructor P.ZipList
+type Zipped = TypeConstructor P.ZipList
 
 -- A product operation without a unit. The helper must not demand Applicative.
 type data ApplyOnly :: Types --> Types
@@ -69,7 +69,7 @@ render n b = if b then P.show n else "no"
 checks :: [(String, Bool)]
 checks =
   [ ("Constructor list pure", A.pure Lists (7 :: Int) P.== [7]),
-    ("Constructor list empty", A.empty @Int Lists P.== []),
+    ("Constructor list blank", A.blank @Int Lists P.== []),
     ( "Constructor list product order",
       A.liftA2 Lists ((P.+) @Int) [1, 2] [10, 20] P.== [11, 21, 12, 22]
     ),
@@ -86,7 +86,7 @@ checks =
         P.&& A.chooseWith Lists P.show P.show [1, 2 :: Int] ([] :: [Int]) P.== ["1", "2"]
     ),
     ("Constructor Maybe pure", A.pure Optional (7 :: Int) P.== Just 7),
-    ("Constructor Maybe empty", A.empty @Int Optional P.== Nothing),
+    ("Constructor Maybe blank", A.blank @Int Optional P.== Nothing),
     ( "Constructor Maybe product agrees with Prelude on present and missing operands",
       P.and [A.liftA2 Optional render n b P.== P.liftA2 render n b | n <- ints, b <- bools]
     ),
@@ -110,14 +110,7 @@ checks =
       choose @ChoiceOnly P.show P.show (1 :| [2 :: Int]) (True :| [False]) P.== ("1" :| ["2", "True", "False"])
     ),
     ( "Unit helpers need no functor or binary operation",
-      A.pure UnitOnly (7 :: Int) P.== Just 7 P.&& A.empty @Int UnitOnly P.== Nothing
-    ),
-    ( "Example List delegates the ordinary constructor behavior",
-      A.pure A.List (7 :: Int) P.== A.pure Lists 7
-        P.&& A.empty @Int A.List P.== A.empty @Int Lists
-        P.&& A.liftA2 A.List render [1, 2] [False, True] P.== A.liftA2 Lists render [1, 2] [False, True]
-        P.&& A.chooseWith A.List P.show P.show [1, 2 :: Int] [False, True]
-          P.== A.chooseWith Lists P.show P.show [1, 2 :: Int] [False, True]
+      A.pure UnitOnly (7 :: Int) P.== Just 7 P.&& A.blank @Int UnitOnly P.== Nothing
     ),
     ( "List ordering rules out an extra distributivity law",
       let together = A.liftA2 Lists ((P.+) @Int) [1, 2] (A.chooseWith Lists P.id P.id [10] [20])

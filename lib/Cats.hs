@@ -11,7 +11,6 @@ import Cats.Binary as Exports
 import Cats.Cat as Exports
 import Cats.Category as Exports
 import Cats.Compose as Exports
-import Cats.Constructor as Exports
 import Cats.Core as Exports
 import Cats.CrossProduct as Exports
 import Cats.Curry as Exports
@@ -36,6 +35,7 @@ import Cats.Pullback as Exports
 import Cats.Semigroupoid as Exports
 import Cats.Slice as Exports
 import Cats.Span as Exports
+import Cats.TypeConstructor as Exports
 import Cats.TypeEquality as Exports
 import Cats.Types as Exports
 import Cats.Yoneda as Exports

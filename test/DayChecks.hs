@@ -5,7 +5,7 @@ import Data.Type.Equality (type (~))
 import Prelude (Bool (..), Int, String)
 import Prelude qualified as P
 
-type List = Constructor []
+type List = TypeConstructor []
 
 type ProductDay = Day₁ @Types @Types (∧)
 

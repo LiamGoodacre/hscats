@@ -71,7 +71,7 @@ sumLeft = P.map (P.Left ∘ P.Left) ints P.++ [P.Left (P.Right False), P.Left (P
 sumRight :: [P.Either Int (P.Either Bool Char)]
 sumRight = P.map P.Left ints P.++ [P.Right (P.Left False), P.Right (P.Left True), P.Right (P.Right 'x'), P.Right (P.Right 'y')]
 
-type List = Constructor []
+type List = TypeConstructor []
 
 type ProductDay = Day₁ @Types @Types (∧)
 

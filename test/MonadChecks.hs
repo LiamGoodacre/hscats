@@ -7,9 +7,9 @@ import Cats.Monad qualified as M
 import Prelude (Bool (..), Int, Maybe (..), String)
 import Prelude qualified as P
 
-type Lists = Constructor []
+type Lists = TypeConstructor []
 
-type Optional = Constructor Maybe
+type Optional = TypeConstructor Maybe
 
 type State = ViaAdjunction (Reader Int • Env Int)
 

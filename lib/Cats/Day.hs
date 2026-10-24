@@ -12,19 +12,16 @@ import Cats.Associative
 import Cats.Binary
 import Cats.Category
 import Cats.Compose
-import Cats.Constructor
 import Cats.Core
 import Cats.CrossProduct
 import Cats.Delta
 import Cats.Exponential
 import Cats.Functor
 import Cats.Id
-import Cats.MonoidObject
 import Cats.Monoidal
 import Cats.Semigroupoid
 import Cats.Symmetric
 import Cats.Types
-import Control.Applicative qualified as Prelude
 import Data.Function ((&))
 import Data.Void qualified as Prelude
 import Prelude qualified
@@ -155,13 +152,6 @@ instance Monoidal (Day₁ @Types @Types (∧)) where
   idr = EXP \i (DataDayTypes xyz mx y :: DataDay (∧) m Id i) -> map m (\x -> xyz (x, y)) mx
   coidr = EXP \_ mx -> DataDayTypes Prelude.fst mx ()
 
-instance
-  (Prelude.Applicative m) =>
-  MonoidObject (Day₁ @Types @Types (∧)) (Constructor m)
-  where
-  empty _ _ = EXP \_ -> Prelude.pure
-  append _ _ = EXP \_ (DataDayTypes xyz mx my) -> Prelude.liftA2 (\x y -> xyz (x, y)) mx my
-
 type Blank = Δ' ()
 
 type instance MonoidalEmpty (Day₁ (∨)) = Blank
@@ -171,11 +161,3 @@ instance Monoidal (Day₁ @Types @Types (∨)) where
   coidl = EXP \i (mi :: Act m i) -> DataDayTypes @_ @_ @_ @_ @Blank @m (Prelude.either Prelude.absurd (identity _)) () mi
   idr = EXP \_ (DataDayTypes doxyz fx () :: DataDay (∨) f g z) -> map f (doxyz ∘ Prelude.Left) fx
   coidr = EXP \i (mi :: Act m i) -> DataDayTypes @_ @_ @_ @_ @m @Blank (Prelude.either (identity _) Prelude.absurd) mi ()
-
-instance
-  (Prelude.Alternative m) =>
-  MonoidObject (Day₁ @Types @Types (∨)) (Constructor m)
-  where
-  empty _ _ = EXP \_ () -> Prelude.empty
-  append _ _ = EXP \_ (DataDayTypes doxyz mx my :: DataDay (∨) f g z) ->
-    map f (doxyz ∘ Prelude.Left) mx Prelude.<|> map g (doxyz ∘ Prelude.Right) my

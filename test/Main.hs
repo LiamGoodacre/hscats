@@ -223,17 +223,17 @@ instance Traversable (Day₁ (∧)) Dup where
 
 _egSeqId :: Prelude.Int -> Prelude.String
 _egSeqId =
-  (Id `sequenceA` Constructor _)
+  (Id `sequenceA` TypeConstructor _)
     Prelude.show
 
 _egSeqList :: Prelude.Int -> [Prelude.String]
 _egSeqList =
-  (List `sequenceA` Constructor _)
+  (List `sequenceA` TypeConstructor _)
     [Prelude.show, Prelude.show]
 
 _egSeqDup :: Prelude.Int -> (Prelude.String, Prelude.String)
 _egSeqDup =
-  (Dup `sequenceA` Constructor _)
+  (Dup `sequenceA` TypeConstructor _)
     (Prelude.show, Prelude.show)
 
 ---

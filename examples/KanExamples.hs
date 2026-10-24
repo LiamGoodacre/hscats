@@ -68,12 +68,12 @@ type Codensity f = f / f
 lowerRanId :: forall (h :: Types --> Types) a. Ran h Id a -> Act h a
 lowerRanId (RAN _ transform value) = (transform $$ a) value
 
-type Lists = Constructor []
+type Lists = TypeConstructor []
 
 sample :: Ran Lists Id Prelude.Int
 sample = RAN (Proxy @Lists) (EXP \_ -> Prelude.id) [1, 2, 3]
 
-first :: Lists ~> Constructor Prelude.Maybe
+first :: Lists ~> TypeConstructor Prelude.Maybe
 first = EXP \_ -> \case
   [] -> Prelude.Nothing
   x : _ -> Prelude.Just x

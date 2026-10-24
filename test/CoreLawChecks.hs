@@ -33,7 +33,7 @@ constantArrow n = EXP \_ -> Add n
 doubling :: Shift ~> Shift
 doubling = EXP \_ -> (P.* 2)
 
-maybeToList :: Constructor P.Maybe ~> Constructor []
+maybeToList :: TypeConstructor P.Maybe ~> TypeConstructor []
 maybeToList = EXP \_ -> \case
   P.Nothing -> []
   P.Just a -> [a]
@@ -149,7 +149,7 @@ checks =
       P.all
         ( \x ->
             map Eval (maybeToList :×: (P.show :: Int -> String)) x
-              P.== (maybeToList $$ String) (map (type (Constructor P.Maybe)) P.show x)
+              P.== (maybeToList $$ String) (map (type (TypeConstructor P.Maybe)) P.show x)
         )
         [P.Nothing, P.Just 7, P.Just (-2)]
         P.&& map Eval (maybeToList :×: (P.show :: Int -> String)) (P.Just 7) P.== ["7"]

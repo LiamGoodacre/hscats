@@ -38,7 +38,7 @@ instance (Category k) => Functor (Coyoneda @k f) where
 lowerCoyoneda :: forall {k} (f :: k --> Types) b. (Functor f, b ∈ k) => DataCoyoneda f b -> Act f b
 lowerCoyoneda (MakeDataCoyoneda value arrow) = map f arrow value
 
-type Lists = Constructor []
+type Lists = TypeConstructor []
 
 sample :: DataCoyoneda Lists Prelude.Int
 sample = MakeDataCoyoneda [1, 2, 3] (Prelude.+ 1)

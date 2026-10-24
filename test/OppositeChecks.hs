@@ -11,7 +11,7 @@ sameOn xs f g = P.all (\x -> f x P.== g x) xs
 ints :: [Int]
 ints = [-3 .. 3]
 
-type List = Constructor []
+type List = TypeConstructor []
 
 reverseList, firstTwo :: List ~> List
 reverseList = EXP \_ -> P.reverse

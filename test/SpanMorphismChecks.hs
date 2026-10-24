@@ -44,12 +44,12 @@ commutesCM as bs (CospanMorphism s t h l r) =
 injectSpan :: SpanMorphism Types Int Int Bool (Maybe Int) (Maybe Int) (Maybe Bool)
 injectSpan =
   let s = Span (P.+ 1) P.even
-   in SpanMorphism s (mapSpan (type (Constructor Maybe)) s) Just Just Just
+   in SpanMorphism s (mapSpan (type (TypeConstructor Maybe)) s) Just Just Just
 
 injectCospan :: CospanMorphism Types Int Int Bool (Maybe Int) (Maybe Int) (Maybe Bool)
 injectCospan =
   let s = Cospan (P.+ 1) P.fromEnum
-   in CospanMorphism s (mapCospan (type (Constructor Maybe)) s) Just Just Just
+   in CospanMorphism s (mapCospan (type (TypeConstructor Maybe)) s) Just Just Just
 
 checks :: [(String, Bool)]
 checks =
@@ -82,23 +82,23 @@ checks =
        in sameCM (composeCospanMorphisms h (composeCospanMorphisms g f)) (composeCospanMorphisms (composeCospanMorphisms h g) f)
     ),
     ( "Mapping span morphisms preserves commuting squares",
-      commutesSM [[], [1, 2], [-3]] (mapSpanMorphism (type (Constructor [])) injectSpan)
+      commutesSM [[], [1, 2], [-3]] (mapSpanMorphism (type (TypeConstructor [])) injectSpan)
     ),
     ( "Mapping cospan morphisms preserves commuting squares",
-      commutesCM [[], [1, 2]] [[], [False, True]] (mapCospanMorphism (type (Constructor [])) injectCospan)
+      commutesCM [[], [1, 2]] [[], [False, True]] (mapCospanMorphism (type (TypeConstructor [])) injectCospan)
     ),
     ( "Span morphism functor mapping preserves composition",
       let f = sm (P.+ 1)
           g = sm (P.* 3)
-          l = mapSpanMorphism (type (Constructor [])) (composeSpanMorphisms g f)
-          r = composeSpanMorphisms (mapSpanMorphism (type (Constructor [])) g) (mapSpanMorphism (type (Constructor [])) f)
+          l = mapSpanMorphism (type (TypeConstructor [])) (composeSpanMorphisms g f)
+          r = composeSpanMorphisms (mapSpanMorphism (type (TypeConstructor [])) g) (mapSpanMorphism (type (TypeConstructor [])) f)
        in P.all (\xs -> spanApexMap l xs P.== spanApexMap r xs P.&& spanLeftMap l xs P.== spanLeftMap r xs P.&& spanRightMap l xs P.== spanRightMap r xs) [[], [1, 2]]
     ),
     ( "Cospan morphism functor mapping preserves composition",
       let f = cm (P.+ 1)
           g = cm (P.* 3)
-          l = mapCospanMorphism (type (Constructor [])) (composeCospanMorphisms g f)
-          r = composeCospanMorphisms (mapCospanMorphism (type (Constructor [])) g) (mapCospanMorphism (type (Constructor [])) f)
+          l = mapCospanMorphism (type (TypeConstructor [])) (composeCospanMorphisms g f)
+          r = composeCospanMorphisms (mapCospanMorphism (type (TypeConstructor [])) g) (mapCospanMorphism (type (TypeConstructor [])) f)
        in P.all (\xs -> cospanApexMap l xs P.== cospanApexMap r xs P.&& cospanLeftMap l xs P.== cospanLeftMap r xs P.&& cospanRightMap l xs P.== cospanRightMap r xs) [[], [1, 2]]
     ),
     ("Span morphism dual round trip", sameSM (sm (P.+ 1)) (unOpSpanMorphism (opSpanMorphism (sm (P.+ 1))))),

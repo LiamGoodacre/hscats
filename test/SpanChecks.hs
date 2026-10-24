@@ -130,10 +130,10 @@ checks =
         (reindexCospan (P.+ 2) sampleCospan)
     ),
     ( "Map whole span",
-      spanAt (mapSpan (type (Constructor [])) sampleSpan) [1, 2] P.== ([2, 3], [False, True])
+      spanAt (mapSpan (type (TypeConstructor [])) sampleSpan) [1, 2] P.== ([2, 3], [False, True])
     ),
     ( "Map whole cospan",
-      cospanAt (mapCospan (type (Constructor [])) sampleCospan) [1, 2] [True, False] P.== ([2, 3], [10, 20])
+      cospanAt (mapCospan (type (TypeConstructor [])) sampleCospan) [1, 2] [True, False] P.== ([2, 3], [10, 20])
     ),
     ("Span with Bool objects", case boolSpan of Span Refl Refl -> True),
     ("Cospan with Bool objects", case boolCospan of Cospan Refl Refl -> True)

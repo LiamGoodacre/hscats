@@ -6,9 +6,9 @@ import Control.Applicative (ZipList (..))
 import Prelude (Bool (..), Char, Int, String)
 import Prelude qualified as P
 
-type Writer = Constructor ((,) [String])
+type Writer = TypeConstructor ((,) [String])
 
-type Zipped = Constructor ZipList
+type Zipped = TypeConstructor ZipList
 
 -- Each comparison observes the full writer log, or a finite ZipList prefix.
 -- The latter permits unit naturality to exercise the infinite pure instance.

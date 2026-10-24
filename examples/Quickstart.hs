@@ -28,7 +28,7 @@ describe :: P.Int -> P.Maybe P.String
 describe = map Optional P.show ∘ (inject $$ P.Int)
 
 choices :: [P.Int]
-choices = Do.with (type (Constructor [])) Do.do
+choices = Do.with (type (TypeConstructor [])) Do.do
   x <- [1, 2]
   Do.pure (x P.+ 10)
 
@@ -43,7 +43,7 @@ runParity n = case parity of
 main :: P.IO ()
 main = do
   P.print (describe 7)
-  P.print (A.liftA2 (type (Constructor [])) (P.+) [1, 2 :: P.Int] [10, 20])
-  P.print (M.flatMap (type (Constructor [])) (\n -> [n, n P.+ 10]) [1, 2 :: P.Int])
+  P.print (A.liftA2 (type (TypeConstructor [])) (P.+) [1, 2 :: P.Int] [10, 20])
+  P.print (M.flatMap (type (TypeConstructor [])) (\n -> [n, n P.+ 10]) [1, 2 :: P.Int])
   P.print choices
   P.print (runParity 4)

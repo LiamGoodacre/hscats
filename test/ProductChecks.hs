@@ -5,9 +5,9 @@ import Cats
 import Prelude (Bool (..), Int, Maybe (..), String)
 import Prelude qualified as P
 
-type Lists = Constructor []
+type Lists = TypeConstructor []
 
-type Optional = Constructor Maybe
+type Optional = TypeConstructor Maybe
 
 type Parallel = Lists *** Optional
 

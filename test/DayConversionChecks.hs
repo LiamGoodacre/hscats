@@ -6,9 +6,9 @@ import Data.Maybe qualified as Maybe
 import Prelude (Bool (..), Int, String)
 import Prelude qualified as P
 
-type List = Constructor []
+type List = TypeConstructor []
 
-type Optional = Constructor P.Maybe
+type Optional = TypeConstructor P.Maybe
 
 type Pair = Env Bool
 

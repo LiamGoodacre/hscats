@@ -4,9 +4,9 @@ import Cats
 import Prelude (Bool (..), Int, Maybe, String)
 import Prelude qualified as P
 
-type F = Constructor []
+type F = TypeConstructor []
 
-type G = Constructor Maybe
+type G = TypeConstructor Maybe
 
 type H = Id @Types
 

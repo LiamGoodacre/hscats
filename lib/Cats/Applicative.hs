@@ -93,15 +93,13 @@ module Cats.Applicative
     apply,
     keepLeft,
     keepRight,
-    empty,
+    blank,
     chooseWith,
     choose,
-    List,
   )
 where
 
 import Cats.Binary
-import Cats.Constructor
 import Cats.Core
 import Cats.Day
 import Cats.Delta
@@ -113,7 +111,7 @@ import Cats.Monoidal
 import Cats.Semigroupoid
 import Cats.Symmetric
 import Cats.Types
-import Control.Applicative qualified as Prelude
+-- import Control.Applicative qualified as Prelude
 import Data.Kind (Constraint)
 import Data.Type.Equality (type (~))
 import Prelude qualified
@@ -228,8 +226,8 @@ keepRight f = liftA2 @a @b @b f (\_ right -> right)
 
 -- | The empty choice, using just the coproduct unit. An 'Alternative'
 -- instance supplies this operation, but its product operations are not needed.
-empty :: forall a. forall (f :: Types --> Types) -> (Lift0 (∨) f) => Act f a
-empty f = member (type Types) a do
+blank :: forall a. forall (f :: Types --> Types) -> (Lift0 (∨) f) => Act f a
+blank f = member (type Types) a do
   run (lift0 (type (∨)) (type f)) a ()
 
 -- | Map two alternatives to a common result and combine them. Requires only
@@ -254,49 +252,6 @@ choose ::
   forall (f :: Types --> Types) ->
   (Alt f) => Act f a -> Act f a -> Act f a
 choose f = chooseWith @a @a @a f Prelude.id Prelude.id
-
--- Specific heads let clients keep independent instances for their own tags.
-instance (Prelude.Applicative f) => Lift0 (∧) (Constructor f) where
-  lift0 _ _ = lift0FromMonoidObject (∧) (type (Constructor f))
-
-instance (Prelude.Applicative f) => Lift2 (∧) (Constructor f) where
-  lift2 = lift2FromMonoidObject (∧) (type (Constructor f))
-
-instance (Prelude.Alternative f) => Lift0 (∨) (Constructor f) where
-  lift0 _ _ = lift0FromMonoidObject (∨) (type (Constructor f))
-
-instance (Prelude.Alternative f) => Lift2 (∨) (Constructor f) where
-  lift2 = lift2FromMonoidObject (∨) (type (Constructor f))
-
--- examples
-
--- | Example of a fresh functor tag with its own 'Act' equation. Its lifting
--- operations reuse 'Constructor' lists, so there is one implementation of
--- list behavior. Prefer @Constructor []@ in client code.
-type data List :: Types --> Types
-
-type instance Act List x = [x]
-
-instance Functor List where
-  map _ = Prelude.map
-
--- apply List
-instance Lift2 (∧) List where
-  lift2 = EXP \_ (DataDayTypes dxyz fx gy) ->
-    liftA2 (type (Constructor [])) (Prelude.curry dxyz) fx gy
-
--- applicative List
-instance Lift0 (∧) List where
-  lift0 _ _ = EXP \_ -> pure (type (Constructor []))
-
--- alt List
-instance Lift2 (∨) List where
-  lift2 = EXP \_ (DataDayTypes dxyz fx gy) ->
-    chooseWith (type (Constructor [])) (dxyz ∘ Prelude.Left) (dxyz ∘ Prelude.Right) fx gy
-
--- alternative List
-instance Lift0 (∨) List where
-  lift0 _ _ = EXP \_ () -> empty (type (Constructor []))
 
 type data Backwards :: forall d c. (d --> c) -> (d --> c)
 

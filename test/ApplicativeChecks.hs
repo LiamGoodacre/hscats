@@ -6,6 +6,8 @@ import Data.List.NonEmpty (NonEmpty (..))
 import Prelude (Bool (..), Char, Int, String)
 import Prelude qualified as P
 
+type List = TypeConstructor []
+
 -- Keep the constraints abstract: specializing these definitions to List alone
 -- would let its concrete instances hide a missing superclass implication.
 mapWithApply :: forall (f :: Types --> Types) a b. (A.Apply f) => (a -> b) -> Act f a -> Act f b
@@ -44,10 +46,10 @@ instance A.Lift2 (∨) ChoiceOnly where
   lift2 = EXP \_ (DataDayTypes k xs ys) ->
     P.fmap (k ∘ P.Left) xs P.<> P.fmap (k ∘ P.Right) ys
 
-dayUnit :: forall (op :: BINARY_OP Types) -> (A.Lift0 op A.List) => MonoidalEmpty (Day₁ op) ~> A.List
-dayUnit op = A.lift0 (type op) (type A.List)
+dayUnit :: forall (op :: BINARY_OP Types) -> (A.Lift0 op List) => MonoidalEmpty (Day₁ op) ~> List
+dayUnit op = A.lift0 (type op) (type List)
 
-multiply :: forall (op :: BINARY_OP Types) -> (A.Lift2 op A.List) => Day op A.List A.List ~> A.List
+multiply :: forall (op :: BINARY_OP Types) -> (A.Lift2 op List) => Day op List List ~> List
 multiply _ = A.lift2
 
 pureList :: forall a. a -> [a]
@@ -66,30 +68,30 @@ chooseList l r xs ys = (multiply (∨) $$ c) (DataDayTypes (P.either l r) xs ys)
 -- the actual Day associator and bifunctor mapping from the library.
 associateLeft ::
   forall (op :: BINARY_OP Types) ->
-  (Functor op, A.Lift2 op A.List) =>
-  Day op (Day op A.List A.List) A.List ~> A.List
-associateLeft op = multiply op ∘ map (Day₁ op) (multiply op :×: identity A.List)
+  (Functor op, A.Lift2 op List) =>
+  Day op (Day op List List) List ~> List
+associateLeft op = multiply op ∘ map (Day₁ op) (multiply op :×: identity List)
 
 associateRight ::
   forall (op :: BINARY_OP Types) ->
-  (Associative op, A.Lift2 op A.List) =>
-  Day op (Day op A.List A.List) A.List ~> A.List
+  (Associative op, A.Lift2 op List) =>
+  Day op (Day op List List) List ~> List
 associateRight op =
   multiply op
-    ∘ map (Day₁ op) (identity A.List :×: multiply op)
-    ∘ rassoc (Day₁ op) A.List A.List A.List
+    ∘ map (Day₁ op) (identity List :×: multiply op)
+    ∘ rassoc (Day₁ op) List List List
 
 unitLeft ::
   forall (op :: BINARY_OP Types) ->
-  (Functor op, Monoidal (Day₁ @Types @Types op), A.LiftN op A.List) =>
-  Day op (MonoidalEmpty (Day₁ op)) A.List ~> A.List
-unitLeft op = multiply op ∘ map (Day₁ op) (dayUnit op :×: identity A.List)
+  (Functor op, Monoidal (Day₁ @Types @Types op), A.LiftN op List) =>
+  Day op (MonoidalEmpty (Day₁ op)) List ~> List
+unitLeft op = multiply op ∘ map (Day₁ op) (dayUnit op :×: identity List)
 
 unitRight ::
   forall (op :: BINARY_OP Types) ->
-  (Functor op, Monoidal (Day₁ @Types @Types op), A.LiftN op A.List) =>
-  Day op A.List (MonoidalEmpty (Day₁ op)) ~> A.List
-unitRight op = multiply op ∘ map (Day₁ op) (identity A.List :×: dayUnit op)
+  (Functor op, Monoidal (Day₁ @Types @Types op), A.LiftN op List) =>
+  Day op List (MonoidalEmpty (Day₁ op)) ~> List
+unitRight op = multiply op ∘ map (Day₁ op) (identity List :×: dayUnit op)
 
 ints :: [[Int]]
 ints = [[], [0], [1, 2], [-3, 0, 4]]
@@ -102,13 +104,13 @@ chars = [[], ['a'], ['b', 'c']]
 
 checks :: [(String, Bool)]
 checks =
-  [ ("Applicative implies Apply and Functor", mapWithApplicative @A.List P.show [1 :: Int, 2] P.== ["1", "2"]),
+  [ ("Applicative implies Apply and Functor", mapWithApplicative @List P.show [1 :: Int, 2] P.== ["1", "2"]),
     ( "Alternative implies Applicative",
-      (applyWithAlternative @A.List $$ Int) (DataDayTypes (\(x, y) -> 10 P.* x P.+ y) [1, 2] [3, 4])
+      (applyWithAlternative @List $$ Int) (DataDayTypes (\(x, y) -> 10 P.* x P.+ y) [1, 2] [3, 4])
         P.== [13, 14, 23, 24]
     ),
     ( "Alternative implies Alt",
-      (altWithAlternative @A.List $$ Int) (DataDayTypes (P.either (P.+ 1) (P.* 10)) [1, 2] [3, 4])
+      (altWithAlternative @List $$ Int) (DataDayTypes (P.either (P.+ 1) (P.* 10)) [1, 2] [3, 4])
         P.== [2, 3, 30, 40]
     ),
     ( "Alt needs neither Apply nor a unit",
@@ -128,7 +130,7 @@ checks =
       P.and
         [ let day = DataDayTypes (\(x, b) -> if b then x else P.negate x) xs bs
            in P.map P.show ((multiply (∧) $$ Int) day)
-                P.== (multiply (∧) $$ String) (map (Day (∧) A.List A.List) P.show day)
+                P.== (multiply (∧) $$ String) (map (Day (∧) List List) P.show day)
         | xs <- ints,
           bs <- bools
         ]
@@ -137,7 +139,7 @@ checks =
       P.and
         [ let day = DataDayTypes (P.either (P.* 3) P.fromEnum) xs bs
            in P.map P.show ((multiply (∨) $$ Int) day)
-                P.== (multiply (∨) $$ String) (map (Day (∨) A.List A.List) P.show day)
+                P.== (multiply (∨) $$ String) (map (Day (∨) List List) P.show day)
         | xs <- ints,
           bs <- bools
         ]
@@ -146,7 +148,7 @@ checks =
     ("Alternative List unit naturality", P.map P.show (emptyList @Int) P.== emptyList @String),
     ( "Apply List respects maps of hidden objects",
       P.and
-        [ productList (\x y -> x P.- y) (map A.List (P.+ 5) xs) (map A.List P.fromEnum bs)
+        [ productList (\x y -> x P.- y) (map List (P.+ 5) xs) (map List P.fromEnum bs)
             P.== productList (\x b -> (x P.+ 5) P.- P.fromEnum b) xs bs
         | xs <- ints,
           bs <- bools
@@ -154,7 +156,7 @@ checks =
     ),
     ( "Alt List respects maps of hidden objects",
       P.and
-        [ chooseList (P.* 2) (P.+ 7) (map A.List (P.+ 5) xs) (map A.List P.fromEnum bs)
+        [ chooseList (P.* 2) (P.+ 7) (map List (P.+ 5) xs) (map List P.fromEnum bs)
             P.== chooseList (\x -> 2 P.* (x P.+ 5)) (\b -> P.fromEnum b P.+ 7) xs bs
         | xs <- ints,
           bs <- bools
@@ -190,7 +192,7 @@ checks =
       P.all
         ( \xs ->
             let day = DataDayTypes (\(n, x) -> n P.+ x) 7 xs
-             in (unitLeft (∧) $$ Int) day P.== (idl @_ @(Day₁ (∧)) @A.List $$ Int) day
+             in (unitLeft (∧) $$ Int) day P.== (idl @_ @(Day₁ (∧)) @List $$ Int) day
         )
         ints
     ),
@@ -198,7 +200,7 @@ checks =
       P.all
         ( \xs ->
             let day = DataDayTypes (\(x, b) -> if b then x else P.negate x) xs False
-             in (unitRight (∧) $$ Int) day P.== (idr @_ @(Day₁ (∧)) @A.List $$ Int) day
+             in (unitRight (∧) $$ Int) day P.== (idr @_ @(Day₁ (∧)) @List $$ Int) day
         )
         ints
     ),
@@ -206,7 +208,7 @@ checks =
       P.all
         ( \xs ->
             let day = DataDayTypes (P.either (P.length @[]) (P.* 3)) () xs
-             in (unitLeft (∨) $$ Int) day P.== (idl @_ @(Day₁ (∨)) @A.List $$ Int) day
+             in (unitLeft (∨) $$ Int) day P.== (idl @_ @(Day₁ (∨)) @List $$ Int) day
         )
         ints
     ),
@@ -214,26 +216,26 @@ checks =
       P.all
         ( \xs ->
             let day = DataDayTypes (P.either (P.* 3) (P.length @[])) xs ()
-             in (unitRight (∨) $$ Int) day P.== (idr @_ @(Day₁ (∨)) @A.List $$ Int) day
+             in (unitRight (∨) $$ Int) day P.== (idr @_ @(Day₁ (∨)) @List $$ Int) day
         )
         ints
     ),
     ( "Applicative List map agrees with product and unit",
-      P.all (\xs -> map A.List P.show xs P.== productList (\x () -> P.show x) xs (pureList ())) ints
+      P.all (\xs -> map List P.show xs P.== productList (\x () -> P.show x) xs (pureList ())) ints
     ),
-    ( "Day monoid product unit adapter for Constructor",
-      (A.lift0FromMonoidObject (∧) (type (Constructor [])) $$ Int) 7 P.== [7]
+    ( "Day monoid product unit adapter for TypeConstructor",
+      (A.lift0FromMonoidObject (∧) (type (TypeConstructor [])) $$ Int) 7 P.== [7]
     ),
-    ( "Day monoid coproduct unit adapter for Constructor",
-      (A.lift0FromMonoidObject (∨) (type (Constructor [])) $$ Int) () P.== []
+    ( "Day monoid coproduct unit adapter for TypeConstructor",
+      (A.lift0FromMonoidObject (∨) (type (TypeConstructor [])) $$ Int) () P.== []
     ),
-    ( "Day monoid product adapter for Constructor",
-      (A.lift2FromMonoidObject (∧) (type (Constructor [])) $$ Int)
+    ( "Day monoid product adapter for TypeConstructor",
+      (A.lift2FromMonoidObject (∧) (type (TypeConstructor [])) $$ Int)
         (DataDayTypes (\(x, y) -> 10 P.* x P.+ y) [1, 2] [3, 4])
         P.== [13, 14, 23, 24]
     ),
-    ( "Day monoid coproduct adapter for Constructor",
-      (A.lift2FromMonoidObject (∨) (type (Constructor [])) $$ Int)
+    ( "Day monoid coproduct adapter for TypeConstructor",
+      (A.lift2FromMonoidObject (∨) (type (TypeConstructor [])) $$ Int)
         (DataDayTypes (P.either (P.+ 1) P.fromEnum) [1, 2] [True, False])
         P.== [2, 3, 1, 0]
     )
