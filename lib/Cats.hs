@@ -5,7 +5,6 @@
 -- 'unit', 'counit', 'join', and 'duplicate' here take an adjunction pair.
 module Cats (module Exports) where
 
-import Cats.Adjoint as Exports
 import Cats.Associative as Exports
 import Cats.Backwards as Exports
 import Cats.Binary as Exports
@@ -25,7 +24,6 @@ import Cats.Functor as Exports
 import Cats.Hom as Exports
 import Cats.Id as Exports
 import Cats.LinearTypes as Exports
-import Cats.Monad as Exports (Comonad, Monad, extend, flatMap)
 import Cats.MonoidObject as Exports
 import Cats.Monoidal as Exports
 import Cats.Opposite as Exports

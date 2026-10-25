@@ -4,6 +4,7 @@
 module MonoidalSketches where
 
 import Cats
+import Cats.Adjoint
 import Data.Kind (Constraint)
 
 {- Binary functors: associative, monoidal, braided, symmetric, closed -}

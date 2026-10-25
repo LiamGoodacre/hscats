@@ -1,6 +1,7 @@
 module AdjunctionChecks (checks, Env, Reader, OnlyTrue (..), OnlyUnit (..), ToUnit, ToTrue) where
 
 import Cats
+import Cats.Adjoint
 import Data.Kind (Type)
 import Data.Type.Equality (type (~))
 import Prelude (Bool (..), Int, String)

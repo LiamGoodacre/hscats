@@ -2,6 +2,7 @@
 module RepresentableExamples where
 
 import Cats
+import Cats.Adjoint
 import Data.Kind (Type)
 import Prelude qualified
 

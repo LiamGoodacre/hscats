@@ -1,6 +1,7 @@
 module OppositeChecks (checks) where
 
 import Cats
+import Cats.Adjoint
 import Data.Type.Equality (type (~))
 import Prelude (Bool (..), Char, Int, String)
 import Prelude qualified as P

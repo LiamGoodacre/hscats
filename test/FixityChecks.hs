@@ -1,6 +1,7 @@
 module FixityChecks (checks) where
 
 import Cats
+import Cats.Adjoint
 import Prelude (Bool (..), Int, Maybe, String)
 import Prelude qualified as P
 

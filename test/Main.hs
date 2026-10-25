@@ -5,7 +5,7 @@ import ApplicativeChecks qualified
 import ApplicativeHelpersChecks qualified
 import ApplicativeInteropChecks qualified
 import Cats
-import Cats.Do (pure)
+import Cats.Adjoint
 import Cats.Do qualified as Do
 import CoreLawChecks qualified
 import CurryChecks qualified
@@ -66,7 +66,7 @@ egDuped :: (Prelude.Integer, Prelude.Integer)
 egDuped = dupMonad Do.do
   v <- (10, 100)
   x <- (v Prelude.+ 1, v Prelude.+ 2)
-  pure (x Prelude.* 2)
+  Do.pure (x Prelude.* 2)
 
 -- !$> egDuped -- (22,204)
 
@@ -90,7 +90,7 @@ postinc :: State Prelude.Integer Prelude.Integer
 postinc = stateMonad Do.do
   x <- get
   _ <- put (x Prelude.+ 1)
-  pure x
+  Do.pure x
 
 twicePostincShow :: State Prelude.Integer Prelude.String
 twicePostincShow = stateMonad Do.do
@@ -99,8 +99,8 @@ twicePostincShow = stateMonad Do.do
   let c = dupMonad Do.do
         v <- (10, 100)
         x <- (v Prelude.+ 1, v Prelude.+ 2)
-        pure (x Prelude.* 2 :: Prelude.Integer)
-  pure $
+        Do.pure (x Prelude.* 2 :: Prelude.Integer)
+  Do.pure $
     Foldable.fold
       [Prelude.show a, "-", Prelude.show b, "-", Prelude.show c]
 

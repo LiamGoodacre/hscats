@@ -2,6 +2,7 @@ module CurryChecks (checks) where
 
 import AdjunctionChecks (OnlyTrue (..), OnlyUnit (..))
 import Cats
+import Cats.Adjoint
 import Data.Kind (Type)
 import Prelude (Bool (..), Int, String)
 import Prelude qualified as P

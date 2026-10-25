@@ -3,6 +3,7 @@
 module KanExamples where
 
 import Cats
+import Cats.Adjoint
 import Data.Kind (Type)
 import Data.Proxy (Proxy (..))
 import Prelude qualified

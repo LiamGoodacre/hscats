@@ -2,8 +2,9 @@ module MonadChecks (checks) where
 
 import AdjunctionChecks (Env, OnlyTrue (..), OnlyUnit (..), Reader, ToTrue, ToUnit)
 import Cats
+import Cats.Adjoint
 import Cats.Do qualified as Do
-import Cats.Monad qualified as M
+import Cats.Monad qualified as Monad
 import Prelude (Bool (..), Int, Maybe (..), String)
 import Prelude qualified as P
 
@@ -53,22 +54,22 @@ instance MonoidObject (OpTensor Composing) (Identity • Identity) where
 unitFromAlias ::
   forall {c} (m :: c --> c) a.
   (AdjunctionMonad m, a ∈ c) => c a (Act m a)
-unitFromAlias = M.unit (ViaAdjunction m) a
+unitFromAlias = Monad.unit (ViaAdjunction m) a
 
 unitFromBy ::
   forall {c} d (m :: c --> c) a.
   (AdjunctionMonadBy m d, a ∈ c) => c a (Act m a)
-unitFromBy = M.unit (ViaAdjunction m) a
+unitFromBy = Monad.unit (ViaAdjunction m) a
 
 counitFromAlias ::
   forall {c} (w :: c --> c) a.
   (AdjunctionComonad w, a ∈ c) => c (Act w a) a
-counitFromAlias = M.counit (ViaAdjunction w) a
+counitFromAlias = Monad.counit (ViaAdjunction w) a
 
 counitFromBy ::
   forall {c} d (w :: c --> c) a.
   (AdjunctionComonadBy w d, a ∈ c) => c (Act w a) a
-counitFromBy = M.counit (ViaAdjunction w) a
+counitFromBy = Monad.counit (ViaAdjunction w) a
 
 stateDecomposition :: Decompose (Reader Int • Env Int) :~: '(Reader Int, Env Int)
 stateDecomposition = Refl
@@ -130,30 +131,30 @@ observeTriple (peek, pos) = (pos, P.map (observeDouble ∘ peek) ints)
 
 checks :: [(String, Bool)]
 checks =
-  [ ("Constructor list monad unit", M.unit Lists Int 7 P.== [7]),
-    ("Constructor list monad join preserves order", M.join Lists Int [[1, 2], [], [3]] P.== [1, 2, 3]),
-    ("Constructor list flatMap", P.all (\xs -> flatMap Lists step xs P.== P.concatMap step xs) lists),
-    ("List monad left unit", P.all (\n -> flatMap Lists step (M.unit Lists Int n) P.== step n) ints),
-    ("List monad right unit", P.all (\xs -> flatMap Lists (M.unit Lists Int) xs P.== xs) lists),
+  [ ("Constructor list monad unit", Monad.unit Lists Int 7 P.== [7]),
+    ("Constructor list monad join preserves order", Monad.join Lists Int [[1, 2], [], [3]] P.== [1, 2, 3]),
+    ("Constructor list flatMap", P.all (\xs -> Monad.flatMap Lists step xs P.== P.concatMap step xs) lists),
+    ("List monad left unit", P.all (\n -> Monad.flatMap Lists step (Monad.unit Lists Int n) P.== step n) ints),
+    ("List monad right unit", P.all (\xs -> Monad.flatMap Lists (Monad.unit Lists Int) xs P.== xs) lists),
     ( "List monad bind associativity changes result type",
-      P.all (\xs -> flatMap Lists next (flatMap Lists step xs) P.== flatMap Lists (flatMap Lists next ∘ step) xs) lists
+      P.all (\xs -> Monad.flatMap Lists next (Monad.flatMap Lists step xs) P.== Monad.flatMap Lists (Monad.flatMap Lists next ∘ step) xs) lists
     ),
     ( "List monad multiplication associativity",
       P.all
-        (\xs -> M.join Lists Int (M.join Lists (type [Int]) xs) P.== M.join Lists Int (map Lists (M.join Lists Int) xs))
+        (\xs -> Monad.join Lists Int (Monad.join Lists (type [Int]) xs) P.== Monad.join Lists Int (map Lists (Monad.join Lists Int) xs))
         [[], [[]], nestedLists, [nestedLists P.!! 2, nestedLists P.!! 3]]
     ),
     ( "List monad unit naturality",
-      P.all (\n -> map Lists P.show (M.unit Lists Int n) P.== M.unit Lists String (P.show n)) ints
+      P.all (\n -> map Lists P.show (Monad.unit Lists Int n) P.== Monad.unit Lists String (P.show n)) ints
     ),
     ( "List monad multiplication naturality",
-      P.all (\xs -> map Lists P.show (M.join Lists Int xs) P.== M.join Lists String (map (Lists • Lists) P.show xs)) nestedLists
+      P.all (\xs -> map Lists P.show (Monad.join Lists Int xs) P.== Monad.join Lists String (map (Lists • Lists) P.show xs)) nestedLists
     ),
     ( "Constructor Maybe handles absent computations",
-      M.unit Optional Int 7 P.== Just 7
-        P.&& M.join Optional Int (Just Nothing) P.== Nothing
-        P.&& flatMap Optional (\(n :: Int) -> if n P.> 0 then Just (P.show n) else Nothing) (Just 3) P.== Just "3"
-        P.&& flatMap Optional (Just ∘ P.show) (Nothing :: Maybe Int) P.== Nothing
+      Monad.unit Optional Int 7 P.== Just 7
+        P.&& Monad.join Optional Int (Just Nothing) P.== Nothing
+        P.&& Monad.flatMap Optional (\(n :: Int) -> if n P.> 0 then Just (P.show n) else Nothing) (Just 3) P.== Just "3"
+        P.&& Monad.flatMap Optional (Just ∘ P.show) (Nothing :: Maybe Int) P.== Nothing
     ),
     ( "Qualified do supports a general list monad",
       ( Do.with Lists Do.do
@@ -189,75 +190,75 @@ checks =
     ),
     ( "Adjunction state unit and multiplication agree with direct operations",
       let nested s = (transition, s P.+ 2)
-       in sameOn ints (M.unit State Int 7) (unit (type '(Reader Int, Env Int)) Int 7)
-            P.&& sameOn ints (M.join State Int nested) (join (type '(Reader Int, Env Int)) Int nested)
+       in sameOn ints (Monad.unit State Int 7) (unit (type '(Reader Int, Env Int)) Int 7)
+            P.&& sameOn ints (Monad.join State Int nested) (join (type '(Reader Int, Env Int)) Int nested)
     ),
     ( "State bind retains state sequencing",
-      sameOn ints (flatMap State stateStep transition) (\s -> (P.show (3 P.* s P.+ 4), 2 P.* (s P.+ 3)))
+      sameOn ints (Monad.flatMap State stateStep transition) (\s -> (P.show (3 P.* s P.+ 4), 2 P.* (s P.+ 3)))
     ),
     ( "State monad left and right units",
-      sameOn ints (flatMap State stateStep (M.unit State Int 5)) (stateStep 5)
-        P.&& sameOn ints (flatMap State (M.unit State Int) transition) transition
+      sameOn ints (Monad.flatMap State stateStep (Monad.unit State Int 5)) (stateStep 5)
+        P.&& sameOn ints (Monad.flatMap State (Monad.unit State Int) transition) transition
     ),
     ( "State monad associativity",
       sameOn
         ints
-        (flatMap State stateNext (flatMap State stateStep transition))
-        (flatMap State (\n -> flatMap State stateNext (stateStep n)) transition)
+        (Monad.flatMap State stateNext (Monad.flatMap State stateStep transition))
+        (Monad.flatMap State (\n -> Monad.flatMap State stateNext (stateStep n)) transition)
     ),
     ( "Independent composition instances coexist with the adjunction bridge",
-      M.unit (Identity • Identity) Int 7 P.== M.unit (ViaAdjunction (Identity • Identity)) Int 7
-        P.&& M.join (Identity • Identity) Int 9 P.== M.join (ViaAdjunction (Identity • Identity)) Int 9
-        P.&& M.counit (Identity • Identity) Int 3 P.== M.counit (ViaAdjunction (Identity • Identity)) Int 3
-        P.&& M.duplicate (Identity • Identity) Int 5 P.== M.duplicate (ViaAdjunction (Identity • Identity)) Int 5
+      Monad.unit (Identity • Identity) Int 7 P.== Monad.unit (ViaAdjunction (Identity • Identity)) Int 7
+        P.&& Monad.join (Identity • Identity) Int 9 P.== Monad.join (ViaAdjunction (Identity • Identity)) Int 9
+        P.&& Monad.counit (Identity • Identity) Int 3 P.== Monad.counit (ViaAdjunction (Identity • Identity)) Int 3
+        P.&& Monad.duplicate (Identity • Identity) Int 5 P.== Monad.duplicate (ViaAdjunction (Identity • Identity)) Int 5
     ),
     ( "Independent context comonad extraction and duplication",
-      M.counit Context Int ("ctx", 7) P.== 7
-        P.&& M.duplicate Context Int ("ctx", 7) P.== ("ctx", ("ctx", 7))
+      Monad.counit Context Int ("ctx", 7) P.== 7
+        P.&& Monad.duplicate Context Int ("ctx", 7) P.== ("ctx", ("ctx", 7))
     ),
     ( "Comonad extension has access to the context",
-      extend Context (\(s, n) -> P.show n P.++ s) ("ctx", 7 :: Int) P.== ("ctx", "7ctx")
+      Monad.extend Context (\(s, n) -> P.show n P.++ s) ("ctx", 7 :: Int) P.== ("ctx", "7ctx")
     ),
     ( "Context comonad counit laws",
       P.all
         ( \x ->
-            M.counit Context (type (String, Int)) (M.duplicate Context Int x) P.== x
-              P.&& map Context (M.counit Context Int) (M.duplicate Context Int x) P.== x
+            Monad.counit Context (type (String, Int)) (Monad.duplicate Context Int x) P.== x
+              P.&& map Context (Monad.counit Context Int) (Monad.duplicate Context Int x) P.== x
         )
         [("ctx", n) | n <- ints]
     ),
     ( "Context comonad coassociativity",
       P.all
         ( \x ->
-            M.duplicate Context (type (String, Int)) (M.duplicate Context Int x)
-              P.== map Context (M.duplicate Context Int) (M.duplicate Context Int x)
+            Monad.duplicate Context (type (String, Int)) (Monad.duplicate Context Int x)
+              P.== map Context (Monad.duplicate Context Int) (Monad.duplicate Context Int x)
         )
         [("ctx", n) | n <- ints]
     ),
     ( "Context comonad operations are natural",
       P.all
         ( \x ->
-            P.show (M.counit Context Int x) P.== M.counit Context String (map Context P.show x)
-              P.&& map (Context • Context) P.show (M.duplicate Context Int x)
-                P.== M.duplicate Context String (map Context P.show x)
+            P.show (Monad.counit Context Int x) P.== Monad.counit Context String (map Context P.show x)
+              P.&& map (Context • Context) P.show (Monad.duplicate Context Int x)
+                P.== Monad.duplicate Context String (map Context P.show x)
         )
         [("ctx", n) | n <- ints]
     ),
     ( "Store comonad operations agree with the adjunction",
-      M.counit Store Int store P.== counit (type '(Env Int, Reader Int)) Int store
-        P.&& observeDouble (M.duplicate Store Int store)
+      Monad.counit Store Int store P.== counit (type '(Env Int, Reader Int)) Int store
+        P.&& observeDouble (Monad.duplicate Store Int store)
           P.== observeDouble (duplicate (type '(Env Int, Reader Int)) Int store)
     ),
     ( "Store comonad counit laws preserve every observed position",
-      observeStore (M.counit Store (type (Int -> Int, Int)) (M.duplicate Store Int store)) P.== observeStore store
-        P.&& observeStore (map Store (M.counit Store Int) (M.duplicate Store Int store)) P.== observeStore store
+      observeStore (Monad.counit Store (type (Int -> Int, Int)) (Monad.duplicate Store Int store)) P.== observeStore store
+        P.&& observeStore (map Store (Monad.counit Store Int) (Monad.duplicate Store Int store)) P.== observeStore store
     ),
     ( "Store comonad coassociativity preserves nested positions",
-      observeTriple (M.duplicate Store (type (Int -> Int, Int)) (M.duplicate Store Int store))
-        P.== observeTriple (map Store (M.duplicate Store Int) (M.duplicate Store Int store))
+      observeTriple (Monad.duplicate Store (type (Int -> Int, Int)) (Monad.duplicate Store Int store))
+        P.== observeTriple (map Store (Monad.duplicate Store Int) (Monad.duplicate Store Int store))
     ),
     ( "Store extension evaluates neighboring contexts",
-      observeStore (extend Store (\(peek, pos) -> peek (pos P.- 1) P.+ peek (pos P.+ 1)) store)
+      observeStore (Monad.extend Store (\(peek, pos) -> peek (pos P.- 1) P.+ peek (pos P.+ 1)) store)
         P.== (1, P.map (\n -> 2 P.* n P.* n P.+ 6) ints)
     ),
     ( "Composition decomposition supports different object-name kinds",
@@ -281,7 +282,7 @@ checks =
         (UArrow l, UArrow r) -> sameOn ints l P.id P.&& sameOn ints r P.id
     ),
     ( "Generic flatMap and extend retain constrained object evidence",
-      case (flatMap (ViaAdjunction (ToTrue • ToUnit)) (TArrow (P.+ 3)), extend (ViaAdjunction (ToUnit • ToTrue)) (UArrow (P.* 2))) of
+      case (Monad.flatMap (ViaAdjunction (ToTrue • ToUnit)) (TArrow (P.+ 3)), Monad.extend (ViaAdjunction (ToUnit • ToTrue)) (UArrow (P.* 2))) of
         (TArrow l, UArrow r) -> sameOn ints l (P.+ 3) P.&& sameOn ints r (P.* 2)
     )
   ]

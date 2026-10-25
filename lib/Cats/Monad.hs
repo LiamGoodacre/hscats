@@ -42,7 +42,8 @@ import Cats.Compose
 import Cats.Core
 import Cats.Exponential
 import Cats.Functor
-import Cats.MonoidObject
+import Cats.MonoidObject (ComonoidObject, MonoidObject)
+import Cats.MonoidObject qualified as MonoidObject
 import Cats.Semigroupoid
 import Data.Kind (Constraint)
 
@@ -56,11 +57,11 @@ type Comonad w = ComonoidObject Composing w
 
 -- | The monad unit at an object. For @Constructor []@ this makes a singleton.
 unit :: forall {k}. forall (m :: k --> k) a -> (Monad m, a ∈ k) => k a (Act m a)
-unit m a = empty Composing m $$ a
+unit m a = run (MonoidObject.empty Composing m) a
 
 -- | Flatten two layers of a monad.
 join :: forall {k}. forall (m :: k --> k) a -> (Monad m, a ∈ k) => k (Act m (Act m a)) (Act m a)
-join m a = append Composing m $$ a
+join m a = run (MonoidObject.append Composing m) a
 
 -- | Extend an effectful arrow to monadic inputs (Kleisli extension).
 -- Over 'Types', @flatMap (type (Constructor [])) f xs@ is @concatMap f xs@.
@@ -73,11 +74,11 @@ flatMap m f = require @(Acts m b) do
 
 -- | Extract a value from a comonad.
 counit :: forall {k}. forall (w :: k --> k) a -> (Comonad w, a ∈ k) => k (Act w a) a
-counit w a = coempty Composing w $$ a
+counit w a = run (MonoidObject.coempty Composing w) a
 
 -- | Duplicate the surrounding context.
 duplicate :: forall {k}. forall (w :: k --> k) a -> (Comonad w, a ∈ k) => k (Act w a) (Act w (Act w a))
-duplicate w a = coappend Composing w $$ a
+duplicate w a = run (MonoidObject.coappend Composing w) a
 
 -- | Extend a context-consuming arrow to every context (co-Kleisli extension).
 extend ::
